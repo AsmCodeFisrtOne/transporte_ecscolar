@@ -1089,6 +1089,7 @@ function clearGPSFirebase(){
 
 // ── SPEED SIM ──
 function setSpeed(s,btn){
+  if(gpsWatchId){ showToast('⚠️ GPS ativo — velocidade real em uso'); return; }
   document.querySelectorAll('.ss-btn').forEach(b=>b.classList.remove('active'));
   btn.classList.add('active');
   currentSpeed=s;
