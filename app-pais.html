@@ -695,6 +695,7 @@ function initPaisApp(){
   statusAlunosCache = {};
   lastMapLat = null;
   lastMapLng = null;
+  _lastMapLat = null; _lastMapLng = null;
   // Reset mapa
   const iframe = document.getElementById('mapa-van');
   if(iframe) iframe.src = 'about:blank';
@@ -750,12 +751,21 @@ function initPaisMap(lat, lng) {
   updatePaisMap(lat, lng);
 }
 
+let _lastMapLat = null, _lastMapLng = null;
+
 function renderMapIframe(lat, lng) {
+  // Only reload if moved more than ~100 meters
+  if(_lastMapLat !== null) {
+    const d = Math.abs(lat - _lastMapLat) + Math.abs(lng - _lastMapLng);
+    if(d < 0.001) return;
+  }
+  _lastMapLat = lat;
+  _lastMapLng = lng;
+
   const iframe = document.getElementById('mapa-van');
   const loading = document.getElementById('mapa-loading');
   if(!iframe) return;
   if(loading) loading.style.display = 'none';
-  // OSM embed with mlat/mlon for marker - correct format
   const delta = 0.004;
   const bbox = `${lng-delta},${lat-delta},${lng+delta},${lat+delta}`;
   iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
