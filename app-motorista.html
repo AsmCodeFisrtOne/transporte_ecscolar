@@ -1055,9 +1055,7 @@ function toggleGPS() {
   gpsWatchId = navigator.geolocation.watchPosition(pos=>{
     const lat=pos.coords.latitude, lng=pos.coords.longitude;
     const speed=pos.coords.speed?Math.round(pos.coords.speed*3.6):0;
-    // Debug: show what GPS returns
-    showToast('GPS: '+lat+', '+lng);
-    if(!lat || !lng) { showToast('❌ GPS sem coordenadas!'); return; }
+    if(!lat || !lng) return;
     const gpsDot = document.getElementById('gps-dot'); if(gpsDot) gpsDot.className='gps-dot active';
     const gpsTxt = document.getElementById('gps-txt'); if(gpsTxt) gpsTxt.textContent=`GPS ativo · ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
     const gpsBtn = document.getElementById('gps-btn'); if(gpsBtn) gpsBtn.textContent='⏹ Parar';
@@ -1068,9 +1066,7 @@ function toggleGPS() {
     const st=document.getElementById('spd-status');
     if(st){st.textContent=speed===0?'● PARADO':'▶ '+speed+' km/h'; st.className='speed-status '+(speed===0?'stopped':'moving');}
     updateChatForSpeed();
-    window.gpsRef.set({lat:lat,lng:lng,velocidade:speed,timestamp:Date.now(),viagem_ativa:true})
-      .then(()=>{ alert('GPS GRAVOU! '+lat.toFixed(4)); })
-      .catch(e=>{ alert('ERRO GPS: '+e.message); });
+    window.gpsRef.set({lat:lat,lng:lng,velocidade:speed,timestamp:Date.now(),viagem_ativa:true});
   },err=>{
     showToast('❌ GPS: '+err.message);
     document.getElementById('gps-dot').className='gps-dot off';
