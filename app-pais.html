@@ -675,7 +675,13 @@ function doRegister() {
       });
     })
     .then(()=>{
-      err.textContent='✅ Conta criada! Aguarde aprovação do Tio Daniel.';
+      err.textContent='✅ Cadastro enviado! Aguarde aprovação do Tio Daniel.';
+      // Sign out and go back to login after 3 seconds
+      setTimeout(()=>{
+        auth.signOut();
+        showStep('step-login');
+        document.getElementById('login-err').textContent='✅ Cadastro enviado! Aguarde aprovação do Tio Daniel.';
+      }, 3000);
     })
     .catch(e=>{
       if(e.code==='auth/email-already-in-use') err.textContent='❌ E-mail já cadastrado. Faça login.';
@@ -819,10 +825,13 @@ function checkApprovalStatus() {
     }
     const data = snap.docs[0].data();
     if(data.status === 'aprovado') {
-      // Approved - load normally
-      listenAlunos();
-      listenStatusAlunos();
-      listenGPS();
+      // Approved - sign out and return to login with message
+      auth.signOut().then(()=>{
+        showStep('step-login');
+        const err = document.getElementById('login-err');
+        if(err) err.textContent = '✅ Acesso liberado! Faça login para entrar.';
+      });
+      return;
     } else if(data.status === 'bloqueado') {
       // Blocked - sign out
       auth.signOut();
