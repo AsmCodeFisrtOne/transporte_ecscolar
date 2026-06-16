@@ -691,6 +691,17 @@ function doLogout(){if(confirm('Sair?'))auth.signOut();}
 function initPaisApp(){
   const user = window.currentUser;
   document.getElementById('prof-email').textContent = user.email;
+  
+  // Check if access is blocked
+  db.collection('pais_pendentes').where('uid','==',user.uid).get().then(snap=>{
+    if(!snap.empty && snap.docs[0].data().status === 'bloqueado') {
+      document.getElementById('main-app').style.display = 'none';
+      document.getElementById('login-screen').style.display = 'flex';
+      document.getElementById('login-err') && (document.getElementById('login-err').textContent = '❌ Acesso removido. Entre em contato com o Tio Daniel.');
+      auth.signOut();
+      return;
+    }
+  });
   // Reset local state
   statusAlunosCache = {};
   lastMapLat = null;
@@ -718,6 +729,20 @@ function initPaisApp(){
       if(d.turno_manha) partes.push('Manhã');
       else if(d.turno_tarde) partes.push('Tarde');
       window.paisNome = nome + (partes.length ? ' ('+partes.join(' • ')+')' : '');
+    } else {
+      // Fallback: try to find aluno by email
+      db.collection('alunos').where('responsavel_email','==',window.currentUser.email).get().then(snap2=>{
+        if(!snap2.empty) {
+          const a = snap2.docs[0].data();
+          const partes = [];
+          if(a.nome) partes.push(a.nome);
+          if(a.serie) partes.push(a.serie);
+          if(a.turno_manha) partes.push('Manhã');
+          else if(a.turno_tarde) partes.push('Tarde');
+          const nomePai = a.responsavel_nome || window.currentUser.email;
+          window.paisNome = nomePai + (partes.length ? ' ('+partes.join(' • ')+')' : '');
+        }
+      });
     }
   });
   // Start GPS listener LAST - with fresh state

@@ -946,9 +946,11 @@ function deleteAluno(id, nome) {
   // Delete status
   db.doc('status_alunos/'+id).delete();
   
-  // Delete pais_pendentes linked to this aluno
+  // Block pai access by marking in pais_pendentes
   db.collection('pais_pendentes').where('aluno_nome','==',nome).get().then(snap=>{
-    snap.forEach(d=>d.ref.delete());
+    snap.forEach(d=>{
+      d.ref.update({status: 'bloqueado'});
+    });
   });
   
   showToast('🗑️ '+nome+' e dados relacionados removidos');
