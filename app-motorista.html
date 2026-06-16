@@ -29,19 +29,6 @@ window.rdb = rdb;
 const gpsRef = rdb.ref('localizacao_atual');
 window.gpsRef = gpsRef;
 const auth = firebase.auth();
-
-auth.onAuthStateChanged(user => {
-  if(user) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-app').style.display = 'flex';
-    window.currentUser = user;
-    // GPS will be cleared when stopGPS() is called or trip ends
-    initApp();
-  } else {
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('main-app').style.display = 'none';
-  }
-});
 </script>
 
 <style>
@@ -1656,6 +1643,19 @@ function showToast(msg){
   t.textContent=msg;t.classList.add('show');
   setTimeout(()=>t.classList.remove('show'),2800);
 }
+
+// ── AUTH (defined last so initApp is available) ──
+auth.onAuthStateChanged(user => {
+  if(user) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('main-app').style.display = 'flex';
+    window.currentUser = user;
+    initApp();
+  } else {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('main-app').style.display = 'none';
+  }
+});
 </script>
 </body>
 </html>
