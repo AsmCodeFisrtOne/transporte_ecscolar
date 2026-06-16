@@ -383,6 +383,13 @@ function listenStatus(){
     renderPainel();
   });
 }
+function regAcao(id, nome, etapa){
+  db.doc('status_alunos/'+id).set({nome:nome,etapa:etapa,atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  var msgs={embarcou:'✅ '+nome+' embarcou na van',na_escola:'🏫 '+nome+' chegou na escola',em_casa:'🏠 '+nome+' chegou em casa',faltou:'❌ '+nome+' faltou'};
+  if(msgs[etapa]) db.collection('mensagens').add({texto:msgs[etapa],tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  showToast(msgs[etapa]||'✅ Atualizado');
+}
+
 function renderPainel(){
   var list=el('alunos-painel'); if(!list) return;
   if(!alunosData.length){ list.innerHTML='<div style="padding:24px;text-align:center;color:var(--gray400);font-size:13px">Nenhum aluno cadastrado</div>'; return; }
@@ -391,11 +398,19 @@ function renderPainel(){
   list.innerHTML=alunosData.map(function(a){
     var s=statusCache[a.id]||{};
     var etapa=s.etapa||'aguardando';
-    return '<div class="aluno-row">'
+    return '<div class="aluno-row" style="flex-direction:column;align-items:stretch;gap:8px">'
+      +'<div style="display:flex;align-items:center;gap:10px">'
       +'<div class="aluno-foto">'+(a.foto||'👤')+'</div>'
       +'<div class="aluno-info"><div class="aluno-nome">'+a.nome+'</div>'
-      +'<div class="aluno-sub">'+(a.endereco||'')+'</div></div>'
+      +'<div class="aluno-sub">'+(a.serie?a.serie+' · ':'')+(a.endereco||'')+'</div></div>'
       +'<span class="aluno-etapa '+(etapaClass[etapa]||'etapa-aguardando')+'">'+(etapaLabel[etapa]||etapa)+'</span>'
+      +'</div>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button onclick="regAcao(''+a.id+'',''+a.nome+'','embarcou')" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#DCFCE7;color:#166534;font-size:11px;font-weight:700;cursor:pointer">✅ Van</button>'
+      +'<button onclick="regAcao(''+a.id+'',''+a.nome+'','na_escola')" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#DBEAFE;color:#1D4ED8;font-size:11px;font-weight:700;cursor:pointer">🏫 Escola</button>'
+      +'<button onclick="regAcao(''+a.id+'',''+a.nome+'','em_casa')" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#EDE9FE;color:#6D28D9;font-size:11px;font-weight:700;cursor:pointer">🏠 Casa</button>'
+      +'<button onclick="regAcao(''+a.id+'',''+a.nome+'','faltou')" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#FEF2F2;color:#991B1B;font-size:11px;font-weight:700;cursor:pointer">❌ Faltou</button>'
+      +'</div>'
       +'</div>';
   }).join('');
 }
