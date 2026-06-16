@@ -788,9 +788,10 @@ function saveAll() {
   };
   db.doc('config/main').set(data, {merge:true})
     .then(() => {
-      document.getElementById('topbar-name').textContent = 'Motorista — ' + (data.nome||'Tio Daniel');
-      document.getElementById('topbar-sub').textContent = data.unidade;
-      if(data.chegada) { document.getElementById('eta-t').textContent = data.chegada; document.getElementById('map-eta-val').textContent = data.chegada; }
+      setText('topbar-name', 'Motorista — ' + (data.nome||'Tio Daniel'));
+      setText('topbar-sub', data.unidade);
+      setText('eta-t', data.chegada||'--:--');
+      setText('map-eta-val', data.chegada||'--:--');
       showToast('✅ Configurações salvas no Firebase!');
     })
     .catch(e => showToast('❌ Erro: ' + e.message));
