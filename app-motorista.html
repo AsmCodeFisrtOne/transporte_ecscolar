@@ -957,6 +957,20 @@ function deleteAluno(id, nome) {
   showToast('🗑️ '+nome+' removido!');
 }
 
+function saveAluno(id) {
+  if(!pendingAluno[id] || Object.keys(pendingAluno[id]).length === 0) {
+    showToast('Nenhuma alteracao para salvar');
+    return;
+  }
+  db.doc('alunos/'+id).update(pendingAluno[id])
+    .then(()=>{
+      delete pendingAluno[id];
+      openAlunoId = null; // Allow re-render with updated data
+      showToast('✅ Aluno salvo!');
+    })
+    .catch(e=>showToast('❌ '+e.message));
+}
+
 let alunoCount = 0;
 function addAluno() {
   alunoCount++;
