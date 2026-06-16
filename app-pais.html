@@ -714,10 +714,10 @@ function initPaisApp(){
   if(loading) loading.style.display = '';
   renderBolinhas();
   loadConfig();
+  // Check approval status first
+  checkApprovalStatus();
   listenMessages();
-  listenAlunos();
   listenNotifs();
-  listenStatusAlunos();
   // Load pai name + aluno info
   db.collection('pais_pendentes').where('uid','==',window.currentUser.uid).get().then(snap=>{
     if(!snap.empty) {
@@ -810,6 +810,44 @@ function renderMapIframe(lat, lng) {
 }
 
 // ── GPS (Realtime DB) ──
+function checkApprovalStatus() {
+  const user = window.currentUser;
+  db.collection('pais_pendentes').where('uid','==',user.uid).get().then(snap=>{
+    if(snap.empty) {
+      // No record found - show waiting screen
+      showWaitingApproval();
+      return;
+    }
+    const data = snap.docs[0].data();
+    if(data.status === 'aprovado') {
+      // Approved - load normally
+      listenAlunos();
+      listenStatusAlunos();
+      listenGPS();
+    } else if(data.status === 'bloqueado') {
+      // Blocked - sign out
+      auth.signOut();
+    } else {
+      // Pending - show waiting screen
+      showWaitingApproval();
+      // Keep checking every 10 seconds
+      setTimeout(checkApprovalStatus, 10000);
+    }
+  });
+}
+
+function showWaitingApproval() {
+  // Show waiting message on map screen
+  const loading = document.getElementById('mapa-loading');
+  if(loading) {
+    loading.innerHTML = '<div style="font-size:40px;margin-bottom:12px;">⏳</div><div style="font-size:14px;font-weight:700;color:var(--navy);">Aguardando aprovação</div><div style="font-size:12px;color:var(--gray400);margin-top:6px;">O Tio Daniel vai liberar seu acesso em breve</div>';
+    loading.style.display = '';
+  }
+  // Clear alunos cache
+  alunosCache = [];
+  renderBolinhas();
+}
+
 function listenGPS(){
   rdb.ref('localizacao_atual').on('value',snap=>{
     if(!snap.exists()) return;
