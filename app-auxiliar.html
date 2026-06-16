@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Van Escolar — Auxiliar</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey:"AIzaSyD0WWqTfOto8cJ5iUN_w140q1RiTeGpHFc",
+  authDomain:"van-escolar-daniel-irene.firebaseapp.com",
+  projectId:"van-escolar-daniel-irene",
+  storageBucket:"van-escolar-daniel-irene.firebasestorage.app",
+  messagingSenderId:"883890897086",
+  appId:"1:883890897086:web:4dfb8b69d99046fbbb9eef",
+  databaseURL:"https://van-escolar-daniel-irene-default-rtdb.firebaseio.com"
+});
+const db = firebase.firestore();
+const rdb = firebase.database();
+</script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#0F172A;overflow:hidden}
+:root{--navy:#0F172A;--yellow:#FFD23F;--green:#22C55E;--red:#EF4444;--orange:#F97316;--white:#fff;--gray50:#F8FAFC;--gray100:#F1F5F9;--gray200:#E2E8F0;--gray400:#94A3B8;}
+
+/* HEADER */
+#header{background:var(--navy);padding:14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.h-title{font-size:18px;font-weight:800;color:var(--yellow)}
+.h-trip{font-size:12px;padding:4px 10px;border-radius:20px;font-weight:600}
+.h-trip.active{background:#14532d;color:#86efac}
+.h-trip.inactive{background:#7C3AED22;color:var(--gray400)}
+
+/* BLOQUEIO */
+#blocked-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--navy);padding:24px;text-align:center;gap:16px}
+.blocked-icon{font-size:64px}
+.blocked-title{font-size:20px;font-weight:700;color:var(--yellow)}
+.blocked-sub{font-size:14px;color:var(--gray400);line-height:1.6}
+
+/* MAIN */
+#main{display:none;flex-direction:column;height:100vh;background:var(--gray50)}
+
+/* ALUNO SELECTOR */
+#aluno-header{padding:12px 14px;background:var(--white);border-bottom:1px solid var(--gray200);flex-shrink:0}
+.aluno-selector-title{font-size:11px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+#alunos-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
+.aluno-chip{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;border:2px solid var(--gray200);background:var(--white);cursor:pointer;flex-shrink:0;min-width:70px;transition:all .15s}
+.aluno-chip.selected{border-color:var(--navy);background:var(--navy)}
+.aluno-chip.selected .chip-nome{color:var(--yellow)}
+.aluno-chip.selected .chip-foto{filter:none}
+.chip-foto{font-size:24px}
+.chip-nome{font-size:11px;font-weight:600;color:var(--navy);text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip-status{font-size:9px;padding:2px 6px;border-radius:20px;font-weight:600}
+.chip-status.embarcou{background:#DBEAFE;color:#1D4ED8}
+.chip-status.faltou{background:#FEF2F2;color:#991B1B}
+.chip-status.em_casa{background:#F0FDF4;color:#166534}
+.chip-status.na_escola{background:#F0FDF4;color:#166534}
+
+/* AÇÕES */
+#acoes{flex:1;display:flex;flex-direction:column;justify-content:center;padding:20px;gap:16px}
+.acao-btn{width:100%;padding:24px;border-radius:20px;border:none;font-size:20px;font-weight:800;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:12px;transition:transform .1s,opacity .1s}
+.acao-btn:active{transform:scale(.97)}
+.acao-btn:disabled{opacity:.3;cursor:not-allowed}
+.btn-embarcar{background:var(--green);color:#fff}
+.btn-desembarcar{background:var(--orange);color:#fff}
+.btn-faltou{background:var(--red);color:#fff}
+
+/* CONFIRMAÇÃO */
+#confirm-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px}
+#confirm-overlay.open{display:flex}
+.confirm-box{background:var(--white);border-radius:20px;padding:24px;width:100%;max-width:340px;text-align:center}
+.confirm-icon{font-size:48px;margin-bottom:12px}
+.confirm-title{font-size:18px;font-weight:700;color:#1E293B;margin-bottom:6px}
+.confirm-sub{font-size:14px;color:var(--gray400);margin-bottom:20px}
+.confirm-btns{display:flex;gap:10px}
+.confirm-yes{flex:1;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;color:#fff}
+.confirm-no{padding:14px 20px;border-radius:12px;border:none;background:var(--gray100);color:var(--gray400);font-size:15px;font-weight:700;cursor:pointer}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:12px 24px;border-radius:22px;font-size:14px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<!-- BLOQUEADO -->
+<div id="blocked-screen">
+  <div class="blocked-icon">🔒</div>
+  <div class="blocked-title">Viagem não iniciada</div>
+  <div class="blocked-sub">Aguarde o motorista iniciar a viagem para usar o painel de ações.</div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="header">
+    <div class="h-title">🚐 Auxiliar</div>
+    <span class="h-trip active" id="trip-badge">● Viagem ativa</span>
+  </div>
+
+  <div id="aluno-header">
+    <div class="aluno-selector-title">Selecione o aluno</div>
+    <div id="alunos-scroll"></div>
+  </div>
+
+  <div id="acoes">
+    <button class="acao-btn btn-embarcar" onclick="confirmarAcao('embarcou')" disabled id="btn-embarcar">✅ Embarcou</button>
+    <button class="acao-btn btn-desembarcar" onclick="confirmarAcao('desembarcou')" disabled id="btn-desembarcar">🏠 Desembarcou</button>
+    <button class="acao-btn btn-faltou" onclick="confirmarAcao('faltou')" disabled id="btn-faltou">❌ Faltou</button>
+  </div>
+</div>
+
+<!-- CONFIRMAÇÃO -->
+<div id="confirm-overlay">
+  <div class="confirm-box">
+    <div class="confirm-icon" id="c-icon"></div>
+    <div class="confirm-title" id="c-title"></div>
+    <div class="confirm-sub" id="c-sub"></div>
+    <div class="confirm-btns">
+      <button class="confirm-no" onclick="closeConfirm()">Cancelar</button>
+      <button class="confirm-yes" id="c-yes-btn" onclick="executarAcao()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+var alunosData = [];
+var selectedAlunoId = null;
+var pendingAcao = null;
+var tripAtiva = false;
+
+function el(id){ return document.getElementById(id); }
+function showToast(msg){
+  var t=el('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },2500);
+}
+
+// Listen viagem_ativa
+rdb.ref('viagem_ativa').on('value', function(snap){
+  tripAtiva = snap.val()===true;
+  if(tripAtiva){
+    el('blocked-screen').style.display='none';
+    el('main').style.display='flex';
+  } else {
+    el('blocked-screen').style.display='flex';
+    el('main').style.display='none';
+  }
+});
+
+// Listen alunos
+db.collection('alunos').orderBy('ordem_parada','asc').onSnapshot(function(snap){
+  alunosData=[];
+  snap.forEach(function(d){ alunosData.push({id:d.id,...d.data()}); });
+  renderAlunos();
+});
+
+// Listen status
+var statusCache={};
+db.collection('status_alunos').onSnapshot(function(snap){
+  statusCache={};
+  snap.forEach(function(d){ statusCache[d.id]=d.data(); });
+  renderAlunos();
+});
+
+function renderAlunos(){
+  var scroll=el('alunos-scroll'); if(!scroll) return;
+  if(!alunosData.length){ scroll.innerHTML='<div style="padding:8px;font-size:13px;color:var(--gray400)">Nenhum aluno</div>'; return; }
+  var etapaLabel={embarcou:'Na van',faltou:'Faltou',em_casa:'Em casa',na_escola:'Na escola'};
+  scroll.innerHTML=alunosData.map(function(a){
+    var s=statusCache[a.id]||{};
+    var etapa=s.etapa;
+    var selected=selectedAlunoId===a.id;
+    return '<div class="aluno-chip'+(selected?' selected':'')+'" onclick="selectAluno(\''+a.id+'\')">'
+      +'<div class="chip-foto">'+(a.foto||'👤')+'</div>'
+      +'<div class="chip-nome">'+a.nome+'</div>'
+      +(etapa?'<span class="chip-status '+etapa+'">'+(etapaLabel[etapa]||etapa)+'</span>':'')
+      +'</div>';
+  }).join('');
+}
+
+function selectAluno(id){
+  selectedAlunoId=id;
+  renderAlunos();
+  // Enable buttons
+  ['btn-embarcar','btn-desembarcar','btn-faltou'].forEach(function(bid){ el(bid).disabled=false; });
+}
+
+function confirmarAcao(acao){
+  if(!selectedAlunoId){ showToast('⚠️ Selecione um aluno'); return; }
+  var aluno=alunosData.find(function(a){ return a.id===selectedAlunoId; });
+  if(!aluno) return;
+  pendingAcao={acao:acao,aluno:aluno};
+  var icons={embarcou:'✅',desembarcou:'🏠',faltou:'❌'};
+  var titles={embarcou:'Embarcou',desembarcou:'Desembarcou',faltou:'Faltou'};
+  var colors={embarcou:'var(--green)',desembarcou:'var(--orange)',faltou:'var(--red)'};
+  el('c-icon').textContent=icons[acao];
+  el('c-title').textContent=aluno.nome+' — '+titles[acao];
+  el('c-sub').textContent='Confirmar esta ação?';
+  el('c-yes-btn').style.background=colors[acao];
+  el('confirm-overlay').classList.add('open');
+}
+
+function closeConfirm(){
+  el('confirm-overlay').classList.remove('open');
+  pendingAcao=null;
+}
+
+function executarAcao(){
+  if(!pendingAcao) return;
+  var acao=pendingAcao.acao, aluno=pendingAcao.aluno;
+  var etapa=acao==='desembarcou'?'em_casa':acao;
+  db.doc('status_alunos/'+aluno.id).set({
+    nome:aluno.nome,etapa:etapa,
+    atualizado_em:firebase.firestore.FieldValue.serverTimestamp()
+  },{merge:true});
+  var msgs={embarcou:'✅ '+aluno.nome+' embarcou',desembarcou:'🏠 '+aluno.nome+' desembarcou',faltou:'❌ '+aluno.nome+' faltou'};
+  db.collection('mensagens').add({texto:msgs[acao],tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  showToast(msgs[acao]);
+  closeConfirm();
+  // Deselect
+  selectedAlunoId=null;
+  ['btn-embarcar','btn-desembarcar','btn-faltou'].forEach(function(bid){ el(bid).disabled=true; });
+  renderAlunos();
+}
+</script>
+</body>
+</html>

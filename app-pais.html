@@ -29,398 +29,259 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#0F172A;overflow
 :root{
   --navy:#0F172A;--navy2:#1E293B;--yellow:#FFD23F;
   --green:#22C55E;--red:#EF4444;--orange:#F97316;--blue:#3B82F6;
-  --white:#FFFFFF;--gray50:#F8FAFC;--gray100:#F1F5F9;--gray200:#E2E8F0;
-  --gray400:#94A3B8;--gray600:#475569;
+  --white:#fff;--gray50:#F8FAFC;--gray100:#F1F5F9;--gray200:#E2E8F0;--gray400:#94A3B8;--gray600:#475569;
 }
-
-/* ── LOGIN / REGISTER ── */
-#auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:var(--navy);padding:24px;gap:14px}
-.auth-logo{font-size:56px;margin-bottom:4px}
-.auth-title{font-size:22px;font-weight:800;color:var(--yellow);text-align:center}
-.auth-sub{font-size:13px;color:var(--gray400);text-align:center;margin-bottom:4px}
-.auth-input{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-family:'Inter',sans-serif;outline:none}
-.auth-input::placeholder{color:var(--gray400)}
-.auth-btn{width:100%;padding:15px;border-radius:12px;border:none;background:var(--yellow);color:var(--navy);font-size:16px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
-.auth-btn.secondary{background:rgba(255,255,255,.08);color:#fff;border:1.5px solid rgba(255,255,255,.15)}
-.auth-err{font-size:13px;color:#FCA5A5;text-align:center;min-height:18px}
-.auth-link{font-size:13px;color:var(--yellow);text-decoration:underline;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif}
-.auth-divider{display:flex;align-items:center;gap:10px;width:100%}
-.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.1)}
-.auth-divider span{font-size:12px;color:var(--gray400)}
-.step{display:none;flex-direction:column;gap:14px;width:100%}
-.step.active{display:flex}
-.step-title{font-size:16px;font-weight:700;color:#fff;text-align:center}
-.step-sub{font-size:12px;color:var(--gray400);text-align:center;margin-top:-8px}
-
-/* ── WAITING ── */
-#waiting-screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--navy);padding:24px;gap:16px;text-align:center}
-.wait-icon{font-size:64px}
-.wait-title{font-size:20px;font-weight:700;color:var(--yellow)}
-.wait-sub{font-size:14px;color:var(--gray400);line-height:1.6}
-.wait-btn{padding:12px 24px;border-radius:12px;border:none;background:rgba(255,255,255,.08);color:var(--gray400);font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:8px}
-
-/* ── MAIN APP ── */
-#main-app{display:none;flex-direction:column;height:100vh;background:var(--gray50)}
-
-/* ── TOPBAR ── */
-#topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--navy);flex-shrink:0}
+/* LOGIN */
+#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--navy);padding:24px;gap:14px}
+.l-logo{font-size:56px}
+.l-title{font-size:22px;font-weight:800;color:var(--yellow);text-align:center}
+.l-sub{font-size:13px;color:var(--gray400);text-align:center}
+.l-inp{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-family:'Inter',sans-serif;outline:none}
+.l-inp::placeholder{color:var(--gray400)}
+.l-btn{width:100%;padding:15px;border-radius:12px;border:none;background:var(--yellow);color:var(--navy);font-size:16px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.l-err{font-size:13px;color:#FCA5A5;text-align:center;min-height:18px}
+/* BLOQUEADO */
+#blocked-screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--navy);padding:24px;text-align:center;gap:16px}
+.bl-icon{font-size:56px}
+.bl-title{font-size:18px;font-weight:700;color:var(--red)}
+.bl-sub{font-size:14px;color:var(--gray400);line-height:1.6}
+.bl-btn{padding:12px 24px;border-radius:12px;border:none;background:rgba(255,255,255,.08);color:var(--gray400);font-size:14px;cursor:pointer;font-family:'Inter',sans-serif}
+/* MAIN */
+#main-app{display:none;flex-direction:column;height:100vh}
+/* TOPBAR */
+#topbar{background:var(--navy);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.tb-left{display:flex;align-items:center;gap:10px}
 .tb-logo{font-size:26px}
 .tb-name{font-size:14px;font-weight:700;color:var(--yellow)}
 .tb-sub{font-size:11px;color:var(--gray400)}
-.live-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.08);font-size:12px;font-weight:600}
+.live-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.08)}
 .live-dot{width:7px;height:7px;border-radius:50%;background:var(--gray400)}
-.live-dot.active{background:var(--green);animation:pulse 1.5s infinite}
-.live-txt{color:#fff}
+.live-dot.on{background:var(--green);animation:pulse 1.5s infinite}
+.live-txt{font-size:12px;font-weight:600;color:#fff}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-
-/* ── VIEWS ── */
+/* VIEWS */
 .view{display:none;flex:1;flex-direction:column;overflow:hidden}
 .view.active{display:flex}
 .scroll{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
-
-/* ── MAPA ── */
-#mapa-container{position:relative;flex:1}
+/* NAVBAR */
+#navbar{display:flex;background:var(--white);border-top:1px solid var(--gray200);flex-shrink:0}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;cursor:pointer;color:var(--gray400);font-size:10px;gap:2px;border:none;background:none;font-family:'Inter',sans-serif;position:relative}
+.nav-btn.active{color:var(--navy)}
+.nav-icon{font-size:20px}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:var(--yellow);display:none}
+.nav-btn.active .nav-dot{display:block}
+#notif-dot{display:none;position:absolute;top:6px;right:calc(50% - 14px);width:8px;height:8px;border-radius:50%;background:var(--red)}
+/* MAPA */
+#mapa-wrap{position:relative;flex:1}
 #mapa-iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
-#mapa-overlay{position:absolute;top:12px;left:12px;right:12px;z-index:10;pointer-events:none}
-.mapa-status{background:rgba(255,255,255,.95);border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.15)}
-.mapa-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:5}
-.mapa-loading-icon{font-size:40px;margin-bottom:8px}
-.mapa-loading-txt{font-size:13px;color:var(--gray400);font-weight:600}
-
-/* ── STATUS BOLINHAS ── */
-#status-bar{background:var(--white);border-top:1px solid var(--gray200);padding:12px 14px;flex-shrink:0}
-.status-title{font-size:11px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+#mapa-status-bar{position:absolute;top:10px;left:10px;right:10px;z-index:10;pointer-events:none}
+.mapa-card{background:rgba(255,255,255,.96);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+#mapa-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:5;pointer-events:none}
+#mapa-loading-icon{font-size:40px}
+#mapa-loading-txt{font-size:13px;color:var(--gray400);margin-top:8px;font-weight:600}
+/* BOLINHAS */
+#status-bar{background:var(--white);border-top:1px solid var(--gray200);padding:10px 14px;flex-shrink:0}
+.status-lbl{font-size:11px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 #status-chips{display:flex;gap:8px;flex-wrap:wrap}
-.status-chip{display:flex;align-items:center;gap:6px;background:var(--gray50);border:1px solid var(--gray200);border-radius:20px;padding:5px 10px;font-size:12px;font-weight:600;color:var(--navy)}
-.status-bolinha{width:10px;height:10px;border-radius:50%;background:var(--gray200)}
-.status-bolinha.embarcou{background:var(--blue)}
-.status-bolinha.na_escola{background:var(--green)}
-.status-bolinha.saiu_escola{background:var(--orange)}
-.status-bolinha.em_casa{background:var(--green)}
-.status-bolinha.faltou{background:var(--red)}
-
-/* ── CHAT ── */
-#chat-box{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--gray50)}
+.s-chip{display:flex;align-items:center;gap:6px;background:var(--gray50);border:1px solid var(--gray200);border-radius:20px;padding:5px 10px;font-size:12px;font-weight:600;color:var(--navy)}
+.s-dot{width:10px;height:10px;border-radius:50%;background:var(--gray200);flex-shrink:0}
+.s-dot.embarcou{background:var(--blue)}
+.s-dot.na_escola{background:var(--green)}
+.s-dot.em_casa{background:var(--green)}
+.s-dot.saiu_escola{background:var(--orange)}
+.s-dot.faltou{background:var(--red)}
+/* CHAT */
+#chat-msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--gray50)}
 .msg{max-width:80%;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.4}
 .msg.out{background:var(--navy);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
 .msg.in{background:var(--white);color:var(--navy);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--gray200)}
 .msg.sys{background:var(--gray100);color:var(--gray600);align-self:center;font-size:11px;border-radius:20px;padding:5px 12px;max-width:90%;text-align:center}
 .msg-sender{font-size:10px;color:var(--gray400);margin-bottom:3px}
-#chat-input-bar{padding:8px 14px;border-top:1px solid var(--gray200);background:var(--white);display:flex;gap:8px;flex-shrink:0}
-#chat-input{flex:1;padding:10px 14px;border-radius:22px;border:1.5px solid var(--gray200);font-size:14px;font-family:'Inter',sans-serif;outline:none}
-#chat-send{width:40px;height:40px;border-radius:50%;background:var(--navy);border:none;color:var(--yellow);font-size:18px;cursor:pointer}
-.quick-btns{display:flex;gap:6px;padding:6px 14px;background:var(--white);overflow-x:auto;flex-shrink:0;border-top:1px solid var(--gray100)}
-.quick-btn{padding:5px 12px;border-radius:20px;border:1.5px solid var(--gray200);background:var(--white);font-size:12px;white-space:nowrap;cursor:pointer;font-family:'Inter',sans-serif}
-
-/* ── AVISOS ── */
-.aviso-card{margin:10px 14px;background:var(--white);border-radius:12px;border:1px solid var(--gray200);padding:12px 14px}
+.quick-row{display:flex;gap:6px;padding:8px 14px;background:var(--white);overflow-x:auto;flex-shrink:0;border-top:1px solid var(--gray100)}
+.q-btn{padding:6px 12px;border-radius:20px;border:1.5px solid var(--gray200);background:var(--white);font-size:12px;white-space:nowrap;cursor:pointer;font-family:'Inter',sans-serif}
+#chat-bar{padding:8px 14px;border-top:1px solid var(--gray200);background:var(--white);display:flex;gap:8px;flex-shrink:0}
+#chat-inp{flex:1;padding:10px 14px;border-radius:22px;border:1.5px solid var(--gray200);font-size:14px;font-family:'Inter',sans-serif;outline:none}
+#chat-send-btn{width:40px;height:40px;border-radius:50%;background:var(--navy);border:none;color:var(--yellow);font-size:18px;cursor:pointer}
+/* AVISOS */
+.aviso-item{margin:10px 14px;background:var(--white);border-radius:12px;border:1px solid var(--gray200);padding:12px 14px}
 .aviso-time{font-size:11px;color:var(--gray400);margin-bottom:4px}
 .aviso-txt{font-size:13px;color:var(--navy);line-height:1.5}
-
-/* ── PERFIL ── */
-.perfil-section{margin:14px;background:var(--white);border-radius:14px;border:1px solid var(--gray200);overflow:hidden}
-.perfil-title{padding:12px 14px;font-size:13px;font-weight:700;color:var(--navy);border-bottom:1px solid var(--gray200);background:var(--gray50)}
-.perfil-row{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--gray100);font-size:13px}
-.perfil-row:last-child{border-bottom:none}
-.perfil-label{color:var(--gray400);font-size:12px}
-.perfil-val{font-weight:600;color:var(--navy)}
-.perfil-btn{width:calc(100% - 28px);margin:0 14px 14px;padding:14px;border-radius:12px;border:none;background:#FEF2F2;color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
-
-/* ── NAVBAR ── */
-#navbar{display:flex;background:var(--white);border-top:1px solid var(--gray200);flex-shrink:0}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;cursor:pointer;color:var(--gray400);font-size:10px;gap:2px;border:none;background:none;font-family:'Inter',sans-serif}
-.nav-item.active{color:var(--navy)}
-.nav-icon{font-size:20px}
-.nav-dot{width:5px;height:5px;border-radius:50%;background:var(--yellow);display:none}
-.nav-item.active .nav-dot{display:block}
-#notif-badge{display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--red)}
-
-/* ── TOAST ── */
+/* PERFIL */
+.pf-section{margin:14px;background:var(--white);border-radius:14px;border:1px solid var(--gray200);overflow:hidden}
+.pf-title{padding:12px 14px;font-size:13px;font-weight:700;color:var(--navy);border-bottom:1px solid var(--gray200);background:var(--gray50)}
+.pf-row{padding:12px 14px;display:flex;justify-content:space-between;border-bottom:1px solid var(--gray100);font-size:13px}
+.pf-row:last-child{border:none}
+.pf-lbl{color:var(--gray400);font-size:12px}
+.pf-val{font-weight:600;color:var(--navy)}
+.pf-out-btn{width:calc(100% - 28px);margin:0 14px 14px;padding:14px;border-radius:12px;border:none;background:#FEF2F2;color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+/* TOAST */
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:22px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
 
-<!-- AUTH SCREEN -->
-<div id="auth-screen">
-  <div class="auth-logo">🚐</div>
-  <div class="auth-title">Van Escolar</div>
-  <div class="auth-sub">Tio Daniel & Tia Irene</div>
-
-  <!-- LOGIN STEP -->
-  <div class="step active" id="step-login">
-    <input class="auth-input" id="login-email" type="email" placeholder="Seu e-mail">
-    <input class="auth-input" id="login-pass" type="password" placeholder="Senha">
-    <div class="auth-err" id="login-err"></div>
-    <button class="auth-btn" onclick="doLogin()">Entrar</button>
-    <div class="auth-divider"><span>ou</span></div>
-    <button class="auth-btn secondary" onclick="showStep('step-reg1')">Criar conta de pai/mãe</button>
-  </div>
-
-  <!-- REGISTER STEP 1 -->
-  <div class="step" id="step-reg1">
-    <div class="step-title">Seus dados</div>
-    <div class="step-sub">Passo 1 de 2</div>
-    <input class="auth-input" id="reg-nome" type="text" placeholder="Seu nome completo">
-    <input class="auth-input" id="reg-tel" type="tel" placeholder="WhatsApp (com DDD)">
-    <input class="auth-input" id="reg-email" type="email" placeholder="E-mail">
-    <input class="auth-input" id="reg-pass" type="password" placeholder="Senha (mín. 6 caracteres)">
-    <div class="auth-err" id="reg-err1"></div>
-    <button class="auth-btn" onclick="goToStep2()">Próximo →</button>
-    <button class="auth-link" onclick="showStep('step-login')">← Voltar</button>
-  </div>
-
-  <!-- REGISTER STEP 2 -->
-  <div class="step" id="step-reg2">
-    <div class="step-title">Dados do seu filho(a)</div>
-    <div class="step-sub">Passo 2 de 2</div>
-    <input class="auth-input" id="reg-filho-nome" type="text" placeholder="Nome do filho(a)">
-    <input class="auth-input" id="reg-filho-serie" type="text" placeholder="Série/Turma (ex: 8ºA)">
-    <input class="auth-input" id="reg-filho-end" type="text" placeholder="Endereço de embarque">
-    <input class="auth-input" id="reg-filho-obs" type="text" placeholder="Obs. médicas (opcional)">
-    <div class="auth-err" id="reg-err2"></div>
-    <button class="auth-btn" onclick="doRegister()">Enviar cadastro</button>
-    <button class="auth-link" onclick="showStep('step-reg1')">← Voltar</button>
-  </div>
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="l-logo">🚐</div>
+  <div class="l-title">Van Escolar</div>
+  <div class="l-sub">Tio Daniel & Tia Irene</div>
+  <input class="l-inp" id="l-email" type="email" placeholder="Seu e-mail">
+  <input class="l-inp" id="l-pass" type="password" placeholder="Sua senha">
+  <div class="l-err" id="l-err"></div>
+  <button class="l-btn" onclick="doLogin()">Entrar</button>
 </div>
 
-<!-- WAITING SCREEN -->
-<div id="waiting-screen">
-  <div class="wait-icon">⏳</div>
-  <div class="wait-title">Aguardando aprovação</div>
-  <div class="wait-sub">O Tio Daniel vai liberar seu acesso em breve.<br>Você receberá uma notificação quando aprovado.</div>
-  <button class="wait-btn" onclick="auth.signOut()">Sair da conta</button>
+<!-- BLOQUEADO -->
+<div id="blocked-screen">
+  <div class="bl-icon">🚫</div>
+  <div class="bl-title">Acesso removido</div>
+  <div class="bl-sub">Seu acesso foi removido.<br>Entre em contato com o Tio Daniel.</div>
+  <button class="bl-btn" onclick="auth.signOut()">Sair</button>
 </div>
 
 <!-- MAIN APP -->
 <div id="main-app">
-
-  <!-- TOPBAR -->
   <div id="topbar">
-    <div style="display:flex;align-items:center;gap:10px">
+    <div class="tb-left">
       <div class="tb-logo">🚐</div>
-      <div>
-        <div class="tb-name" id="tb-driver">Tio Daniel</div>
-        <div class="tb-sub" id="tb-school">Paulista IE</div>
-      </div>
+      <div><div class="tb-name" id="tb-driver">Tio Daniel</div><div class="tb-sub" id="tb-school">Paulista IE</div></div>
     </div>
-    <div class="live-badge">
-      <div class="live-dot" id="live-dot"></div>
-      <span class="live-txt" id="live-txt">Offline</span>
-    </div>
+    <div class="live-badge"><div class="live-dot" id="live-dot"></div><span class="live-txt" id="live-txt">Offline</span></div>
   </div>
 
-  <!-- MAPA VIEW -->
+  <!-- MAPA -->
   <div id="view-mapa" class="view active">
-    <div id="mapa-container">
+    <div id="mapa-wrap">
       <iframe id="mapa-iframe" src="about:blank"></iframe>
-      <div id="mapa-overlay">
-        <div class="mapa-status">
-          <div>
-            <div style="font-size:11px;color:var(--gray400);font-weight:600">STATUS</div>
-            <div style="font-size:13px;font-weight:700;color:var(--navy)" id="van-status">Aguardando van</div>
-          </div>
-          <div style="text-align:right">
-            <div style="font-size:11px;color:var(--gray400)">ETA escola</div>
-            <div style="font-size:16px;font-weight:800;color:var(--navy)" id="eta-val">--:--</div>
-          </div>
+      <div id="mapa-status-bar">
+        <div class="mapa-card">
+          <div><div style="font-size:11px;color:var(--gray400);font-weight:600">VAN</div><div style="font-size:13px;font-weight:700;color:#1E293B" id="van-status">Aguardando</div></div>
+          <div style="text-align:right"><div style="font-size:11px;color:var(--gray400)">ETA escola</div><div style="font-size:16px;font-weight:800;color:#1E293B" id="eta-val">--:--</div></div>
         </div>
       </div>
-      <div class="mapa-loading" id="mapa-loading">
-        <div class="mapa-loading-icon">🗺️</div>
-        <div class="mapa-loading-txt">Aguardando GPS da van...</div>
-      </div>
+      <div id="mapa-loading"><div id="mapa-loading-icon">🗺️</div><div id="mapa-loading-txt">Aguardando GPS da van...</div></div>
     </div>
     <div id="status-bar">
-      <div class="status-title">Status das crianças</div>
-      <div id="status-chips"></div>
+      <div class="status-lbl">Status das crianças</div>
+      <div id="status-chips"><span style="font-size:12px;color:var(--gray400)">Aguardando viagem...</span></div>
     </div>
   </div>
 
-  <!-- CHAT VIEW -->
+  <!-- CHAT -->
   <div id="view-chat" class="view">
-    <div class="quick-btns">
-      <button class="quick-btn" onclick="sendQuick('Ok!')">Ok!</button>
-      <button class="quick-btn" onclick="sendQuick('Já estou na parada')">Na parada</button>
-      <button class="quick-btn" onclick="sendQuick('Obrigado!')">Obrigado!</button>
-      <button class="quick-btn" onclick="sendQuick('Qual o horário?')">Horário?</button>
-      <button class="quick-btn" onclick="sendQuick('Meu filho não vai hoje')">Faltará hoje</button>
+    <div class="quick-row">
+      <button class="q-btn" onclick="sendQuick('Ok!')">Ok!</button>
+      <button class="q-btn" onclick="sendQuick('Já estou na parada')">Na parada</button>
+      <button class="q-btn" onclick="sendQuick('Obrigado!')">Obrigado!</button>
+      <button class="q-btn" onclick="sendQuick('Qual o horário previsto?')">Horário?</button>
+      <button class="q-btn" onclick="sendQuick('Meu filho não irá hoje')">Faltará</button>
     </div>
-    <div id="chat-box"></div>
-    <div id="chat-input-bar">
-      <input id="chat-input" type="text" placeholder="Mensagem..." onkeydown="if(event.key==='Enter')sendMsg()">
-      <button id="chat-send" onclick="sendMsg()">➤</button>
+    <div id="chat-msgs"></div>
+    <div id="chat-bar">
+      <input id="chat-inp" type="text" placeholder="Mensagem..." onkeydown="if(event.key==='Enter')sendMsg()">
+      <button id="chat-send-btn" onclick="sendMsg()">➤</button>
     </div>
   </div>
 
-  <!-- AVISOS VIEW -->
+  <!-- AVISOS -->
   <div id="view-avisos" class="view">
     <div class="scroll" id="avisos-list">
       <div style="padding:24px;text-align:center;color:var(--gray400);font-size:13px">Nenhum aviso</div>
     </div>
   </div>
 
-  <!-- PERFIL VIEW -->
+  <!-- PERFIL -->
   <div id="view-perfil" class="view">
     <div class="scroll">
-      <div class="perfil-section" style="margin-top:14px">
-        <div class="perfil-title">👤 Minha conta</div>
-        <div class="perfil-row"><span class="perfil-label">E-mail</span><span class="perfil-val" id="perfil-email">—</span></div>
-        <div class="perfil-row"><span class="perfil-label">Nome</span><span class="perfil-val" id="perfil-nome">—</span></div>
+      <div class="pf-section" style="margin-top:14px">
+        <div class="pf-title">👤 Minha conta</div>
+        <div class="pf-row"><span class="pf-lbl">E-mail</span><span class="pf-val" id="pf-email">—</span></div>
+        <div class="pf-row"><span class="pf-lbl">Nome</span><span class="pf-val" id="pf-nome">—</span></div>
       </div>
-      <div class="perfil-section">
-        <div class="perfil-title">🎒 Meu filho(a)</div>
-        <div class="perfil-row"><span class="perfil-label">Nome</span><span class="perfil-val" id="perfil-filho">—</span></div>
-        <div class="perfil-row"><span class="perfil-label">Série</span><span class="perfil-val" id="perfil-serie">—</span></div>
-        <div class="perfil-row"><span class="perfil-label">Endereço</span><span class="perfil-val" id="perfil-end">—</span></div>
+      <div class="pf-section">
+        <div class="pf-title">🎒 Meu filho(a)</div>
+        <div class="pf-row"><span class="pf-lbl">Nome</span><span class="pf-val" id="pf-filho">—</span></div>
+        <div class="pf-row"><span class="pf-lbl">Série</span><span class="pf-val" id="pf-serie">—</span></div>
+        <div class="pf-row"><span class="pf-lbl">Endereço</span><span class="pf-val" id="pf-end">—</span></div>
       </div>
-      <button class="perfil-btn" onclick="auth.signOut()">Sair da conta</button>
+      <button class="pf-out-btn" onclick="auth.signOut()">Sair da conta</button>
     </div>
   </div>
 
-  <!-- NAVBAR -->
   <div id="navbar">
-    <button class="nav-item active" onclick="switchView('mapa',this)"><span class="nav-icon">🗺️</span>Mapa<div class="nav-dot"></div></button>
-    <button class="nav-item" onclick="switchView('chat',this)"><span class="nav-icon">💬</span>Chat<div class="nav-dot"></div></button>
-    <button class="nav-item" style="position:relative" onclick="switchView('avisos',this)"><span class="nav-icon">🔔</span>Avisos<div class="nav-dot"></div><div id="notif-badge"></div></button>
-    <button class="nav-item" onclick="switchView('perfil',this)"><span class="nav-icon">👤</span>Perfil<div class="nav-dot"></div></button>
+    <button class="nav-btn active" onclick="switchView('mapa',this)"><span class="nav-icon">🗺️</span>Mapa<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="switchView('chat',this)"><span class="nav-icon">💬</span>Chat<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="switchView('avisos',this)"><span class="nav-icon">🔔</span>Avisos<div class="nav-dot"></div><div id="notif-dot"></div></button>
+    <button class="nav-btn" onclick="switchView('perfil',this)"><span class="nav-icon">👤</span>Perfil<div class="nav-dot"></div></button>
   </div>
-
-</div><!-- /main-app -->
+</div>
 
 <div id="toast"></div>
 
 <script>
-// ── GLOBALS ──
-var currentUser = null;
-var paisData = null;
-var lastMapLat = null, lastMapLng = null;
-var approvalListener = null;
-var paisNome = '';
+var currentUser=null, paisData=null, paisNome='';
+var lastLat=null, lastLng=null;
+var blockListener=null;
 
-// ── HELPERS ──
 function el(id){ return document.getElementById(id); }
 function setText(id,v){ var e=el(id); if(e) e.textContent=v; }
-function showToast(msg){
-  var t=el('toast'); t.textContent=msg; t.classList.add('show');
-  setTimeout(function(){ t.classList.remove('show'); },2800);
-}
-function showStep(id){
-  document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('active'); });
-  el(id).classList.add('active');
-}
+function showToast(msg){ var t=el('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(function(){ t.classList.remove('show'); },2800); }
 function switchView(name,btn){
   document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
   el('view-'+name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  document.querySelectorAll('.nav-btn').forEach(function(n){ n.classList.remove('active'); });
   if(btn) btn.classList.add('active');
-  if(name==='chat'){ setTimeout(function(){ var b=el('chat-box'); if(b) b.scrollTop=b.scrollHeight; },50); }
-  if(name==='avisos') el('notif-badge').style.display='none';
+  if(name==='chat'){ setTimeout(function(){ var b=el('chat-msgs'); if(b) b.scrollTop=b.scrollHeight; },50); }
+  if(name==='avisos') el('notif-dot').style.display='none';
 }
 
-// ── AUTH ──
+// AUTH
 function doLogin(){
-  var email=el('login-email').value.trim(), pass=el('login-pass').value;
-  if(!email||!pass){ el('login-err').textContent='⚠️ Preencha todos os campos'; return; }
-  el('login-err').textContent='🔄 Entrando...';
+  var email=el('l-email').value.trim(), pass=el('l-pass').value;
+  if(!email||!pass){ el('l-err').textContent='⚠️ Preencha todos os campos'; return; }
+  el('l-err').textContent='🔄 Entrando...';
   auth.signInWithEmailAndPassword(email,pass)
-    .catch(function(e){ el('login-err').textContent='❌ Email ou senha incorretos'; });
+    .catch(function(e){ el('l-err').textContent='❌ Email ou senha incorretos'; });
 }
-function goToStep2(){
-  var nome=el('reg-nome').value.trim(), email=el('reg-email').value.trim(), pass=el('reg-pass').value;
-  if(!nome){ el('reg-err1').textContent='⚠️ Informe seu nome'; return; }
-  if(!email){ el('reg-err1').textContent='⚠️ Informe seu e-mail'; return; }
-  if(pass.length<6){ el('reg-err1').textContent='⚠️ Senha deve ter mínimo 6 caracteres'; return; }
-  el('reg-err1').textContent='';
-  showStep('step-reg2');
-}
-function doRegister(){
-  var nome=el('reg-nome').value.trim();
-  var tel=el('reg-tel').value.trim();
-  var email=el('reg-email').value.trim();
-  var pass=el('reg-pass').value;
-  var filhoNome=el('reg-filho-nome').value.trim();
-  var filhoSerie=el('reg-filho-serie').value.trim();
-  var filhoEnd=el('reg-filho-end').value.trim();
-  var filhoObs=el('reg-filho-obs').value.trim();
-  if(!filhoNome){ el('reg-err2').textContent='⚠️ Informe o nome do filho'; return; }
-  if(!filhoEnd){ el('reg-err2').textContent='⚠️ Informe o endereço de embarque'; return; }
-  el('reg-err2').textContent='🔄 Criando conta...';
-  auth.createUserWithEmailAndPassword(email,pass).then(function(cred){
-    return db.collection('pais_pendentes').add({
-      uid:cred.user.uid, email:email, nome:nome, tel:tel,
-      aluno_nome:filhoNome, aluno_serie:filhoSerie,
-      endereco:filhoEnd, obs:filhoObs,
-      status:'pendente',
-      criado_em:firebase.firestore.FieldValue.serverTimestamp()
-    });
-  }).then(function(){
-    // Sign out and return to login
-    return auth.signOut();
-  }).then(function(){
-    showStep('step-login');
-    el('login-err').textContent='✅ Cadastro enviado! Aguarde aprovação do Tio Daniel.';
-  }).catch(function(e){
-    el('reg-err2').textContent='❌ '+e.message;
+
+// CHECK BLOQUEADO
+function checkBloqueado(uid){
+  if(blockListener){ blockListener(); blockListener=null; }
+  blockListener = db.collection('pais').where('uid','==',uid).onSnapshot(function(snap){
+    if(snap.empty) return;
+    var data=snap.docs[0].data();
+    if(data.bloqueado){
+      el('main-app').style.display='none';
+      el('login-screen').style.display='none';
+      el('blocked-screen').style.display='flex';
+    }
   });
 }
 
-// ── APPROVAL FLOW ──
-function checkApproval(){
-  if(approvalListener){ approvalListener(); approvalListener=null; }
-  approvalListener = db.collection('pais_pendentes')
-    .where('uid','==',currentUser.uid)
-    .onSnapshot(function(snap){
-      if(snap.empty){
-        // No record - could be motorista logged in wrong app
-        showWaiting('Conta não encontrada neste sistema.');
-        return;
-      }
-      var doc=snap.docs[0];
-      var data=doc.data();
-      paisData=data;
-      if(data.status==='aprovado'){
-        if(approvalListener){ approvalListener(); approvalListener=null; }
-        loadMainApp();
-      } else if(data.status==='bloqueado'){
-        if(approvalListener){ approvalListener(); approvalListener=null; }
-        auth.signOut();
-        showStep('step-login');
-        el('login-err').textContent='❌ Acesso removido. Contate o Tio Daniel.';
-      } else {
-        showWaiting('');
-      }
-    });
-}
-function showWaiting(msg){
-  el('auth-screen').style.display='none';
-  el('main-app').style.display='none';
-  el('waiting-screen').style.display='flex';
-  if(msg) el('waiting-screen').querySelector('.wait-sub').textContent=msg;
-}
-function loadMainApp(){
-  el('auth-screen').style.display='none';
-  el('waiting-screen').style.display='none';
-  el('main-app').style.display='flex';
-  // Set profile data
-  setText('perfil-email', currentUser.email);
-  if(paisData){
-    paisNome = (paisData.nome||currentUser.email)+' ('+(paisData.aluno_nome||'')+(paisData.aluno_serie?' • '+paisData.aluno_serie:'')+')';
-    setText('perfil-nome', paisData.nome||'—');
-    setText('perfil-filho', paisData.aluno_nome||'—');
-    setText('perfil-serie', paisData.aluno_serie||'—');
-    setText('perfil-end', paisData.endereco||'—');
-  }
-  listenConfig();
-  listenChat();
-  listenAvisos();
-  listenStatus();
-  listenGPS();
+// LOAD PAI DATA
+function loadPaiData(uid){
+  db.collection('pais').where('uid','==',uid).get().then(function(snap){
+    if(snap.empty) return;
+    var d=snap.docs[0].data(); paisData=d;
+    paisNome=d.nome||currentUser.email;
+    setText('pf-email',currentUser.email);
+    setText('pf-nome',d.nome||'—');
+    setText('pf-filho',d.aluno_nome||'—');
+    // Load aluno details
+    if(d.aluno_id){
+      db.doc('alunos/'+d.aluno_id).get().then(function(aSnap){
+        if(!aSnap.exists) return;
+        var a=aSnap.data();
+        setText('pf-serie',a.serie||'—');
+        setText('pf-end',a.endereco||'—');
+      });
+    }
+  });
 }
 
-// ── CONFIG ──
-function listenConfig(){
+// CONFIG
+function loadConfig(){
   db.doc('config/main').get().then(function(snap){
     if(!snap.exists) return;
     var d=snap.data();
@@ -430,78 +291,65 @@ function listenConfig(){
   });
 }
 
-// ── GPS ──
+// GPS
 function listenGPS(){
   rdb.ref('localizacao_atual').on('value',function(snap){
-    if(!snap.exists()){
-      setOffline(); return;
+    if(!snap.exists()||!snap.val()||!snap.val().viagem_ativa||!snap.val().lat){
+      // Offline
+      el('live-dot').className='live-dot';
+      setText('live-txt','Offline');
+      setText('van-status','Aguardando van');
+      el('mapa-loading').style.display='block';
+      el('mapa-iframe').src='about:blank';
+      lastLat=null; lastLng=null;
+      return;
     }
     var d=snap.val();
-    if(!d||!d.viagem_ativa||!d.lat||!d.lng){
-      setOffline(); return;
-    }
-    // Online!
-    el('live-dot').className='live-dot active';
+    el('live-dot').className='live-dot on';
     setText('live-txt','Ao vivo');
-    var speed=d.velocidade||0;
-    setText('van-status', speed===0?'Van parada':'Van em movimento · '+speed+' km/h');
-    updateMap(d.lat, d.lng);
+    var spd=d.velocidade||0;
+    setText('van-status',spd===0?'Van parada':'Van em movimento · '+spd+' km/h');
+    if(d.eta_escola) setText('eta-val',d.eta_escola);
+    updateMap(d.lat,d.lng);
   });
 }
-function setOffline(){
-  el('live-dot').className='live-dot';
-  setText('live-txt','Offline');
-  setText('van-status','Aguardando van');
-  el('mapa-loading').style.display='block';
-  el('mapa-iframe').src='about:blank';
-  lastMapLat=null; lastMapLng=null;
-}
+
 function updateMap(lat,lng){
   el('mapa-loading').style.display='none';
-  // Only reload if moved more than ~100m
-  if(lastMapLat!==null){
-    var d=Math.abs(lat-lastMapLat)+Math.abs(lng-lastMapLng);
-    if(d<0.001) return;
+  if(lastLat!==null){
+    if(Math.abs(lat-lastLat)+Math.abs(lng-lastLng)<0.001) return;
   }
-  lastMapLat=lat; lastMapLng=lng;
+  lastLat=lat; lastLng=lng;
   var delta=0.004;
   var bbox=(lng-delta)+','+(lat-delta)+','+(lng+delta)+','+(lat+delta);
   el('mapa-iframe').src='https://www.openstreetmap.org/export/embed.html?bbox='+bbox+'&layer=mapnik&marker='+lat+','+lng;
 }
 
-// ── STATUS BOLINHAS ──
+// STATUS BOLINHAS
 function listenStatus(){
   db.collection('status_alunos').onSnapshot(function(snap){
-    var etapas={embarcou:'🚐',na_escola:'🏫',saiu_escola:'🔄',em_casa:'🏠',faltou:'❌',aguardando:'⏳'};
-    var labels={embarcou:'Na van',na_escola:'Na escola',saiu_escola:'Saindo',em_casa:'Em casa',faltou:'Faltou',aguardando:'Aguardando'};
-    var today=new Date().toISOString().slice(0,10);
-    var chips='';
+    var labels={embarcou:'Na van',na_escola:'Na escola',em_casa:'Em casa',saiu_escola:'Saindo',faltou:'Faltou',aguardando:'Aguardando'};
+    var html='';
     snap.forEach(function(d){
       var s=d.data();
-      // Only today's data
-      if(s.timestamp){
-        var ts=s.timestamp.toDate?s.timestamp.toDate():new Date(s.timestamp);
-        if(ts.toISOString().slice(0,10)!==today) return;
-      }
-      chips+='<div class="status-chip"><div class="status-bolinha '+s.etapa+'"></div>'+(s.nome||'—')+' · '+(labels[s.etapa]||s.etapa)+'</div>';
+      html+='<div class="s-chip"><div class="s-dot '+(s.etapa||'')+'"></div>'+s.nome+' · '+(labels[s.etapa]||s.etapa||'—')+'</div>';
     });
-    el('status-chips').innerHTML=chips||'<span style="font-size:12px;color:var(--gray400)">Aguardando viagem...</span>';
+    el('status-chips').innerHTML=html||'<span style="font-size:12px;color:var(--gray400)">Aguardando viagem...</span>';
   });
 }
 
-// ── CHAT ──
+// CHAT
 function listenChat(){
   db.collection('mensagens').orderBy('timestamp','asc').onSnapshot(function(snap){
-    var box=el('chat-box'); if(!box) return;
+    var box=el('chat-msgs'); if(!box) return;
     box.innerHTML='';
     snap.forEach(function(d){
       var m=d.data();
-      var isOut=m.remetente_tipo==='pai' && currentUser && m.remetente===paisNome;
-      var isSys=m.tipo==='sistema';
       var div=document.createElement('div');
-      if(isSys){
+      if(m.tipo==='sistema'){
         div.className='msg sys'; div.textContent=m.texto;
       } else {
+        var isOut=m.remetente_tipo==='pai'&&m.remetente===paisNome;
         div.className='msg '+(isOut?'out':'in');
         if(!isOut){ var s=document.createElement('div'); s.className='msg-sender'; s.textContent=m.remetente||'—'; div.appendChild(s); }
         var t=document.createElement('div'); t.textContent=m.texto; div.appendChild(t);
@@ -512,53 +360,53 @@ function listenChat(){
   });
 }
 function sendMsg(){
-  var inp=el('chat-input'); var txt=inp.value.trim(); if(!txt) return;
+  var inp=el('chat-inp'); var txt=inp.value.trim(); if(!txt) return;
   inp.value='';
-  db.collection('mensagens').add({
-    texto:txt, tipo:'texto',
-    remetente:paisNome||currentUser.email,
-    remetente_tipo:'pai',
-    timestamp:firebase.firestore.FieldValue.serverTimestamp()
-  });
+  db.collection('mensagens').add({texto:txt,tipo:'texto',remetente:paisNome||currentUser.email,remetente_tipo:'pai',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
 }
 function sendQuick(txt){
-  db.collection('mensagens').add({
-    texto:txt, tipo:'texto',
-    remetente:paisNome||currentUser.email,
-    remetente_tipo:'pai',
-    timestamp:firebase.firestore.FieldValue.serverTimestamp()
-  });
+  db.collection('mensagens').add({texto:txt,tipo:'texto',remetente:paisNome||currentUser.email,remetente_tipo:'pai',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
 }
 
-// ── AVISOS ──
+// AVISOS
 function listenAvisos(){
   db.collection('mensagens').where('tipo','==','sistema').orderBy('timestamp','desc').onSnapshot(function(snap){
-    var count=0;
     var html='';
     snap.forEach(function(d){
-      var m=d.data(); count++;
-      var ts=m.timestamp?m.timestamp.toDate?m.timestamp.toDate():new Date():'';
-      var timeStr=ts?ts.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
-      html+='<div class="aviso-card"><div class="aviso-time">'+timeStr+'</div><div class="aviso-txt">'+m.texto+'</div></div>';
+      var m=d.data();
+      var ts=m.timestamp&&m.timestamp.toDate?m.timestamp.toDate():new Date();
+      html+='<div class="aviso-item"><div class="aviso-time">'+ts.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div><div class="aviso-txt">'+m.texto+'</div></div>';
     });
     el('avisos-list').innerHTML=html||'<div style="padding:24px;text-align:center;color:var(--gray400);font-size:13px">Nenhum aviso</div>';
-    if(count>0) el('notif-badge').style.display='block';
+    if(!html) return;
+    el('notif-dot').style.display='block';
   });
 }
 
-// ── AUTH STATE ──
+// INIT
+function initApp(){
+  loadConfig();
+  loadPaiData(currentUser.uid);
+  checkBloqueado(currentUser.uid);
+  listenGPS();
+  listenStatus();
+  listenChat();
+  listenAvisos();
+}
+
 auth.onAuthStateChanged(function(user){
   if(user){
     currentUser=user;
-    el('auth-screen').style.display='none';
-    checkApproval();
+    el('login-screen').style.display='none';
+    el('blocked-screen').style.display='none';
+    el('main-app').style.display='flex';
+    initApp();
   } else {
     currentUser=null;
-    if(approvalListener){ approvalListener(); approvalListener=null; }
-    el('auth-screen').style.display='flex';
-    el('waiting-screen').style.display='none';
+    if(blockListener){ blockListener(); blockListener=null; }
+    el('login-screen').style.display='flex';
+    el('blocked-screen').style.display='none';
     el('main-app').style.display='none';
-    showStep('step-login');
   }
 });
 </script>

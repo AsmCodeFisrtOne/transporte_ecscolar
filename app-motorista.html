@@ -3,1599 +3,585 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#FFD23F">
 <title>Van Escolar — Motorista</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<!-- Firebase COMPAT — funciona sem servidor, sem type=module -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <script>
 firebase.initializeApp({
-  apiKey: "AIzaSyD0WWqTfOto8cJ5iUN_w140q1RiTeGpHFc",
-  authDomain: "van-escolar-daniel-irene.firebaseapp.com",
-  projectId: "van-escolar-daniel-irene",
-  storageBucket: "van-escolar-daniel-irene.firebasestorage.app",
-  messagingSenderId: "883890897086",
-  appId: "1:883890897086:web:4dfb8b69d99046fbbb9eef",
-  databaseURL: "https://van-escolar-daniel-irene-default-rtdb.firebaseio.com"
+  apiKey:"AIzaSyD0WWqTfOto8cJ5iUN_w140q1RiTeGpHFc",
+  authDomain:"van-escolar-daniel-irene.firebaseapp.com",
+  projectId:"van-escolar-daniel-irene",
+  storageBucket:"van-escolar-daniel-irene.firebasestorage.app",
+  messagingSenderId:"883890897086",
+  appId:"1:883890897086:web:4dfb8b69d99046fbbb9eef",
+  databaseURL:"https://van-escolar-daniel-irene-default-rtdb.firebaseio.com"
 });
-const db   = firebase.firestore();
-const rdb  = firebase.database();
-window.rdb = rdb;
-const gpsRef = rdb.ref('localizacao_atual');
-window.gpsRef = gpsRef;
+const db = firebase.firestore();
+const rdb = firebase.database();
 const auth = firebase.auth();
-
-auth.onAuthStateChanged(user => {
-  if(user) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-app').style.display = 'flex';
-    window.currentUser = user;
-    // GPS will be cleared when stopGPS() is called or trip ends
-    initApp();
-  } else {
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('main-app').style.display = 'none';
-  }
-});
+window.gpsRef = rdb.ref('localizacao_atual');
 </script>
-
 <style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#0F172A;overflow:hidden}
 :root{
-  --yellow:#FFD23F;--yellow2:#E6B800;--navy:#1A2744;--navy2:#243460;
-  --green:#22C55E;--red:#EF4444;--orange:#F97316;--blue:#3B82F6;--purple:#7C3AED;
-  --white:#FFF;--gray50:#F8FAFC;--gray100:#F1F5F9;
-  --gray200:#E2E8F0;--gray400:#94A3B8;--gray600:#475569;--gray800:#1E293B;
-  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --navy:#0F172A;--navy2:#1E293B;--yellow:#FFD23F;
+  --green:#22C55E;--red:#EF4444;--orange:#F97316;--blue:#3B82F6;
+  --white:#fff;--gray50:#F8FAFC;--gray100:#F1F5F9;--gray200:#E2E8F0;--gray400:#94A3B8;--gray600:#475569;
 }
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;overflow:hidden;background:#0F172A;font-family:'Inter',sans-serif;}
-#app{width:100%;max-width:430px;height:100%;margin:0 auto;display:flex;flex-direction:column;background:var(--white);overflow:hidden;}
-
+/* SHELL */
+#app{display:flex;flex-direction:column;height:100vh}
 /* LOGIN */
-#login-screen{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;gap:14px;z-index:9999;}
-.login-logo{font-size:64px;}
-.login-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:26px;color:var(--yellow);text-align:center;}
-.login-sub{font-size:12px;color:rgba(255,255,255,.5);text-align:center;}
-.login-field{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);font-size:15px;color:#FFF;font-family:'Inter',sans-serif;outline:none;}
-.login-field::placeholder{color:rgba(255,255,255,.4);}
-.login-field:focus{border-color:var(--yellow);}
-.login-btn{width:100%;padding:15px;background:var(--yellow);border:none;border-radius:12px;font-size:15px;font-weight:700;color:var(--navy);cursor:pointer;font-family:'Inter',sans-serif;}
-.login-btn.sec{background:rgba(255,255,255,.12);color:#FFF;}
-.login-err{font-size:13px;color:#FCA5A5;text-align:center;min-height:18px;font-weight:500;}
-.login-div{font-size:11px;color:rgba(255,255,255,.3);}
-
-/* MAIN */
-#main-app{display:none;flex-direction:column;width:100%;max-width:430px;height:100%;margin:0 auto;background:var(--white);overflow:hidden;}
-
+#login-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--navy);padding:24px;gap:14px}
+.l-logo{font-size:56px}
+.l-title{font-size:22px;font-weight:800;color:var(--yellow);text-align:center}
+.l-sub{font-size:13px;color:var(--gray400);text-align:center}
+.l-inp{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-family:'Inter',sans-serif;outline:none}
+.l-inp::placeholder{color:var(--gray400)}
+.l-btn{width:100%;padding:15px;border-radius:12px;border:none;background:var(--yellow);color:var(--navy);font-size:16px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.l-err{font-size:13px;color:#FCA5A5;text-align:center;min-height:18px}
 /* TOPBAR */
-.topbar{background:var(--yellow);padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:3px solid var(--yellow2);}
-.brand{display:flex;align-items:center;gap:9px;}
-.brand-icon{width:38px;height:38px;background:var(--navy);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
-.brand-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:14px;color:var(--navy);line-height:1.1;}
-.brand-sub{font-size:10px;color:rgba(0,0,0,.45);}
-.speed-val{font-family:'Nunito',sans-serif;font-weight:900;font-size:20px;color:var(--navy);}
-.speed-unit{font-size:9px;color:rgba(0,0,0,.45);}
-.speed-status{font-size:9px;font-weight:700;padding:2px 7px;border-radius:100px;text-align:right;}
-.speed-status.stopped{background:rgba(34,197,94,.25);color:#15803D;}
-.speed-status.moving{background:rgba(239,68,68,.25);color:#991B1B;}
-
-/* VIEWS */
-.view{display:none;flex:1;flex-direction:column;overflow:hidden;position:relative;}
-.view.active{display:flex;}
-.scroll{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;}
-
-/* NAV */
-.navbar{display:flex;background:var(--white);border-top:1px solid var(--gray200);padding-bottom:var(--safe-bottom);flex-shrink:0;}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:6px 1px 4px;gap:1px;cursor:pointer;color:var(--gray400);font-size:8px;font-weight:600;}
-.nav-item.active{color:var(--navy);}
-.nav-icon{font-size:18px;line-height:1;}
-.nav-dot{width:4px;height:4px;border-radius:50%;background:var(--yellow);margin-top:1px;}
-.sos-nav{flex:1;display:flex;flex-direction:column;align-items:center;padding:4px 1px;gap:1px;cursor:pointer;font-size:8px;font-weight:700;color:#FFF;background:var(--red);}
-
+#topbar{background:var(--navy);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.tb-info .tb-name{font-size:15px;font-weight:700;color:var(--yellow)}
+.tb-info .tb-sub{font-size:11px;color:var(--gray400)}
+.tb-spd{text-align:right}
+.tb-spd-val{font-size:22px;font-weight:800;color:#fff}
+.tb-spd-lbl{font-size:10px;color:var(--gray400)}
+.tb-badge{font-size:10px;padding:3px 8px;border-radius:20px;font-weight:600;margin-top:2px;display:inline-block}
+.tb-badge.stopped{background:#312e81;color:#a5b4fc}
+.tb-badge.moving{background:#14532d;color:#86efac}
 /* GPS BAR */
-.gps-bar{display:flex;align-items:center;gap:6px;padding:5px 14px;background:var(--navy);flex-shrink:0;}
-.gps-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;animation:blink 1.5s infinite;}
-.gps-dot.active{background:var(--green);}
-.gps-dot.off{background:var(--gray400);animation:none;}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-.gps-txt{font-size:10px;color:rgba(255,255,255,.7);flex:1;}
-.gps-btn{font-size:10px;font-weight:700;color:var(--yellow);background:none;border:none;cursor:pointer;font-family:'Inter',sans-serif;padding:4px 8px;}
-
-/* SPEED SIM */
-.speed-sim{display:flex;gap:5px;padding:7px 14px;background:var(--gray50);border-bottom:1px solid var(--gray100);flex-shrink:0;align-items:center;}
-.ss-lbl{font-size:9px;color:var(--gray400);font-weight:600;flex-shrink:0;}
-.ss-btn{padding:4px 9px;border-radius:6px;border:1.5px solid var(--gray200);background:var(--white);font-size:10px;font-weight:600;color:var(--gray600);cursor:pointer;font-family:'Inter',sans-serif;}
-.ss-btn.active{background:var(--navy);color:#FFF;border-color:var(--navy);}
-
-/* SHORTCUTS */
-.shortcuts{padding:10px 14px;background:var(--white);border-bottom:1px solid var(--gray200);flex-shrink:0;}
-.sc-lbl{font-size:9px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;}
-.sc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
-.sc-btn{padding:11px 8px;border-radius:12px;border:2px solid;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:6px;}
-.sc-btn.green{background:#F0FDF4;border-color:#BBF7D0;color:#15803D;}
-.sc-btn.red2{background:#FEF2F2;border-color:#FECACA;color:#991B1B;}
-.sc-btn.blue{background:#EFF6FF;border-color:#BFDBFE;color:#1D4ED8;}
-.sc-btn.yellow{background:#FFFBEB;border-color:#FDE68A;color:#92400E;}
-
-/* ETA */
-.eta-strip{padding:8px 14px;background:var(--navy);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.eta-label{font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;}
-.eta-time{font-family:'Nunito',sans-serif;font-weight:900;font-size:20px;color:var(--yellow);line-height:1;}
-.eta-min{font-size:10px;color:rgba(255,255,255,.5);}
-
-/* CURRENT STOP */
-.cur-stop{margin:10px 14px;padding:14px;background:var(--white);border-radius:14px;border:2px solid var(--yellow);box-shadow:0 4px 16px rgba(255,210,63,.18);}
-.cs-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
-.cs-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--orange);}
-.cs-num{font-size:9px;color:var(--gray400);}
-.cs-student{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
-.cs-photo{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--blue));border:3px solid var(--yellow);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
-.cs-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:17px;color:var(--gray800);}
-.cs-addr{font-size:11px;color:var(--gray400);margin-top:2px;}
-.cs-obs{font-size:11px;color:var(--orange);font-weight:600;margin-top:2px;}
-.action-btns{display:flex;gap:8px;}
-.action-btn{flex:1;padding:12px 4px;border-radius:12px;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:'Inter',sans-serif;}
-.action-btn .ab-icon{font-size:22px;}
-.action-btn .ab-txt{font-size:11px;font-weight:700;}
-.action-btn.boarded{background:var(--green);color:#FFF;}
-.action-btn.absent{background:var(--red);color:#FFF;}
-.action-btn.waiting{background:var(--orange);color:#FFF;}
-
-/* STOPS */
-.stops-section{padding:6px 14px 10px;display:flex;flex-direction:column;gap:5px;}
-.ss-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray400);margin-bottom:4px;}
-.stop-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;border:1px solid var(--gray200);background:var(--white);}
-.stop-row.done{background:#F0FDF4;border-color:#BBF7D0;}
-.stop-row.pend{background:var(--gray50);opacity:.75;}
-.sr-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-weight:900;font-size:12px;flex-shrink:0;}
-.stop-row.done .sr-av{background:var(--green);color:#FFF;}
-.stop-row.pend .sr-av{background:var(--gray200);color:var(--gray400);}
-.sr-info{flex:1;}
-.sr-name{font-size:12px;font-weight:700;color:var(--gray800);}
-.sr-addr{font-size:10px;color:var(--gray400);}
-.sr-time{font-size:11px;font-weight:600;}
-.stop-row.done .sr-time{color:var(--green);}
-.stop-row.pend .sr-time{color:var(--gray400);}
-
-/* MAP */
-.map-container{flex:1;position:relative;overflow:hidden;min-height:0;display:flex;flex-direction:column;}
-.map-eta-box{position:absolute;top:10px;left:10px;z-index:1000;background:rgba(15,23,42,.9);border-radius:10px;padding:7px 12px;border:1px solid rgba(255,255,255,.1);}
-.map-eta-val{font-family:'Nunito',sans-serif;font-weight:900;font-size:18px;color:#FFF;line-height:1;}
-.map-eta-sub{font-size:9px;color:rgba(255,255,255,.5);}
-.map-leg{position:absolute;bottom:10px;right:10px;z-index:30;background:rgba(15,23,42,.85);border-radius:9px;padding:7px 10px;}
-.ml-item{display:flex;align-items:center;gap:6px;font-size:10px;color:#FFF;margin-bottom:3px;}
-.ml-item:last-child{margin-bottom:0;}
-.ml-dot{width:12px;height:4px;border-radius:2px;flex-shrink:0;}
-.map-bottom{flex-shrink:0;background:var(--white);border-top:1px solid var(--gray200);}
-.stop-progress{display:flex;padding:8px 14px;gap:3px;align-items:center;}
-.sp-dot{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0;}
-.sp-dot.done{background:var(--green);color:#FFF;}
-.sp-dot.cur{background:var(--yellow);color:var(--navy);}
-.sp-dot.pend{background:var(--gray200);color:var(--gray400);}
-.sp-line{flex:1;height:2px;}
-.sp-line.done{background:var(--green);}
-.sp-line.pend{background:var(--gray200);}
-.next-strip{padding:8px 14px 10px;display:flex;align-items:center;justify-content:space-between;}
-
+#gps-bar{background:var(--navy2);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.gps-dot{width:8px;height:8px;border-radius:50%;background:var(--gray400);display:inline-block;margin-right:6px;transition:background .3s}
+.gps-dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
+#gps-txt{font-size:12px;color:var(--gray400)}
+#gps-btn{padding:5px 14px;border-radius:20px;border:none;background:var(--yellow);color:var(--navy);font-size:12px;font-weight:700;cursor:pointer}
+/* VIEWS */
+.view{display:none;flex:1;flex-direction:column;overflow:hidden;background:var(--gray50)}
+.view.active{display:flex}
+.scroll{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
+/* NAVBAR */
+#navbar{display:flex;background:var(--white);border-top:1px solid var(--gray200);flex-shrink:0}
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;cursor:pointer;color:var(--gray400);font-size:10px;gap:2px;border:none;background:none;font-family:'Inter',sans-serif}
+.nav-btn.active{color:var(--navy)}
+.nav-icon{font-size:20px}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:var(--yellow);display:none}
+.nav-btn.active .nav-dot{display:block}
+/* PAINEL */
+.painel-trip{margin:14px;background:var(--white);border-radius:14px;border:1px solid var(--gray200);padding:14px}
+.trip-row{display:flex;gap:10px}
+.trip-btn{flex:1;padding:13px;border-radius:10px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.trip-btn.start{background:var(--green);color:#fff}
+.trip-btn.finish{background:var(--red);color:#fff}
+.trip-btn:disabled{opacity:.35;cursor:not-allowed}
+.trip-status{font-size:12px;color:var(--gray400);margin-top:8px;text-align:center}
+/* ALUNOS PAINEL */
+.painel-section-title{padding:6px 14px;font-size:11px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.5px}
+.aluno-row{display:flex;align-items:center;gap:10px;padding:12px 14px;background:var(--white);border-bottom:1px solid var(--gray100)}
+.aluno-row:first-child{border-top:1px solid var(--gray200)}
+.aluno-foto{font-size:24px;width:36px;text-align:center}
+.aluno-info{flex:1}
+.aluno-nome{font-size:14px;font-weight:600;color:var(--navy)}
+.aluno-sub{font-size:11px;color:var(--gray400);margin-top:2px}
+.aluno-etapa{font-size:11px;padding:3px 8px;border-radius:20px;font-weight:600;flex-shrink:0}
+.etapa-aguardando{background:var(--gray100);color:var(--gray600)}
+.etapa-embarcou{background:#DBEAFE;color:#1D4ED8}
+.etapa-faltou{background:#FEF2F2;color:#991B1B}
+.etapa-em_casa{background:#F0FDF4;color:#166534}
+.etapa-na_escola{background:#F0FDF4;color:#166534}
 /* CHAT */
-.moving-warn{display:none;align-items:center;gap:8px;background:#FEF3C7;padding:9px 14px;border-bottom:1px solid #FDE68A;flex-shrink:0;}
-.moving-warn.show{display:flex;}
-.mw-txt{font-size:11px;font-weight:600;color:#92400E;line-height:1.4;}
-.qr-bar{padding:8px 12px;background:#FFFBEB;border-bottom:1px solid #FDE68A;flex-shrink:0;}
-.qr-label{font-size:9px;font-weight:700;text-transform:uppercase;color:#92400E;margin-bottom:5px;}
-.qr-btns{display:flex;gap:5px;flex-wrap:wrap;}
-.qr-btn{padding:5px 12px;background:var(--white);border:1.5px solid var(--gray200);border-radius:100px;font-size:12px;font-weight:700;color:var(--gray800);cursor:pointer;font-family:'Inter',sans-serif;flex-shrink:0;}
-.qm-bar{padding:8px 12px;background:var(--white);border-bottom:1px solid var(--gray200);flex-shrink:0;}
-.qm-label{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--gray400);margin-bottom:5px;}
-.qm-btns{display:flex;gap:5px;flex-wrap:wrap;}
-.qm-btn{padding:5px 12px;background:var(--gray50);border:1.5px solid var(--gray200);border-radius:100px;font-size:11px;font-weight:600;color:var(--gray600);cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;}
-.chat-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--gray50);}
-.msg{display:flex;flex-direction:column;max-width:82%;}
-.msg.driver{align-self:flex-end;}
-.msg.parent{align-self:flex-start;}
-.msg-sender{font-size:9px;font-weight:700;color:var(--gray400);margin-bottom:2px;text-transform:uppercase;}
-.msg.driver .msg-sender{color:var(--navy);text-align:right;}
-.bubble{padding:9px 13px;border-radius:16px;font-size:13px;line-height:1.45;}
-.msg.parent .bubble{background:var(--white);border:1px solid var(--gray200);border-radius:4px 16px 16px 16px;color:var(--gray800);}
-.msg.driver .bubble{background:var(--navy);color:#FFF;border-radius:16px 4px 16px 16px;}
-.msg-time{font-size:9px;color:var(--gray400);margin-top:2px;}
-.msg.driver .msg-time{text-align:right;}
-.sys-msg{align-self:center;background:rgba(30,41,59,.07);border-radius:100px;padding:3px 12px;font-size:10px;color:var(--gray400);font-weight:500;}
-.audio-bubble{display:flex;align-items:center;gap:8px;padding:7px 11px;}
-.audio-play-btn{width:28px;height:28px;background:var(--yellow);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;font-size:11px;flex-shrink:0;}
-.waveform{display:flex;align-items:center;gap:2px;flex:1;}
-.wbar{width:3px;background:rgba(255,255,255,.4);border-radius:2px;}
-.chat-input-wrap{padding:8px 12px;background:var(--white);border-top:1px solid var(--gray200);flex-shrink:0;padding-bottom:max(8px,var(--safe-bottom));}
-.input-row{display:flex;align-items:center;gap:7px;}
-.chat-txt{flex:1;padding:10px 14px;border-radius:100px;border:1.5px solid var(--gray200);background:var(--gray50);font-size:13px;font-family:'Inter',sans-serif;color:var(--gray800);outline:none;}
-.chat-txt:disabled{background:#FEF3C7;border-color:#FDE68A;color:#92400E;cursor:not-allowed;}
-.btn-mic,.btn-send{width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
-.btn-mic{background:var(--yellow);color:var(--navy);}
-.btn-mic.recording{background:var(--red);color:#FFF;animation:rec .8s infinite;}
-@keyframes rec{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
-.btn-send{background:var(--navy);color:#FFF;}
-.btn-send:disabled{background:var(--gray200);}
-
-/* ALUNOS */
-.sh{padding:10px 14px;background:var(--white);border-bottom:1px solid var(--gray200);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.sh-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;color:var(--gray800);}
-.chips-bar{display:flex;flex-wrap:wrap;gap:5px;padding:8px 14px;background:var(--white);border-bottom:1px solid var(--gray200);flex-shrink:0;}
-.chip{display:flex;align-items:center;gap:4px;padding:4px 10px 4px 4px;border-radius:100px;font-size:11px;font-weight:600;}
-.chip.boarded{background:#DCFCE7;color:#15803D;}
-.chip.pend-c{background:var(--gray100);color:var(--gray400);}
-.chip.absent{background:#FEE2E2;color:#991B1B;}
-.chip-av{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;}
-.chip.boarded .chip-av{background:var(--green);color:#FFF;}
-.chip.pend-c .chip-av{background:var(--gray200);color:var(--gray400);}
-.chip.absent .chip-av{background:var(--red);color:#FFF;}
-.student-card{margin:6px 14px 0;padding:12px 14px;background:var(--white);border-radius:12px;border:1.5px solid var(--gray200);display:flex;align-items:center;gap:12px;}
-.student-card.done-c{border-color:#BBF7D0;background:#F0FDF4;}
-.student-card.cur-c{border-color:var(--yellow);background:#FFFBEB;}
-.student-card.absent-c{border-color:#FECACA;background:#FEF2F2;}
-.sc-photo{width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--blue));display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
-.sc-body{flex:1;}
-.sc-name{font-size:13px;font-weight:700;color:var(--gray800);}
-.sc-addr{font-size:11px;color:var(--gray400);margin-top:1px;}
-.sc-time{font-size:11px;font-weight:600;margin-top:2px;}
-.student-card.done-c .sc-time{color:var(--green);}
-.stud-btns{display:flex;gap:4px;}
-.stud-btn{width:32px;height:32px;border-radius:50%;border:none;cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;}
-.stud-btn.b{background:var(--green);color:#FFF;}
-.stud-btn.r{background:var(--red);color:#FFF;}
-.stud-btn.o{background:var(--orange);color:#FFF;}
-.stud-btn.gr{background:var(--gray200);color:var(--gray400);}
-
-/* FINANCEIRO */
-.fin-overview{padding:14px;background:var(--navy);flex-shrink:0;}
-.fo-title{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;}
-.fo-stats{display:flex;gap:7px;}
-.fo-stat{flex:1;padding:8px;border-radius:10px;text-align:center;}
-.fo-stat.g{background:rgba(34,197,94,.15);}
-.fo-stat.ye{background:rgba(245,158,11,.15);}
-.fo-stat.r{background:rgba(239,68,68,.15);}
-.fo-stat-val{font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;color:var(--yellow);line-height:1;}
-.fo-stat-lbl{font-size:8px;color:rgba(255,255,255,.5);margin-top:2px;}
-.fin-row{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--gray100);background:var(--white);}
-.fr-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif;font-weight:900;font-size:13px;flex-shrink:0;}
-.fr-info{flex:1;}
-.fr-name{font-size:13px;font-weight:700;color:var(--gray800);}
-.fr-sub{font-size:11px;color:var(--gray400);}
-.fr-badge{padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;cursor:pointer;}
-.fr-badge.paid{background:#DCFCE7;color:#15803D;}
-.fr-badge.pend{background:#FEF3C7;color:#92400E;}
-.fr-badge.late{background:#FEE2E2;color:#991B1B;}
-.fin-action-bar{display:flex;gap:8px;padding:10px 14px;background:var(--white);border-top:1px solid var(--gray200);flex-shrink:0;}
-.fin-action-btn{flex:1;padding:10px;border-radius:10px;border:none;cursor:pointer;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;}
-.fin-action-btn.navy{background:var(--navy);color:var(--yellow);}
-.fin-action-btn.light{background:var(--gray100);color:var(--gray800);}
-
+#chat-msgs{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--gray50)}
+.msg{max-width:80%;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.4}
+.msg.out{background:var(--navy);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.in{background:var(--white);color:var(--navy);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--gray200)}
+.msg.sys{background:var(--gray100);color:var(--gray600);align-self:center;font-size:11px;border-radius:20px;padding:5px 12px;max-width:90%;text-align:center}
+.msg-sender{font-size:10px;color:var(--gray400);margin-bottom:3px}
+#chat-bar{padding:8px 14px;border-top:1px solid var(--gray200);background:var(--white);display:flex;gap:8px;flex-shrink:0}
+#chat-inp{flex:1;padding:10px 14px;border-radius:22px;border:1.5px solid var(--gray200);font-size:14px;font-family:'Inter',sans-serif;outline:none}
+#chat-send-btn{width:40px;height:40px;border-radius:50%;background:var(--navy);border:none;color:var(--yellow);font-size:18px;cursor:pointer}
 /* ADMIN */
-.admin-header{padding:12px 14px;background:var(--purple);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.admin-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:17px;color:#FFF;}
-.admin-sub{font-size:10px;color:rgba(255,255,255,.6);}
-.admin-save-btn{padding:6px 14px;background:var(--yellow);border:none;border-radius:8px;font-size:12px;font-weight:700;color:var(--navy);cursor:pointer;font-family:'Inter',sans-serif;}
-.admin-section{margin:10px 14px;background:var(--white);border-radius:14px;border:1.5px solid var(--gray200);overflow:hidden;}
-.ash{padding:12px 14px;background:var(--gray50);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray200);cursor:pointer;}
-.ash-left{display:flex;align-items:center;gap:8px;}
-.ash-icon{font-size:18px;}
-.ash-title{font-size:13px;font-weight:700;color:var(--gray800);}
-.ash-count{font-size:11px;color:var(--gray400);}
-.ash-arrow{font-size:12px;color:var(--gray400);transition:transform .2s;}
-.ash-arrow.open{transform:rotate(180deg);}
-.asb{padding:12px 14px;display:flex;flex-direction:column;gap:10px;}
-.asb.collapsed{display:none;}
-.fl{display:flex;flex-direction:column;gap:4px;}
-.fl-label{font-size:11px;font-weight:600;color:var(--gray600);}
-.fi{padding:10px 12px;border:1.5px solid var(--gray200);border-radius:10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--gray800);background:var(--white);outline:none;width:100%;}
-.fi:focus{border-color:var(--purple);}
-.fr{display:flex;gap:8px;}
-.fr .fl{flex:1;}
-.asc{background:var(--gray50);border-radius:10px;border:1px solid var(--gray200);overflow:hidden;}
-.asc-h{padding:10px 12px;display:flex;align-items:center;gap:10px;cursor:pointer;}
-.asc-photo{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--blue));display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;border:2px solid var(--yellow);}
-.asc-name{font-size:13px;font-weight:700;color:var(--gray800);flex:1;}
-.asc-edit{padding:4px 10px;background:var(--purple);border:none;border-radius:6px;font-size:11px;font-weight:600;color:#FFF;cursor:pointer;font-family:'Inter',sans-serif;}
-.asc-body{display:none;padding:12px;border-top:1px solid var(--gray200);flex-direction:column;gap:8px;}
-.asc-body.open{display:flex;}
-.asc-del{padding:8px;background:#FEF2F2;border:1px solid #FECACA;border-radius:8px;font-size:12px;font-weight:600;color:var(--red);cursor:pointer;font-family:'Inter',sans-serif;text-align:center;}
-.add-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;background:var(--gray50);border:2px dashed var(--gray200);border-radius:10px;font-size:13px;font-weight:600;color:var(--gray400);cursor:pointer;width:100%;}
-.tog-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--gray50);border-radius:10px;border:1px solid var(--gray200);}
-.tog-label{font-size:13px;font-weight:600;color:var(--gray800);}
-.tog-sub{font-size:11px;color:var(--gray400);}
-.tog{position:relative;width:44px;height:24px;flex-shrink:0;}
-.tog input{opacity:0;width:0;height:0;}
-.tog-slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:var(--gray200);border-radius:24px;transition:.3s;}
-.tog-slider:before{position:absolute;content:'';height:18px;width:18px;left:3px;bottom:3px;background:#FFF;border-radius:50%;transition:.3s;}
-.tog input:checked+.tog-slider{background:var(--green);}
-.tog input:checked+.tog-slider:before{transform:translateX(20px);}
-.pending-card{background:#EFF6FF;border:1.5px solid #BFDBFE;border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px;}
-.pc-btns{display:flex;gap:8px;}
-.pc-btn{flex:1;padding:8px;border-radius:8px;border:none;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
-.pc-btn.approve{background:var(--green);color:#FFF;}
-.pc-btn.reject{background:var(--gray100);color:var(--gray600);}
-.ri{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--white);border-radius:10px;border:1px solid var(--gray200);}
-.ri-num{width:26px;height:26px;border-radius:50%;background:var(--navy);color:var(--yellow);font-family:'Nunito',sans-serif;font-weight:900;font-size:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
-.ri-info{flex:1;}
-.ri-name{font-size:12px;font-weight:700;color:var(--gray800);}
-.ri-addr{font-size:10px;color:var(--gray400);}
-
-/* SOS */
-.sos-overlay{position:fixed;inset:0;background:rgba(185,28,28,.97);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:28px;opacity:0;pointer-events:none;transition:opacity .3s;}
-.sos-overlay.open{opacity:1;pointer-events:auto;}
-.sos-main-icon{font-size:72px;animation:sp 1s infinite;}
-@keyframes sp{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
-.sos-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:28px;color:#FFF;text-align:center;}
-.sos-sub{font-size:13px;color:rgba(255,255,255,.8);text-align:center;line-height:1.5;}
-.sos-notified{background:rgba(255,255,255,.12);border-radius:12px;padding:12px 14px;width:100%;display:flex;flex-direction:column;gap:6px;}
-.sn-item{font-size:12px;color:#FFF;}
-.sos-cancel{background:#FFF;border:none;border-radius:12px;padding:14px;width:100%;font-size:14px;font-weight:700;color:var(--red);cursor:pointer;font-family:'Inter',sans-serif;}
-
+.adm-section{margin:14px;background:var(--white);border-radius:14px;border:1px solid var(--gray200);overflow:hidden}
+.adm-title{padding:12px 14px;font-size:13px;font-weight:700;color:var(--navy);border-bottom:1px solid var(--gray200);background:var(--gray50);display:flex;align-items:center;justify-content:space-between}
+.adm-btn{padding:6px 12px;border-radius:8px;border:none;background:var(--navy);color:var(--yellow);font-size:12px;font-weight:700;cursor:pointer}
+.cfg-row{display:flex;gap:10px;padding:10px 14px;border-bottom:1px solid var(--gray100)}
+.cfg-col{flex:1;display:flex;flex-direction:column;gap:4px}
+.cfg-lbl{font-size:11px;color:var(--gray400);font-weight:600}
+.cfg-inp{padding:8px 10px;border-radius:8px;border:1.5px solid var(--gray200);font-size:13px;font-family:'Inter',sans-serif;outline:none;width:100%}
+/* ALUNO ADMIN CARD */
+.asc{border-bottom:1px solid var(--gray100)}
+.asc:last-child{border-bottom:none}
+.asc-h{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer}
+.asc-foto{font-size:22px;width:32px;text-align:center}
+.asc-name{font-size:13px;font-weight:600;color:var(--navy);flex:1}
+.asc-body{display:none;padding:0 14px 14px}
+.asc-body.open{display:block}
+.asc-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.asc-field{display:flex;flex-direction:column;gap:4px}
+.asc-field.full{grid-column:1/-1}
+.asc-lbl{font-size:11px;color:var(--gray400);font-weight:600}
+.asc-inp{padding:8px 10px;border-radius:8px;border:1.5px solid var(--gray200);font-size:13px;font-family:'Inter',sans-serif;outline:none;width:100%}
+.asc-actions{display:flex;gap:8px;margin-top:4px}
+.asc-save{flex:1;padding:10px;border-radius:10px;border:none;background:var(--green);color:#fff;font-size:13px;font-weight:700;cursor:pointer}
+.asc-del{padding:10px 14px;border-radius:10px;border:none;background:#FEF2F2;color:var(--red);font-size:13px;font-weight:700;cursor:pointer}
+/* CRIAR PAI MODAL */
+#modal-pai{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
+#modal-pai.open{display:flex}
+.modal-box{background:var(--white);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px}
+.modal-title{font-size:16px;font-weight:700;color:var(--navy)}
+.modal-inp{padding:12px 14px;border-radius:10px;border:1.5px solid var(--gray200);font-size:14px;font-family:'Inter',sans-serif;outline:none;width:100%}
+.modal-err{font-size:12px;color:var(--red);min-height:16px}
+.modal-actions{display:flex;gap:10px}
+.modal-ok{flex:1;padding:13px;border-radius:10px;border:none;background:var(--navy);color:var(--yellow);font-size:14px;font-weight:700;cursor:pointer}
+.modal-cancel{padding:13px 18px;border-radius:10px;border:none;background:var(--gray100);color:var(--gray600);font-size:14px;font-weight:700;cursor:pointer}
+/* FINANCEIRO */
+.fin-cards{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px}
+.fin-card{background:var(--white);border-radius:12px;padding:12px 14px;border:1px solid var(--gray200)}
+.fin-card-lbl{font-size:11px;color:var(--gray400);font-weight:600}
+.fin-card-val{font-size:18px;font-weight:800;color:var(--navy);margin-top:4px}
+.fin-item{background:var(--white);border-radius:12px;padding:12px 14px;border:1.5px solid var(--gray200);display:flex;align-items:center;justify-content:space-between;margin:0 14px 8px}
+.fin-item-name{font-size:13px;font-weight:600;color:var(--navy)}
+.fin-badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600;margin-top:3px;display:inline-block}
+.fin-val{font-size:14px;font-weight:700}
+.pago{color:var(--green)}.pago .fin-badge{background:#F0FDF4;color:#166534}
+.pendente{color:var(--orange)}.pendente .fin-badge{background:#FFF7ED;color:#92400E}
+.atrasado{color:var(--red)}.atrasado .fin-badge{background:#FEF2F2;color:#991B1B}
 /* TOAST */
-.toast{position:fixed;top:76px;left:50%;transform:translateX(-50%);background:var(--gray800);color:#FFF;padding:10px 18px;border-radius:100px;font-size:12px;font-weight:600;z-index:9998;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;max-width:90%;text-align:center;}
-.toast.show{opacity:1;}
-.ctx-bar{background:linear-gradient(135deg,#0F1F3D,#1A2744);border-bottom:2px solid #FFD23F;padding:8px 14px;flex-shrink:0;position:relative;z-index:10;}
-.ctx-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
-.ctx-op{font-family:'Nunito',sans-serif;font-weight:900;font-size:13px;color:#FFD23F;}
-.ctx-progress{font-size:10px;color:rgba(255,255,255,.5);font-weight:600;}
-.ctx-aluno{font-size:12px;color:#FFF;font-weight:600;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.ctx-dica{font-size:10px;color:rgba(255,210,63,.7);font-style:italic;}
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:22px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
+<div id="app">
 
 <!-- LOGIN -->
 <div id="login-screen">
-  <div class="login-logo">🚐</div>
-  <div class="login-title">Tio Daniel & Tia Irene</div>
-  <div class="login-sub">Acesso do Motorista</div>
-  <input type="email" class="login-field" id="login-email" placeholder="Seu e-mail">
-  <input type="password" class="login-field" id="login-pass" placeholder="Senha (mín. 6 caracteres)">
-  <div class="login-err" id="login-err"></div>
-  <button class="login-btn" onclick="doLogin()">Entrar</button>
-  <div class="login-div">— primeira vez? —</div>
-  <button class="login-btn sec" onclick="doRegister()">Criar conta de motorista</button>
+  <div class="l-logo">🚐</div>
+  <div class="l-title">Tio Daniel & Tia Irene</div>
+  <div class="l-sub">Acesso do Motorista</div>
+  <input class="l-inp" id="l-email" type="email" placeholder="E-mail">
+  <input class="l-inp" id="l-pass" type="password" placeholder="Senha">
+  <div class="l-err" id="l-err"></div>
+  <button class="l-btn" onclick="doLogin()">Entrar</button>
 </div>
 
 <!-- MAIN APP -->
-<div id="main-app">
-  <div class="topbar">
-    <div class="brand">
-      <div class="brand-icon">🚐</div>
-      <div class="brand-text">
-        <div class="brand-name" id="topbar-name">Motorista — Tio Daniel</div>
-        <div class="brand-sub" id="topbar-sub">Paulista IE · Rodolfo Pirani</div>
-      </div>
+<div id="main-app" style="display:none;flex-direction:column;height:100vh">
+
+  <div id="topbar">
+    <div class="tb-info">
+      <div class="tb-name" id="tb-name">Motorista</div>
+      <div class="tb-sub" id="tb-sub">Paulista IE</div>
     </div>
-    <div style="text-align:right;">
-      <div><span class="speed-val" id="spd-val">0</span><span class="speed-unit"> km/h</span></div>
-      <div class="speed-status stopped" id="spd-status">● PARADO</div>
+    <div class="tb-spd">
+      <div><span class="tb-spd-val" id="spd-val">0</span><span class="tb-spd-lbl"> km/h</span></div>
+      <span class="tb-badge stopped" id="spd-badge">● PARADO</span>
     </div>
   </div>
 
-  <!-- CONTEXT BAR -->
-  <div class="ctx-bar" id="ctx-bar">
-    <div class="ctx-top">
-      <div class="ctx-op" id="ctx-op">⚪ Nenhuma viagem ativa</div>
-      <div class="ctx-progress" id="ctx-progress"></div>
+  <div id="gps-bar">
+    <div style="display:flex;align-items:center">
+      <span class="gps-dot" id="gps-dot"></span>
+      <span id="gps-txt">GPS desativado</span>
     </div>
-    <div class="ctx-aluno" id="ctx-aluno"></div>
-    <div class="ctx-dica" id="ctx-dica">💡 Selecione uma operação: 🌅 🔄 🌇 🌆</div>
+    <button id="gps-btn" onclick="toggleGPS()">Ativar ▶</button>
   </div>
 
   <!-- PAINEL -->
   <div id="view-painel" class="view active">
-    <div class="gps-bar">
-      <div class="gps-dot off" id="gps-dot"></div>
-      <span class="gps-txt" id="gps-txt">GPS desativado</span>
-      <button class="gps-btn" id="gps-btn" onclick="toggleGPS()">Ativar ▶</button>
-    </div>
-    <div class="speed-sim">
-      <span class="ss-lbl">⚙️ Simular:</span>
-      <button class="ss-btn active" onclick="setSpeed(0,this)">Parado</button>
-      <button class="ss-btn" onclick="setSpeed(25,this)">25 km/h</button>
-      <button class="ss-btn" onclick="setSpeed(50,this)">50 km/h</button>
-    </div>
-    <div class="shortcuts">
-      <div class="sc-lbl">🚐 Selecione a operação</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
-        <button class="op-btn" id="op-busca-manha" onclick="setOperacao('busca_manha',this)">🌅 Busca manhã<div style="font-size:9px;opacity:.7;">Casa → Escola</div></button>
-        <button class="op-btn" id="op-leva-manha" onclick="setOperacao('leva_manha',this)">🔄 Leva manhã<div style="font-size:9px;opacity:.7;">Escola → Casa</div></button>
-        <button class="op-btn" id="op-busca-tarde" onclick="setOperacao('busca_tarde',this)">🌇 Busca tarde<div style="font-size:9px;opacity:.7;">Casa → Escola</div></button>
-        <button class="op-btn" id="op-leva-tarde" onclick="setOperacao('leva_tarde',this)">🌆 Leva tarde<div style="font-size:9px;opacity:.7;">Escola → Casa</div></button>
-      </div>
-      <div id="op-info" style="display:none;padding:6px 10px;background:#EFF6FF;border-radius:8px;border:1px solid #BFDBFE;font-size:11px;color:#1D4ED8;margin-bottom:8px;font-weight:600;"></div>
-      <div class="sc-lbl" style="margin-top:4px;">⚡ Atalhos rápidos</div>
-      <div class="sc-grid">
-        <button class="sc-btn green" onclick="quickBoard()">✅ Embarcou</button>
-        <button class="sc-btn red2" onclick="quickAbsent()">❌ Faltou</button>
-        <button class="sc-btn blue" onclick="startTrip()">▶️ Iniciar viagem</button>
-        <button class="sc-btn yellow" onclick="nextStop()">⏭️ Próxima parada</button>
-      </div>
-      <button onclick="finalizarViagem()" style="margin-top:8px;width:100%;padding:11px;border-radius:12px;border:2px solid #FECACA;background:#FEF2F2;color:#991B1B;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:8px;">🏁 Finalizar viagem</button>
-    </div>
-    <div class="eta-strip">
-      <div>
-        <div class="eta-label">ETA Escola</div>
-        <div class="eta-time" id="eta-t">--:--</div>
-        <div class="eta-min" id="eta-min">Configure no Admin</div>
-      </div>
-      <div style="text-align:right;">
-        <div class="eta-label">Viagem</div>
-        <div style="font-size:11px;font-weight:700;color:var(--green);" id="trip-st">Parado</div>
-        <div class="eta-min" id="stop-count">0/0 paradas</div>
-      </div>
-    </div>
     <div class="scroll">
-      <div class="cur-stop">
-        <div class="cs-header">
-          <div class="cs-label">📍 Parada atual</div>
-          <div class="cs-num" id="cs-num">—</div>
+      <div class="painel-trip">
+        <div class="trip-row">
+          <button class="trip-btn start" id="btn-start" onclick="startTrip()">▶ Iniciar viagem</button>
+          <button class="trip-btn finish" id="btn-finish" onclick="finishTrip()" disabled>🏁 Finalizar</button>
         </div>
-        <div class="cs-student">
-          <div class="cs-photo" id="cs-photo">—</div>
-          <div>
-            <div class="cs-name" id="cs-name">Nenhuma parada ativa</div>
-            <div class="cs-addr" id="cs-addr">Inicie a viagem para começar</div>
-            <div class="cs-obs" id="cs-obs"></div>
-          </div>
-        </div>
-        <div class="action-btns">
-          <button class="action-btn boarded" onclick="confirmBoard('boarded')"><div class="ab-icon">✅</div><div class="ab-txt">EMBARCOU</div></button>
-          <button class="action-btn absent" onclick="confirmBoard('absent')"><div class="ab-icon">❌</div><div class="ab-txt">FALTOU</div></button>
-          <button class="action-btn waiting" onclick="confirmBoard('waiting')"><div class="ab-icon">⏳</div><div class="ab-txt">AGUARD.</div></button>
-        </div>
+        <div class="trip-status" id="trip-status">Nenhuma viagem ativa</div>
       </div>
-      <div class="stops-section">
-        <div class="ss-title">Paradas do dia</div>
-        <div id="stops-list"><div style="padding:16px;text-align:center;font-size:12px;color:var(--gray400);">Configure os alunos na aba ⚙️ Admin</div></div>
-      </div>
-      <div style="height:16px;"></div>
+      <div class="painel-section-title">Alunos</div>
+      <div id="alunos-painel"></div>
     </div>
   </div>
 
-  <!-- PAINEL DE ROTA -->
-  <div id="view-mapa" class="view">
-    <div style="padding:10px 14px;background:var(--navy);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <div>
-        <div style="font-size:9px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;">Painel de Rota</div>
-        <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;color:var(--yellow);" id="rota-operacao">Selecione uma operacao</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:9px;color:rgba(255,255,255,.5);">ETA Escola</div>
-        <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:22px;color:#FFF;" id="rota-eta">--:--</div>
-      </div>
-    </div>
-    <div class="scroll" id="rota-list">
-      <div style="padding:30px;text-align:center;color:var(--gray400);font-size:13px;">Selecione uma operacao no Painel e inicie a viagem para ver o progresso aqui.</div>
-    </div>
-  </div>
-
-  <!-- AUXILIAR -->
-  <div id="view-aux" class="view">
-    <div style="padding:12px 14px;background:var(--navy);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:16px;color:var(--yellow);">👥 Modo Auxiliar</div>
-        <div style="font-size:10px;color:rgba(255,255,255,.5);" id="aux-operacao-label">Selecione operacao no Painel</div>
-      </div>
-      <div style="text-align:right;">
-        <div style="font-size:10px;color:rgba(255,255,255,.5);">Parada</div>
-        <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:15px;color:#FFF;" id="aux-stop-num">—</div>
-      </div>
-    </div>
-    <div style="flex:1;display:flex;flex-direction:column;padding:14px;gap:10px;overflow:hidden;">
-      <div style="background:var(--yellow);border-radius:16px;padding:16px;display:flex;align-items:center;gap:14px;flex-shrink:0;">
-        <div style="width:56px;height:56px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;" id="aux-photo">👤</div>
-        <div style="flex:1;">
-          <div style="font-size:10px;font-weight:700;color:rgba(26,39,68,.5);text-transform:uppercase;">Parada atual</div>
-          <div style="font-family:'Nunito',sans-serif;font-weight:900;font-size:21px;color:var(--navy);line-height:1.1;" id="aux-name">Aguardando...</div>
-          <div style="font-size:12px;color:rgba(26,39,68,.6);margin-top:2px;" id="aux-addr">Inicie a viagem no Painel</div>
-          <div style="font-size:12px;font-weight:700;color:var(--red);margin-top:2px;" id="aux-obs"></div>
-        </div>
-      </div>
-      <button onclick="auxBoard()" style="flex:1;border-radius:16px;border:none;background:var(--green);color:#FFF;font-family:'Nunito',sans-serif;font-weight:900;font-size:26px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;box-shadow:0 6px 20px rgba(34,197,94,.35);">
-        <span style="font-size:44px;">✅</span>EMBARCOU
-      </button>
-      <div style="display:flex;gap:10px;flex:1;">
-        <button onclick="auxAbsent()" style="flex:1;border-radius:16px;border:none;background:var(--red);color:#FFF;font-family:'Nunito',sans-serif;font-weight:900;font-size:20px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 4px 16px rgba(239,68,68,.3);">
-          <span style="font-size:36px;">❌</span>FALTOU
-        </button>
-        <button onclick="auxWait()" style="flex:1;border-radius:16px;border:none;background:var(--orange);color:#FFF;font-family:'Nunito',sans-serif;font-weight:900;font-size:20px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;box-shadow:0 4px 16px rgba(249,115,22,.3);">
-          <span style="font-size:36px;">⏳</span>AGUARD.
-        </button>
-      </div>
-      <div style="background:var(--gray50);border-radius:12px;padding:10px 14px;border:1px solid var(--gray200);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-        <div>
-          <div style="font-size:9px;color:var(--gray400);text-transform:uppercase;">Proxima parada</div>
-          <div style="font-size:14px;font-weight:700;color:var(--gray800);" id="aux-next">—</div>
-        </div>
-        <button onclick="nextStop()" style="padding:8px 14px;background:var(--navy);border:none;border-radius:10px;color:var(--yellow);font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;">⏭️ Pular</button>
-      </div>
-    </div>
-  </div>
-  <!-- ALUNOS -->
-  <div id="view-alunos" class="view">
-    <div class="sh">
-      <div class="sh-title">👥 Alunos</div>
-      <div style="font-size:11px;color:var(--gray400);" id="boarded-count">Carregando...</div>
-    </div>
-    <div class="chips-bar" id="chips-bar"></div>
-    <div class="scroll" id="alunos-list-view">
-      <div style="padding:20px;text-align:center;font-size:12px;color:var(--gray400);">Carregando...</div>
+  <!-- CHAT -->
+  <div id="view-chat" class="view">
+    <div id="chat-msgs"></div>
+    <div id="chat-bar">
+      <input id="chat-inp" type="text" placeholder="Mensagem..." onkeydown="if(event.key==='Enter')sendMsg()">
+      <button id="chat-send-btn" onclick="sendMsg()">➤</button>
     </div>
   </div>
 
   <!-- FINANCEIRO -->
   <div id="view-fin" class="view">
-    <div class="fin-overview">
-      <div class="fo-title" id="fin-mes">Carregando...</div>
-      <div class="fo-stats">
-        <div class="fo-stat g"><div class="fo-stat-val" id="fin-rec">R$0</div><div class="fo-stat-lbl">Recebido</div></div>
-        <div class="fo-stat ye"><div class="fo-stat-val" id="fin-pend">R$0</div><div class="fo-stat-lbl">Pendente</div></div>
-        <div class="fo-stat r"><div class="fo-stat-val" id="fin-atras">R$0</div><div class="fo-stat-lbl">Atrasado</div></div>
-      </div>
-    </div>
-    <div class="scroll" id="fin-list">
-      <div style="padding:20px;text-align:center;font-size:12px;color:var(--gray400);">Carregando...</div>
-    </div>
-    <div class="fin-action-bar">
-      <button class="fin-action-btn navy" onclick="showToast('📤 Enviando cobranças...')">📤 Cobrar pendentes</button>
-      <button class="fin-action-btn light" onclick="showToast('📊 Em breve: PDF!')">📊 Relatório</button>
+    <div class="scroll">
+      <div class="fin-cards" id="fin-cards"></div>
+      <div id="fin-list"></div>
     </div>
   </div>
 
   <!-- ADMIN -->
   <div id="view-admin" class="view">
-    <div class="admin-header">
-      <div><div class="admin-title">⚙️ Configurações</div><div class="admin-sub">Salvo no Firebase</div></div>
-      <button class="admin-save-btn" onclick="saveAll()">💾 Salvar</button>
-    </div>
     <div class="scroll">
-
-      <div class="admin-section">
-        <div class="ash" onclick="toggleSec(this)">
-          <div class="ash-left"><div class="ash-icon">👤</div><div><div class="ash-title">Minha Conta</div><div class="ash-count">Motorista</div></div></div>
-          <div class="ash-arrow open">▼</div>
+      <!-- CONFIG -->
+      <div class="adm-section">
+        <div class="adm-title">⚙️ Configurações <button class="adm-btn" onclick="saveConfig()">💾 Salvar</button></div>
+        <div class="cfg-row">
+          <div class="cfg-col"><div class="cfg-lbl">Nome motorista</div><input class="cfg-inp" id="cfg-nome" placeholder="Tio Daniel"></div>
+          <div class="cfg-col"><div class="cfg-lbl">Escola</div><input class="cfg-inp" id="cfg-unidade" placeholder="Paulista IE"></div>
         </div>
-        <div class="asb" id="sec-conta">
-          <div class="fr">
-            <div class="fl"><div class="fl-label">Nome</div><input class="fi" id="cfg-nome" placeholder="Ex: Daniel Silva" value="Tio Daniel"></div>
-            <div class="fl"><div class="fl-label">WhatsApp</div><input class="fi" id="cfg-tel" placeholder="(11) 9xxxx-xxxx" type="tel"></div>
-          </div>
-          <div class="fl"><div class="fl-label">Unidade</div>
-            <select class="fi" id="cfg-unidade">
-              <option>Paulista IE · Rodolfo Pirani</option>
-              <option>Paulista IE · São Mateus</option>
-              <option>Paulista IE · Santa Bárbara</option>
-            </select>
-          </div>
-          <div class="fr">
-            <div class="fl"><div class="fl-label">Saída manhã</div><input class="fi" id="cfg-saida" type="time" value="06:55"></div>
-            <div class="fl"><div class="fl-label">Chegada escola</div><input class="fi" id="cfg-chegada" type="time" value="07:45"></div>
-          </div>
-          <div class="fl"><div class="fl-label">Placa do veículo</div><input class="fi" id="cfg-placa" placeholder="Ex: ABC-1234"></div>
+        <div class="cfg-row">
+          <div class="cfg-col"><div class="cfg-lbl">ETA escola</div><input class="cfg-inp" id="cfg-chegada" type="time" value="07:45"></div>
+          <div class="cfg-col"><div class="cfg-lbl">Mensalidade R$</div><input class="cfg-inp" id="cfg-mens" type="number" placeholder="380"></div>
+        </div>
+        <div class="cfg-row" style="border:none">
+          <div class="cfg-col"><div class="cfg-lbl">PIX</div><input class="cfg-inp" id="cfg-pix" placeholder="Chave PIX"></div>
+          <div class="cfg-col"><div class="cfg-lbl">Vencimento dia</div><input class="cfg-inp" id="cfg-venc" type="number" placeholder="10"></div>
         </div>
       </div>
-
-      <div class="admin-section">
-        <div class="ash" onclick="toggleSec(this)">
-          <div class="ash-left"><div class="ash-icon">💰</div><div><div class="ash-title">Financeiro</div><div class="ash-count">PIX, mensalidade, multa</div></div></div>
-          <div class="ash-arrow">▼</div>
-        </div>
-        <div class="asb collapsed" id="sec-fin">
-          <div class="fr">
-            <div class="fl"><div class="fl-label">Mensalidade (R$)</div><input class="fi" id="cfg-mens" type="number" value="380.00"></div>
-            <div class="fl"><div class="fl-label">Vencimento (dia)</div><input class="fi" id="cfg-venc" type="number" min="1" max="28" value="10"></div>
-          </div>
-          <div class="fl"><div class="fl-label">Multa por atraso (%/dia)</div><input class="fi" id="cfg-multa" type="number" value="2"></div>
-          <div class="fl"><div class="fl-label">Chave PIX</div><input class="fi" id="cfg-pix" placeholder="CPF, e-mail, telefone..."></div>
-          <div class="fl"><div class="fl-label">Nome do titular PIX</div><input class="fi" id="cfg-tit" placeholder="Nome completo como no banco"></div>
-        </div>
-      </div>
-
-      <div class="admin-section">
-        <div class="ash" onclick="toggleSec(this)">
-          <div class="ash-left"><div class="ash-icon">👥</div><div><div class="ash-title">Alunos</div><div class="ash-count" id="alunos-count">0 alunos</div></div></div>
-          <div class="ash-arrow">▼</div>
-        </div>
-        <div class="asb collapsed" id="sec-alunos">
-          <div id="alunos-admin-list"><div style="padding:12px;text-align:center;font-size:12px;color:var(--gray400);">Carregando...</div></div>
-          <button class="add-btn" onclick="addAluno()">➕ Adicionar novo aluno</button>
-        </div>
-      </div>
-
-      <div class="admin-section">
-        <div class="ash" onclick="toggleSec(this)">
-          <div class="ash-left"><div class="ash-icon">🗺️</div><div><div class="ash-title">Ordem das Paradas</div><div class="ash-count">Sequência da rota</div></div></div>
-          <div class="ash-arrow">▼</div>
-        </div>
-        <div class="asb collapsed" id="sec-rota">
-          <div id="route-list" style="display:flex;flex-direction:column;gap:6px;"></div>
-        </div>
-      </div>
-
-      <div class="admin-section">
-        <div class="ash" onclick="toggleSec(this)">
-          <div class="ash-left"><div class="ash-icon">🔔</div><div><div class="ash-title">Pais Pendentes</div><div class="ash-count" id="pais-count" style="color:var(--orange);">Verificando...</div></div></div>
-          <div class="ash-arrow">▼</div>
-        </div>
-        <div class="asb collapsed" id="sec-pais">
-          <div id="pais-list"><div style="padding:12px;text-align:center;font-size:12px;color:var(--gray400);">Carregando...</div></div>
-        </div>
-      </div>
-
-      <div class="admin-section">
-        <div class="ash" onclick="toggleSec(this)">
-          <div class="ash-left"><div class="ash-icon">📅</div><div><div class="ash-title">Dias sem Aula</div><div class="ash-count">Feriados e recessos</div></div></div>
-          <div class="ash-arrow">▼</div>
-        </div>
-        <div class="asb collapsed" id="sec-cal">
-          <div id="holidays-list" style="display:flex;flex-direction:column;gap:6px;"></div>
-          <div style="display:flex;gap:8px;"><input type="date" class="fi" id="new-hol-date" style="flex:1;"><input type="text" class="fi" id="new-hol-name" placeholder="Descrição" style="flex:2;"></div>
-          <button class="add-btn" onclick="addHoliday()">➕ Adicionar feriado</button>
-        </div>
-      </div>
-
-      <div style="margin:10px 14px 20px;">
-        <button onclick="doLogout()" style="width:100%;padding:12px;background:var(--gray100);border:1px solid var(--gray200);border-radius:12px;font-size:13px;font-weight:600;color:var(--gray600);cursor:pointer;font-family:'Inter',sans-serif;">🚪 Sair da conta</button>
+      <!-- ALUNOS -->
+      <div class="adm-section">
+        <div class="adm-title">👦 Alunos <span id="alunos-count" style="font-weight:400;color:var(--gray400);font-size:12px"></span><button class="adm-btn" onclick="openModalPai()">+ Novo pai/aluno</button></div>
+        <div id="alunos-admin"></div>
       </div>
     </div>
   </div>
 
-  <div class="navbar">
-    <div class="nav-item active" onclick="switchView('painel',this)"><span class="nav-icon">🏠</span>Painel<div class="nav-dot"></div></div>
-    <div class="nav-item" onclick="switchView('mapa',this)"><span class="nav-icon">📋</span>Rota</div>
-    <div class="nav-item" onclick="switchView('aux',this)"><span class="nav-icon">👥</span>Auxiliar</div>
-    <div class="nav-item" onclick="switchView('chat',this)"><span class="nav-icon">💬</span>Chat</div>
-    <div class="nav-item" onclick="switchView('fin',this)"><span class="nav-icon">💰</span>Financ.</div>
-    <div class="nav-item" onclick="switchView('admin',this)"><span class="nav-icon">⚙️</span>Admin</div>
-    <div class="sos-nav" onclick="showSOS()"><span class="nav-icon">🆘</span>SOS</div>
+  <div id="navbar">
+    <button class="nav-btn active" onclick="switchView('painel',this)"><span class="nav-icon">🏠</span>Painel<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="switchView('chat',this)"><span class="nav-icon">💬</span>Chat<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="switchView('fin',this)"><span class="nav-icon">💰</span>Financ.<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="switchView('admin',this)"><span class="nav-icon">⚙️</span>Admin<div class="nav-dot"></div></button>
+  </div>
+
+</div><!-- /main-app -->
+
+<!-- MODAL CRIAR PAI/ALUNO -->
+<div id="modal-pai">
+  <div class="modal-box">
+    <div class="modal-title">➕ Novo pai/aluno</div>
+    <div style="font-size:12px;color:var(--gray400)">Dados do pai</div>
+    <input class="modal-inp" id="m-pai-nome" placeholder="Nome do pai/mãe">
+    <input class="modal-inp" id="m-pai-email" type="email" placeholder="E-mail (login)">
+    <input class="modal-inp" id="m-pai-pass" type="text" placeholder="Senha (repasse ao pai)">
+    <div style="font-size:12px;color:var(--gray400);margin-top:4px">Dados do aluno</div>
+    <input class="modal-inp" id="m-aluno-nome" placeholder="Nome do aluno">
+    <input class="modal-inp" id="m-aluno-serie" placeholder="Série/Turma (ex: 8ºA)">
+    <input class="modal-inp" id="m-aluno-end" placeholder="Endereço de embarque">
+    <div class="modal-err" id="m-err"></div>
+    <div class="modal-actions">
+      <button class="modal-cancel" onclick="closeModalPai()">Cancelar</button>
+      <button class="modal-ok" onclick="criarPaiAluno()">✅ Criar</button>
+    </div>
   </div>
 </div>
 
-<div class="sos-overlay" id="sos-overlay">
-  <div class="sos-main-icon">🆘</div>
-  <div class="sos-title">EMERGÊNCIA ATIVADA</div>
-  <div class="sos-sub">Todos os pais notificados agora</div>
-  <div class="sos-notified" id="sos-notified"><div class="sn-item">🔄 Notificando...</div></div>
-  <button class="sos-cancel" onclick="closeSOS()">✅ Cancelar emergência</button>
-</div>
-<div class="toast" id="toast"></div>
+<div id="toast"></div>
 
 <script>
-// ── SAFE DOM HELPER ──
-function el(id) { return document.getElementById(id); }
-function setText(id, val) { const e=el(id); if(e) e.textContent=val; }
-function setHtml(id, val) { const e=el(id); if(e) e.innerHTML=val; }
-function setVal(id, val) { const e=el(id); if(e) e.value=val; }
-
-// ── STATE ──
-let currentSpeed = 0, isRec = false, tripStarted = false;
-let alunosData = [], gpsWatchId = null;
-let currentStopIndex = 0;
-let operacaoAtual = null; // 'busca_manha','leva_manha','busca_tarde','leva_tarde'
-let alunosOperacao = []; // alunos filtrados para operacao atual
-
-// ── AUTH ──
-function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass  = document.getElementById('login-pass').value;
-  const err   = document.getElementById('login-err');
-  if(!email || !pass) { err.textContent = '⚠️ Preencha e-mail e senha'; return; }
-  err.textContent = '🔄 Conectando...';
-  auth.signInWithEmailAndPassword(email, pass)
-    .then(() => err.textContent = '')
-    .catch(e => {
-      if(e.code === 'auth/invalid-credential' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found')
-        err.textContent = '❌ E-mail ou senha incorretos';
-      else if(e.code === 'auth/network-request-failed')
-        err.textContent = '❌ Sem internet — conecte ao Wi-Fi';
-      else if(e.code === 'auth/operation-not-allowed')
-        err.textContent = '❌ Ative E-mail/senha no Firebase Console → Authentication';
-      else
-        err.textContent = '❌ ' + e.code;
-    });
-}
-
-function doRegister() {
-  const email = document.getElementById('login-email').value.trim();
-  const pass  = document.getElementById('login-pass').value;
-  const err   = document.getElementById('login-err');
-  if(!email || !pass) { err.textContent = '⚠️ Preencha e-mail e senha'; return; }
-  if(pass.length < 6) { err.textContent = '❌ Senha mínimo 6 caracteres'; return; }
-  err.textContent = '🔄 Criando conta...';
-  auth.createUserWithEmailAndPassword(email, pass)
-    .then(() => err.textContent = '✅ Conta criada! Entrando...')
-    .catch(e => {
-      if(e.code === 'auth/email-already-in-use') err.textContent = '❌ E-mail já cadastrado. Faça login.';
-      else if(e.code === 'auth/network-request-failed') err.textContent = '❌ Sem internet — conecte ao Wi-Fi';
-      else if(e.code === 'auth/operation-not-allowed') err.textContent = '❌ Ative E-mail/senha no Firebase Console → Authentication';
-      else err.textContent = '❌ ' + e.code;
-    });
-}
-
-function doLogout() { if(confirm('Sair?')) auth.signOut(); }
-
-// ── INIT ──
-function initApp() {
-  loadConfig();
-  listenMessages();
-  listenAlunos();
-  listenFinanceiro();
-  listenPaisPendentes();
-  listenHolidays();
-}
-
-// ── CONFIG ──
-function loadConfig() {
-  db.doc('config/main').get().then(snap => {
-    if(!snap.exists) return;
-    const d = snap.data();
-    const fields = ['nome','tel','unidade','saida','chegada','placa','mens','venc','multa','pix','tit'];
-    fields.forEach(f => {
-      const el = document.getElementById('cfg-'+f);
-      if(el && d[f] !== undefined) el.value = d[f];
-    });
-    if(d.nome) { const tn=document.getElementById('topbar-name'); if(tn) tn.textContent='Motorista — '+d.nome; }
-    if(d.unidade) { const ts=document.getElementById('topbar-sub'); if(ts) ts.textContent=d.unidade; }
-    if(d.chegada) { 
-      const etaT = document.getElementById('eta-t');
-      const etaV = document.getElementById('map-eta-val');
-      if(etaT) etaT.textContent = d.chegada;
-      if(etaV) etaV.textContent = d.chegada;
-    }
-  }).catch(e => console.log('Config err:', e));
-}
-
-function saveAll() {
-  const data = {
-    nome: v('cfg-nome'), tel: v('cfg-tel'), unidade: v('cfg-unidade'),
-    saida: v('cfg-saida'), chegada: v('cfg-chegada'), placa: v('cfg-placa'),
-    mens: parseFloat(v('cfg-mens'))||380, venc: parseInt(v('cfg-venc'))||10,
-    multa: parseFloat(v('cfg-multa'))||2, pix: v('cfg-pix'), tit: v('cfg-tit'),
-    atualizado: firebase.firestore.FieldValue.serverTimestamp()
-  };
-  db.doc('config/main').set(data, {merge:true})
-    .then(() => {
-      document.getElementById('topbar-name').textContent = 'Motorista — ' + (data.nome||'Tio Daniel');
-      document.getElementById('topbar-sub').textContent = data.unidade;
-      if(data.chegada) { document.getElementById('eta-t').textContent = data.chegada; document.getElementById('map-eta-val').textContent = data.chegada; }
-      showToast('✅ Configurações salvas no Firebase!');
-    })
-    .catch(e => showToast('❌ Erro: ' + e.message));
-}
-
-function v(id) { const el = document.getElementById(id); return el ? el.value : ''; }
-
-// ── CHAT ──
-function listenMessages() {
-  db.collection('mensagens').orderBy('timestamp','asc').onSnapshot(snap => {
-    const box = el('chat-messages');
-    if(!box) return;
-    box.innerHTML = '';
-    if(snap.empty) { box.innerHTML = '<div class="sys-msg">Chat conectado ✅ Aguardando mensagens</div>'; return; }
-    snap.forEach(d => {
-      const m = d.data();
-      if(m.tipo === 'sistema') {
-        const el = document.createElement('div');
-        el.className = 'sys-msg'; el.textContent = m.texto;
-        box.appendChild(el);
-      } else {
-        const isDriver = m.remetente_tipo === 'motorista';
-        const el = document.createElement('div');
-        el.className = 'msg ' + (isDriver ? 'driver' : 'parent');
-        const t = m.timestamp ? m.timestamp.toDate().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}) : '--:--';
-        if(m.tipo === 'audio') {
-          const id = 'w'+d.id;
-          const bars = Array.from({length:10},()=>`<div class="wbar" style="height:${5+Math.random()*13}px"></div>`).join('');
-          el.innerHTML = `<div class="msg-sender">${m.remetente} 🎙️</div><div class="bubble audio-bubble"><button class="audio-play-btn" onclick="playAudio(this,'${id}')">▶️</button><div class="waveform" id="${id}">${bars}</div><span style="font-size:10px;color:rgba(255,255,255,.5);margin-left:2px;">${m.duracao||'0:05'}</span></div><div class="msg-time">${t}</div>`;
-        } else {
-          el.innerHTML = `<div class="msg-sender">${m.remetente}</div><div class="bubble">${m.texto}</div><div class="msg-time">${t}</div>`;
-        }
-        box.appendChild(el);
-      }
-    });
-    box.scrollTop = box.scrollHeight;
-  }, err => {
-    document.getElementById('chat-messages').innerHTML = '<div class="sys-msg" style="color:var(--red);">⚠️ Ative o Firestore no Firebase Console</div>';
-  });
-}
-
-function sendMsg() {
-  if(currentSpeed > 5) { showToast('🔒 Use áudio em movimento!'); return; }
-  const inp = document.getElementById('chat-input');
-  const txt = inp.value.trim(); if(!txt) return;
-  inp.value = '';
-  const nome = v('cfg-nome') || 'Tio Daniel';
-  db.collection('mensagens').add({ texto:txt, tipo:'texto', remetente:nome, remetente_tipo:'motorista', timestamp:firebase.firestore.FieldValue.serverTimestamp(), lida:false });
-}
-
-function sendQuick(msg) {
-  const nome = v('cfg-nome') || 'Tio Daniel';
-  db.collection('mensagens').add({ texto:msg, tipo:'texto', remetente:nome, remetente_tipo:'motorista', timestamp:firebase.firestore.FieldValue.serverTimestamp(), lida:false });
-  showToast('✅ Enviado para todos os pais');
-}
-
-// ── ALUNOS ──
-function listenAlunos() {
-  db.collection('alunos').orderBy('ordem_parada','asc').onSnapshot(snap => {
-    alunosData = [];
-    snap.forEach(d => alunosData.push({id:d.id,...d.data()}));
-    renderAlunosView();
-    renderAlunosAdmin();
-    renderRoute();
-    setText('alunos-count', alunosData.length + ' alunos');
-    setText('stop-count', '0/' + alunosData.length + ' paradas');
-    alunosData.forEach(a=>criarRegistroFinanceiro(a.id, a.nome, a.responsavel_tel));
-    updateContextBar();
-    if(alunosData.length > 0) {
-      const a = alunosData[0];
-      document.getElementById('cs-name').textContent = a.nome||'—';
-      document.getElementById('cs-addr').textContent = a.endereco||'—';
-      document.getElementById('cs-obs').textContent = a.obs_medicas ? '⚠️ '+a.obs_medicas : '';
-      document.getElementById('cs-photo').textContent = a.foto||'👤';
-      document.getElementById('cs-num').textContent = '1ª de '+alunosData.length;
-    }
-  }, () => document.getElementById('alunos-list-view').innerHTML = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--red);">⚠️ Ative o Firestore</div>');
-}
-
-function renderAlunosView() {
-  const chips = document.getElementById('chips-bar');
-  const list  = document.getElementById('alunos-list-view');
-  setText('boarded-count', '0/'+alunosData.length+' embarcaram');
-  if(!alunosData.length) {
-    chips.innerHTML = '<span style="font-size:12px;color:var(--gray400);">Nenhum aluno</span>';
-    list.innerHTML  = '<div style="padding:20px;text-align:center;font-size:12px;color:var(--gray400);">Cadastre alunos em ⚙️ Admin</div>';
-    return;
-  }
-  chips.innerHTML = alunosData.map(a=>`<div class="chip pend-c" id="chip-${a.id}"><div class="chip-av">${(a.nome||'?')[0]}</div>${a.nome?.split(' ')[0]||'?'}</div>`).join('');
-  list.innerHTML  = alunosData.map(a=>`<div class="student-card" id="card-${a.id}"><div class="sc-photo">${a.foto||'👤'}</div><div class="sc-body"><div class="sc-name">${a.nome||'—'}</div><div class="sc-addr">${a.endereco||'—'}${a.obs_medicas?' · ⚠️ '+a.obs_medicas:''}</div><div class="sc-time" id="time-${a.id}">Aguardando</div></div><div class="stud-btns"><button class="stud-btn b" onclick="boardAluno('${a.id}','${a.nome}')">✅</button><button class="stud-btn r" onclick="absentAluno('${a.id}','${a.nome}')">✗</button><button class="stud-btn o" onclick="showToast('⏳ Aguardando...')">⏳</button></div></div>`).join('')+'<div style="height:16px;"></div>';
-}
-
-function registrarEtapa(alunoId, nome, etapa) {
-  db.doc('status_alunos/'+alunoId).set({
-    nome: nome||'',
-    etapa: etapa,
-    atualizado_em: firebase.firestore.FieldValue.serverTimestamp()
-  }, {merge: true});
-}
-
-function boardAluno(id, nome) {
-  // Register stage in Firebase for pais status board
-  const etapa = (operacaoAtual==='leva_manha'||operacaoAtual==='leva_tarde') ? 'em_casa' : 'embarcou';
-  registrarEtapa(id, nome, etapa);
-  const card = document.getElementById('card-'+id);
-  const chip = document.getElementById('chip-'+id);
-  if(card) card.className = 'student-card done-c';
-  if(chip) { chip.className='chip boarded'; chip.querySelector('.chip-av').style.cssText='background:var(--green);color:#FFF;'; }
-  const t = document.getElementById('time-'+id);
-  if(t) t.textContent = '✅ Embarcou '+new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});
-  const today = new Date().toISOString().slice(0,10);
-  db.doc('embarques/'+id+'_'+today).set({aluno_id:id, aluno_nome:nome, status:'embarcou', horario:firebase.firestore.FieldValue.serverTimestamp()});
-  db.collection('mensagens').add({texto:'✅ '+nome+' embarcou na van', tipo:'sistema', remetente:'sistema', remetente_tipo:'sistema', timestamp:firebase.firestore.FieldValue.serverTimestamp(), lida:false});
-  showToast('✅ '+nome+' embarcou! Pais notificados.');
-}
-
-function absentAluno(id, nome) {
-  registrarEtapa(id, nome, 'faltou');
-  const card = document.getElementById('card-'+id);
-  const chip = document.getElementById('chip-'+id);
-  if(card) card.className = 'student-card absent-c';
-  if(chip) chip.className = 'chip absent';
-  const today = new Date().toISOString().slice(0,10);
-  db.doc('embarques/'+id+'_'+today).set({aluno_id:id, aluno_nome:nome, status:'faltou', horario:firebase.firestore.FieldValue.serverTimestamp()});
-  db.collection('mensagens').add({texto:'❌ '+nome+' nao embarcou — falta registrada', tipo:'sistema', remetente:'sistema', remetente_tipo:'sistema', timestamp:firebase.firestore.FieldValue.serverTimestamp(), lida:false});
-  showToast('❌ Falta de '+nome+' registrada.');
-}
-
-function renderAlunosAdmin() {
-  const list = document.getElementById('alunos-admin-list');
-  if(!alunosData.length) { list.innerHTML='<div style="padding:12px;text-align:center;font-size:12px;color:var(--gray400);">Nenhum aluno cadastrado</div>'; return; }
-  list.innerHTML = alunosData.map(a=>`<div class="asc"><div class="asc-h" onclick="toggleAluno(this)"><div class="asc-photo">${a.foto||'👤'}</div><div class="asc-name">${a.nome||'—'}</div><span style="font-size:10px;color:var(--green);">✅ Ativo</span><button class="asc-edit" onclick="event.stopPropagation();toggleAluno(this.closest('.asc').querySelector('.asc-h'))">Editar</button></div><div class="asc-body"><div class="fr"><div class="fl"><div class="fl-label">Nome</div><input class="fi" value="${a.nome||''}" onchange="updateAluno('${a.id}','nome',this.value)"></div><div class="fl"><div class="fl-label">Série</div><input class="fi" value="${a.serie||''}" onchange="updateAluno('${a.id}','serie',this.value)"></div></div><div class="fl"><div class="fl-label">Endereço de embarque</div><input class="fi" value="${a.endereco||''}" onchange="updateAluno('${a.id}','endereco',this.value)"></div><div class="fr"><div class="fl"><div class="fl-label">Responsável</div><input class="fi" value="${a.responsavel_nome||''}" onchange="updateAluno('${a.id}','responsavel_nome',this.value)"></div><div class="fl"><div class="fl-label">WhatsApp</div><input class="fi" value="${a.responsavel_tel||''}" onchange="updateAluno('${a.id}','responsavel_tel',this.value)" type="tel"></div></div><div class="fl"><div class="fl-label">Obs. médicas</div><input class="fi" value="${a.obs_medicas||''}" placeholder="Alergias, medicamentos..." onchange="updateAluno('${a.id}','obs_medicas',this.value)"></div><div class="fr"><div class="fl"><div class="fl-label">Ordem na rota</div><input class="fi" type="number" value="${a.ordem_parada||1}" onchange="updateAluno('${a.id}','ordem_parada',parseInt(this.value))"></div><div class="fl"><div class="fl-label">Horário previsto na parada</div><input class="fi" type="time" value="${a.horario_previsto||''}" onchange="updateAluno('${a.id}','horario_previsto',this.value)"></div></div><button class="asc-del" onclick="deleteAluno('${a.id}','${a.nome}')">🗑️ Remover aluno</button></div></div>`).join('');
-}
-
-function updateAluno(id, field, val) {
-  db.doc('alunos/'+id).update({[field]:val}).catch(e=>showToast('❌ '+e.message));
-}
-
-function deleteAluno(id, nome) {
-  if(!confirm('Remover '+nome+'?')) return;
-  db.doc('alunos/'+id).delete().then(()=>showToast('🗑️ '+nome+' removido')).catch(e=>showToast('❌ '+e.message));
-}
-
-let alunoCount = 0;
-function addAluno() {
-  alunoCount++;
-  db.collection('alunos').add({nome:'Novo Aluno '+alunoCount, serie:'', endereco:'', foto:'👤', responsavel_nome:'', responsavel_tel:'', obs_medicas:'', horario_previsto:'', turno_manha:true, turno_tarde:false, ativo:true, ordem_parada:alunosData.length+1})
-    .then(()=>showToast('➕ Aluno adicionado — preencha os dados'))
-    .catch(e=>showToast('❌ '+e.message));
-}
-
-function renderRoute() {
-  const list = document.getElementById('route-list');
-  list.innerHTML = alunosData.map((a,i)=>`<div class="ri"><div class="ri-num">${i+1}</div><div class="ri-info"><div class="ri-name">${a.nome||'—'}</div><div class="ri-addr">${a.endereco||'—'}</div></div><div style="font-size:18px;color:var(--gray200);">☰</div></div>`).join('');
-}
-
-// ── FINANCEIRO ──
-function criarRegistroFinanceiro(alunoId, alunoNome, responsavelTel) {
-  const agora = new Date();
-  const mesKey = agora.toISOString().slice(0,7); // YYYY-MM
-  const mesLabel = agora.toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  const mens = parseFloat(v('cfg-mens'))||380;
-  const venc = parseInt(v('cfg-venc'))||10;
-  const docId = alunoId+'_'+mesKey;
-  // Check if already exists
-  db.doc('financeiro/'+docId).get().then(snap=>{
-    if(!snap.exists) {
-      db.doc('financeiro/'+docId).set({
-        aluno_id: alunoId,
-        aluno_nome: alunoNome,
-        responsavel_tel: responsavelTel||'',
-        mes: mesKey,
-        descricao: mesLabel,
-        valor: mens,
-        vencimento: venc,
-        status: 'pendente',
-        criado_em: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    }
-  });
-}
-
-function gerarFinanceiroTodosAlunos() {
-  alunosData.forEach(a=>{
-    criarRegistroFinanceiro(a.id, a.nome, a.responsavel_tel);
-  });
-  showToast('💰 Registros financeiros gerados para '+alunosData.length+' alunos!');
-}
-
-function listenFinanceiro() {
-  const mes = new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-  setText('fin-mes', mes + ' — Resumo financeiro');
-  db.collection('financeiro').onSnapshot(snap => {
-    let rec=0, pend=0, atras=0;
-    const rows=[];
-    snap.forEach(d => {
-      const f=d.data();
-      if(f.status==='pago') rec+=f.valor||0;
-      else if(f.status==='atrasado') atras+=f.valor||0;
-      else pend+=f.valor||0;
-      const bg=f.status==='pago'?'var(--green)':f.status==='atrasado'?'var(--red)':'var(--orange)';
-      const badge=f.status==='pago'?'paid':f.status==='atrasado'?'late':'pend';
-      const btxt=f.status==='pago'?'✅ Pago':f.status==='atrasado'?'🔴 Cobrar':'⏳ Cobrar';
-      const tel=(f.responsavel_tel||'').replace(/\D/g,'');
-      rows.push(`<div class="fin-row"><div class="fr-av" style="background:${bg};color:#FFF;">${(f.aluno_nome||'?')[0]}</div><div class="fr-info"><div class="fr-name">${f.aluno_nome||'—'}</div><div class="fr-sub">${f.descricao||'R$ '+(f.valor||0).toFixed(2)}</div></div><div class="fr-badge ${badge}" onclick="${tel?`window.open('https://wa.me/55${tel}?text=Olá! Mensalidade pendente R$ ${f.valor||380}. PIX: '+v('cfg-pix'))`:''}">${btxt}</div></div>`);
-    });
-    document.getElementById('fin-rec').textContent='R$'+rec.toFixed(0);
-    document.getElementById('fin-pend').textContent='R$'+pend.toFixed(0);
-    document.getElementById('fin-atras').textContent='R$'+atras.toFixed(0);
-    document.getElementById('fin-list').innerHTML=rows.length?rows.join('')+'<div style="height:10px;"></div>':'<div style="padding:20px;text-align:center;font-size:12px;color:var(--gray400);">Nenhum registro. Cadastre alunos primeiro.</div>';
-  }, ()=>{ document.getElementById('fin-list').innerHTML='<div style="padding:16px;text-align:center;font-size:12px;color:var(--red);">⚠️ Ative o Firestore</div>'; });
-}
-
-// ── PAIS PENDENTES ──
-function listenPaisPendentes() {
-  db.collection('pais_pendentes').onSnapshot(snap => {
-    const pendentes=[];
-    snap.forEach(d=>{ if(d.data().status==='pendente') pendentes.push({id:d.id,...d.data()}); });
-    document.getElementById('pais-count').textContent=pendentes.length+' aguardando';
-    const list=document.getElementById('pais-list');
-    if(!pendentes.length){list.innerHTML='<div style="padding:12px;text-align:center;font-size:12px;color:var(--gray400);">Nenhum pai aguardando aprovação</div>';return;}
-    list.innerHTML=pendentes.map(p=>`<div class="pending-card"><div style="display:flex;align-items:center;gap:8px;"><div style="width:36px;height:36px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:17px;">👤</div><div><div style="font-size:13px;font-weight:700;color:var(--gray800);">${p.nome||'—'}</div><div style="font-size:11px;color:var(--gray600);">Filho: ${p.aluno_nome||'—'}<br>End: ${p.endereco||'—'}</div></div></div><div class="pc-btns"><button class="pc-btn approve" onclick="approveParent('${p.id}','${p.nome}')">✅ Aprovar</button><button class="pc-btn reject" onclick="rejectParent('${p.id}')">✗ Recusar</button></div></div>`).join('');
-  });
-}
-
-function approveParent(id,nome,alunoNome,endereco,serie,obs,tel) {
-  // Update status
-  db.doc('pais_pendentes/'+id).update({status:'aprovado'})
-    .then(()=>{
-      // Auto-create aluno if name provided
-      if(alunoNome && alunoNome !== 'undefined') {
-        return db.collection('alunos').add({
-          nome: alunoNome||'',
-          serie: serie||'',
-          endereco: endereco||'',
-          foto: '👦',
-          responsavel_nome: nome||'',
-          responsavel_tel: tel||'',
-          obs_medicas: obs||'',
-          turno_manha: true,
-          turno_tarde: false,
-          ativo: true,
-          ordem_parada: alunosData.length + 1
-        });
-      }
-    })
-    .then(docRef=>{
-      if(docRef) criarRegistroFinanceiro(docRef.id, alunoNome, tel||'');
-      showToast('✅ '+nome+' aprovado! Aluno e financeiro cadastrados.');
-      db.collection('mensagens').add({
-        texto:'✅ Acesso liberado para '+nome+' — bem-vindo(a)!',
-        tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',
-        timestamp:firebase.firestore.FieldValue.serverTimestamp(),lida:false
-      });
-    })
-    .catch(e=>showToast('❌ '+e.message));
-}
-function rejectParent(id) { db.doc('pais_pendentes/'+id).update({status:'recusado'}).then(()=>showToast('✗ Recusado')).catch(e=>showToast('❌ '+e.message)); }
-
-// ── FERIADOS ──
-function listenHolidays() {
-  db.collection('feriados').orderBy('data','asc').onSnapshot(snap => {
-    const list=document.getElementById('holidays-list');
-    list.innerHTML='';
-    snap.forEach(d=>{
-      const f=d.data();
-      const div=document.createElement('div');
-      div.style.cssText='display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--gray50);border-radius:8px;border:1px solid var(--gray200);';
-      div.innerHTML=`<span style="font-size:14px;">🔴</span><div style="flex:1;"><div style="font-size:12px;font-weight:700;color:var(--gray800);">${f.nome||'—'}</div><div style="font-size:10px;color:var(--gray400);">${f.data||'—'}</div></div><button onclick="db.doc('feriados/${d.id}').delete();showToast('Data removida')" style="background:none;border:none;font-size:16px;cursor:pointer;color:var(--gray400);">✕</button>`;
-      list.appendChild(div);
-    });
-  });
-}
-
-function addHoliday() {
-  const date=document.getElementById('new-hol-date').value;
-  const name=document.getElementById('new-hol-name').value.trim();
-  if(!date||!name){showToast('⚠️ Preencha data e descrição');return;}
-  db.collection('feriados').add({nome:name,data:date,notificado:false})
-    .then(()=>{document.getElementById('new-hol-date').value='';document.getElementById('new-hol-name').value='';showToast('📅 Feriado salvo!');})
-    .catch(e=>showToast('❌ '+e.message));
-}
-
-// ── GPS ──
-function toggleGPS() {
-  if(gpsWatchId) { stopGPS(); return; }
-  if(!navigator.geolocation){showToast('GPS não disponível');return;}
-  showToast('🛰️ Ativando GPS...');
-  gpsWatchId = navigator.geolocation.watchPosition(pos=>{
-    const lat=pos.coords.latitude, lng=pos.coords.longitude;
-    const speed=pos.coords.speed?Math.round(pos.coords.speed*3.6):0;
-    // Debug: show what GPS returns
-    showToast('GPS: '+lat+', '+lng);
-    if(!lat || !lng) { showToast('❌ GPS sem coordenadas!'); return; }
-    document.getElementById('gps-dot').className='gps-dot active';
-    document.getElementById('gps-txt').textContent=`GPS ativo · ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    document.getElementById('gps-btn').textContent='⏹ Parar';
-    document.getElementById('map-gps').textContent='GPS Ativo';
-    document.getElementById('map-coords').textContent=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-    currentSpeed=speed;
-    document.getElementById('spd-val').textContent=speed;
-    const st=document.getElementById('spd-status');
-    st.textContent=speed===0?'● PARADO':'▶ '+speed+' km/h';
-    st.className='speed-status '+(speed===0?'stopped':'moving');
-    updateChatForSpeed();
-    try {
-      window.gpsRef.set({lat:lat,lng:lng,velocidade:speed,timestamp:Date.now(),viagem_ativa:true});
-      showToast('✅ '+lat.toFixed(4)+','+lng.toFixed(4));
-    } catch(e) {
-      showToast('❌ '+e.message);
-    }
-  },err=>{
-    showToast('❌ GPS: '+err.message);
-    document.getElementById('gps-dot').className='gps-dot off';
-  },{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
-}
-
-function stopGPS(){
-  if(gpsWatchId){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
-  document.getElementById('gps-dot').className='gps-dot off';
-  document.getElementById('gps-txt').textContent='GPS desativado';
-  document.getElementById('gps-btn').textContent='Ativar ▶';
-  clearGPSFirebase();
-}
-
-function clearGPSFirebase(){
-  rdb.ref('localizacao_atual').remove();
-}
-
-// GPS cleared manually via stopGPS() and finalizarViagem()
-
-// ── SPEED SIM ──
-function setSpeed(s,btn){
-  document.querySelectorAll('.ss-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  currentSpeed=s;
-  document.getElementById('spd-val').textContent=s;
-  const st=document.getElementById('spd-status');
-  st.textContent=s===0?'● PARADO':'▶ '+s+' km/h';
-  st.className='speed-status '+(s===0?'stopped':'moving');
-  updateChatForSpeed();
-  // Only update speed, not viagem_ativa - that's controlled by startTrip/finalizarViagem
-  rdb.ref('localizacao_atual').update({velocidade:s});
-}
-
-function updateChatForSpeed(){
-  const inp=document.getElementById('chat-input');
-  const send=document.getElementById('btn-send');
-  const warn=document.getElementById('moving-warn');
-  const qm=document.getElementById('qm-bar');
-  const mv=currentSpeed>5;
-  if(inp){inp.disabled=mv;inp.placeholder=mv?'🔒 Texto bloqueado — van em movimento':'Van parada — pode digitar ✅';}
-  if(send) send.disabled=mv;
-  if(warn) mv?warn.classList.add('show'):warn.classList.remove('show');
-  if(qm) qm.style.display=mv?'none':'';
-}
-
-// ── QUICK ACTIONS ──
-function quickBoard(){
-  if(!tripStarted){showToast('⚠️ Inicie a viagem primeiro');return;}
-  const lista = alunosOperacao.length ? alunosOperacao : alunosData;
-  if(!lista.length){showToast('⚠️ Nenhum aluno para esta operacao');return;}
-  const a = lista[currentStopIndex];
-  if(!a){showToast('✅ Todos os alunos embarcaram!');return;}
-  boardAluno(a.id, a.nome);
-  setTimeout(()=>{
-    const lista2 = alunosOperacao.length ? alunosOperacao : alunosData;
-    if(currentStopIndex < lista2.length-1){
-      currentStopIndex++;
-      updateCurrentStopFromOperacao();
-      showToast('⏭️ Proxima parada: '+(lista2[currentStopIndex].nome||'—'));
-    } else {
-      showToast('Ultima parada! Toque em Finalizar viagem.');
-    }
-  },800);
-}
-function quickAbsent(){
-  if(!tripStarted){showToast('⚠️ Inicie a viagem primeiro');return;}
-  const lista = alunosOperacao.length ? alunosOperacao : alunosData;
-  if(!lista.length){showToast('⚠️ Nenhum aluno para esta operacao');return;}
-  const a = lista[currentStopIndex];
-  if(!a) return;
-  absentAluno(a.id, a.nome);
-  setTimeout(()=>{
-    if(currentStopIndex < alunosData.length-1){
-      currentStopIndex++;
-      updateCurrentStop();
-    }
-  },800);
-}
-function setOperacao(op, btn) {
-  // Reset all buttons
-  document.querySelectorAll('.op-btn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  operacaoAtual = op;
-
-  // Filter alunos based on operation
-  const isManha = op === 'busca_manha' || op === 'leva_manha';
-  const isTarde = op === 'busca_tarde' || op === 'leva_tarde';
-  const isVolta = op === 'leva_manha' || op === 'leva_tarde';
-
-  // Filter by turno
-  let filtrados = alunosData.filter(a => {
-    if(isManha) return a.turno_manha;
-    if(isTarde) return a.turno_tarde;
-    return true;
-  });
-
-  // Reverse order for volta (escola → casa)
-  if(isVolta) filtrados = [...filtrados].reverse();
-
-  alunosOperacao = filtrados;
-
-  // Show info
-  const info = document.getElementById('op-info');
-  const labels = {
-    'busca_manha': '🌅 Busca manhã — '+filtrados.length+' aluno(s) · Casa → Escola',
-    'leva_manha': '🔄 Leva manhã — '+filtrados.length+' aluno(s) · Escola → Casa',
-    'busca_tarde': '🌇 Busca tarde — '+filtrados.length+' aluno(s) · Casa → Escola',
-    'leva_tarde': '🌆 Leva tarde — '+filtrados.length+' aluno(s) · Escola → Casa'
-  };
-  info.textContent = labels[op];
-  info.style.display = 'block';
-
-  if(!tripStarted) {
-    currentStopIndex = 0;
-    updateCurrentStopFromOperacao();
-  }
-  updateAux();
-  updateRotaPanel();
-  updateContextBar();
-  showToast(labels[op]);
-}
-
-function updateCurrentStopFromOperacao() {
-  updateAux();
-  updateRotaPanel();
-  updateContextBar();
-  const lista = alunosOperacao.length ? alunosOperacao : alunosData;
-  if(!lista.length) return;
-  const a = lista[currentStopIndex];
-  if(!a) return;
-  document.getElementById('cs-name').textContent = a.nome||'—';
-  document.getElementById('cs-addr').textContent = a.endereco||'—';
-  document.getElementById('cs-obs').textContent = a.obs_medicas?'⚠️ '+a.obs_medicas:'';
-  document.getElementById('cs-photo').textContent = a.foto||'👤';
-  document.getElementById('cs-num').textContent = (currentStopIndex+1)+'ª de '+lista.length;
-  document.getElementById('stop-count').textContent = currentStopIndex+'/'+lista.length+' paradas';
-}
-
-function startTrip(){
-  if(!tripStarted){
-    if(!operacaoAtual){showToast('⚠️ Selecione a operacao antes de iniciar');return;}
-    tripStarted=true;
-    currentStopIndex=0;
-    if(!alunosOperacao.length) alunosOperacao = alunosData;
-    updateCurrentStopFromOperacao();
-    document.getElementById('trip-st').textContent='Em andamento';
-    const opLabels={'busca_manha':'Busca manha','leva_manha':'Leva manha','busca_tarde':'Busca tarde','leva_tarde':'Leva tarde'};
-    const opLabel = opLabels[operacaoAtual]||'viagem';
-    showToast('▶️ '+opLabel+' iniciada!');
-    db.collection('mensagens').add({texto:'🚐 '+opLabel+' iniciada! Tio Daniel saiu.',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp(),lida:false});
-    // On leva operations, mark students as saiu_escola
-    if(operacaoAtual==='leva_manha'||operacaoAtual==='leva_tarde'){
-      const listaLeva = alunosOperacao.length ? alunosOperacao : alunosData;
-      listaLeva.forEach(a=>registrarEtapa(a.id, a.nome, 'saiu_escola'));
-    }
-    rdb.ref('localizacao_atual/viagem_ativa').set(true);
-    publishSchedule();
-    updateContextBar();
-  } else showToast('Viagem ja em andamento');
-}
-
-function publishSchedule() {
-  if(!alunosData.length) return;
-  const schedule = alunosData.map(a=>({
-    id: a.id,
-    nome: a.nome||'',
-    horario_previsto: a.horario_previsto||'',
-    ordem: a.ordem_parada||0
-  }));
-  const chegada = v('cfg-chegada') || '07:45';
-  rdb.ref('rota_atual').set({
-    schedule: schedule,
-    chegada_escola: chegada,
-    iniciada_em: Date.now()
-  });
-}
-
-// Calculate delay based on current time vs scheduled stops
-function calcDelay() {
-  const now = new Date();
-  const nowMin = now.getHours()*60 + now.getMinutes();
-  // Find current/next stop with scheduled time
-  for(let i=0; i<alunosData.length; i++){
-    const a = alunosData[i];
-    if(!a.horario_previsto) continue;
-    const [h,m] = a.horario_previsto.split(':').map(Number);
-    const stopMin = h*60+m;
-    const diff = nowMin - stopMin;
-    if(Math.abs(diff) <= 30) { // within 30 min window
-      return diff; // positive = late, negative = early
-    }
-  }
-  return 0;
-}
-
-function updateETAWithDelay() {
-  const delay = calcDelay();
-  const chegada = v('cfg-chegada') || '07:45';
-  const [h,m] = chegada.split(':').map(Number);
-  const chegadaMin = h*60+m+delay;
-  const newH = Math.floor(chegadaMin/60);
-  const newM = chegadaMin%60;
-  const etaStr = `${String(newH).padStart(2,'0')}:${String(newM).padStart(2,'0')}`;
-  const delayStr = delay>0?` (+${delay} min)`:delay<0?` (${delay} min)`:'';
-  document.getElementById('eta-t').textContent = etaStr;
-  document.getElementById('map-eta-val').textContent = etaStr;
-  // Publish to Firebase so pais see updated ETA
-  rdb.ref('localizacao_atual/eta_escola').set(etaStr);
-  rdb.ref('localizacao_atual/atraso_minutos').set(delay);
-  return {eta: etaStr, delay};
-}
-function nextStop(){
-  if(!tripStarted){showToast('⚠️ Inicie a viagem primeiro');return;}
-  const lista = alunosOperacao.length ? alunosOperacao : alunosData;
-  if(currentStopIndex < lista.length - 1){
-    currentStopIndex++;
-    updateCurrentStopFromOperacao();
-    showToast('⏭️ Proxima parada: '+(lista[currentStopIndex].nome||'—'));
-  } else {
-    showToast('Todos os alunos! Finalize a viagem.');
-  }
-}
-
-function updateCurrentStop(){
-  const lista = alunosOperacao.length ? alunosOperacao : alunosData;
-  if(!lista.length) return;
-  const a = lista[currentStopIndex];
-  if(!a) return;
-  document.getElementById('cs-name').textContent = a.nome||'—';
-  document.getElementById('cs-addr').textContent = a.endereco||'—';
-  document.getElementById('cs-obs').textContent = a.obs_medicas?'⚠️ '+a.obs_medicas:'';
-  document.getElementById('cs-photo').textContent = a.foto||'👤';
-  document.getElementById('cs-num').textContent = (currentStopIndex+1)+'ª de '+lista.length;
-  document.getElementById('stop-count').textContent = currentStopIndex+'/'+lista.length+' paradas';
-}
-
-// ── CONTEXT BAR ──
-function updateContextBar() {
-  const opLabels = {
-    'busca_manha':'🌅 Busca manhã',
-    'leva_manha':'🔄 Leva manhã',
-    'busca_tarde':'🌇 Busca tarde',
-    'leva_tarde':'🌆 Leva tarde'
-  };
-  const proxOp = {
-    'busca_manha':'🔄 Leva manhã',
-    'leva_manha':'🌇 Busca tarde',
-    'busca_tarde':'🌆 Leva tarde',
-    'leva_tarde':null
-  };
-  const lista = alunosOperacao.length ? alunosOperacao : alunosData;
-  const opLabel = operacaoAtual ? opLabels[operacaoAtual] : null;
-  const ctxOp = document.getElementById('ctx-op');
-  const ctxProgress = document.getElementById('ctx-progress');
-  const ctxAluno = document.getElementById('ctx-aluno');
-  const ctxDica = document.getElementById('ctx-dica');
-
-  if(!operacaoAtual) {
-    // Estado 1: nenhuma operação
-    ctxOp.textContent = '⚪ Nenhuma viagem ativa';
-    ctxProgress.textContent = '';
-    ctxAluno.textContent = '';
-    ctxDica.textContent = '💡 Selecione uma operação: 🌅 🔄 🌇 🌆';
-    return;
-  }
-
-  if(!tripStarted) {
-    // Estado 2: operação selecionada, não iniciada
-    ctxOp.textContent = opLabel + ' selecionada';
-    ctxProgress.textContent = lista.length + ' aluno(s)';
-    ctxAluno.textContent = lista.length ? '👤 Primeiro: ' + (lista[0].nome||'—') + (lista[0].endereco?' • '+lista[0].endereco:'') : '';
-    ctxDica.textContent = '💡 Toque em ▶️ Iniciar viagem para começar';
-    return;
-  }
-
-  const a = lista[currentStopIndex];
-  const isLast = currentStopIndex === lista.length - 1;
-  const done = currentStopIndex;
-
-  if(!a) {
-    // Estado 5: todos atendidos
-    ctxOp.textContent = '✅ ' + opLabel + ' concluída!';
-    ctxProgress.textContent = lista.length + '/' + lista.length;
-    ctxAluno.textContent = '';
-    const prox = proxOp[operacaoAtual];
-    ctxDica.textContent = prox ? '💡 Próxima operação sugerida: ' + prox : '💡 Todas as operações do dia concluídas! 🎉';
-    return;
-  }
-
-  // Estado 3 ou 4
-  ctxOp.textContent = opLabel + ' • ' + (isLast ? 'Última parada' : 'Em andamento');
-  ctxProgress.textContent = done + '/' + lista.length + ' paradas';
-  ctxAluno.textContent = '👤 Agora: ' + (a.nome||'—') + (a.endereco?' • '+a.endereco:'');
-  ctxDica.textContent = isLast
-    ? '💡 Após confirmar, toque em 🏁 Finalizar viagem'
-    : '💡 Toque em ✅ Embarcou ou ❌ Faltou para avançar';
-}
-
-// ── AUXILIAR ──
-function auxBoard(){
-  if(!tripStarted){showToast('⚠️ Inicie a viagem no Painel primeiro');return;}
-  const lista=alunosOperacao.length?alunosOperacao:alunosData;
-  const a=lista[currentStopIndex];
-  if(!a){showToast('Todos atendidos!');return;}
-  boardAluno(a.id,a.nome);
-  setTimeout(()=>{
-    if(currentStopIndex<lista.length-1){currentStopIndex++;updateAux();}
-    else showToast('Ultimo aluno! Finalize a viagem no Painel.');
-  },600);
-}
-
-function auxAbsent(){
-  if(!tripStarted){showToast('⚠️ Inicie a viagem no Painel primeiro');return;}
-  const lista=alunosOperacao.length?alunosOperacao:alunosData;
-  const a=lista[currentStopIndex];
-  if(!a) return;
-  absentAluno(a.id,a.nome);
-  setTimeout(()=>{
-    if(currentStopIndex<lista.length-1){currentStopIndex++;updateAux();}
-  },600);
-}
-
-function auxWait(){
-  showToast('⏳ Aguardando aluno...');
-}
-
-function updateAux(){
-  const lista=alunosOperacao.length?alunosOperacao:alunosData;
-  if(!lista.length){
-    document.getElementById('aux-name').textContent='Nenhum aluno';
-    document.getElementById('aux-addr').textContent='Configure alunos no Admin';
-    document.getElementById('aux-obs').textContent='';
-    document.getElementById('aux-photo').textContent='👤';
-    document.getElementById('aux-stop-num').textContent='—';
-    document.getElementById('aux-next').textContent='—';
-    return;
-  }
-  const a=lista[currentStopIndex];
-  if(!a){
-    document.getElementById('aux-name').textContent='Todos atendidos!';
-    document.getElementById('aux-addr').textContent='Finalize a viagem no Painel';
-    document.getElementById('aux-obs').textContent='';
-    document.getElementById('aux-stop-num').textContent=(currentStopIndex)+'/'+lista.length;
-    document.getElementById('aux-next').textContent='—';
-    return;
-  }
-  document.getElementById('aux-name').textContent=a.nome||'—';
-  document.getElementById('aux-addr').textContent=a.endereco||'—';
-  document.getElementById('aux-obs').textContent=a.obs_medicas?'⚠️ '+a.obs_medicas:'';
-  document.getElementById('aux-photo').textContent=a.foto||'👤';
-  document.getElementById('aux-stop-num').textContent=(currentStopIndex+1)+'/'+lista.length;
-  const next=lista[currentStopIndex+1];
-  document.getElementById('aux-next').textContent=next?(next.nome||'—'):'Ultima parada';
-  // Sync operacao label
-  const opLabels={'busca_manha':'🌅 Busca manha','leva_manha':'🔄 Leva manha','busca_tarde':'🌇 Busca tarde','leva_tarde':'🌆 Leva tarde'};
-  if(operacaoAtual) document.getElementById('aux-operacao-label').textContent=opLabels[operacaoAtual]||'—';
-}
-
-// ── PAINEL DE ROTA ──
-function updateRotaPanel(){
-  const lista=alunosOperacao.length?alunosOperacao:alunosData;
-  const opLabels={'busca_manha':'🌅 Busca manha — Casa → Escola','leva_manha':'🔄 Leva manha — Escola → Casa','busca_tarde':'🌇 Busca tarde — Casa → Escola','leva_tarde':'🌆 Leva tarde — Escola → Casa'};
-  if(operacaoAtual) document.getElementById('rota-operacao').textContent=opLabels[operacaoAtual]||'—';
-  document.getElementById('rota-eta').textContent=v('cfg-chegada')||'--:--';
-  if(!lista.length){
-    document.getElementById('rota-list').innerHTML='<div style="padding:30px;text-align:center;color:var(--gray400);font-size:13px;">Nenhum aluno para esta operacao.</div>';
-    return;
-  }
-  document.getElementById('rota-list').innerHTML=lista.map((a,i)=>{
-    const isPast=i<currentStopIndex;
-    const isCur=i===currentStopIndex;
-    const bg=isPast?'#F0FDF4':isCur?'#FFFBEB':'var(--white)';
-    const border=isPast?'#BBF7D0':isCur?'var(--yellow)':'var(--gray200)';
-    const numBg=isPast?'var(--green)':isCur?'var(--yellow)':'var(--gray200)';
-    const numColor=isPast?'#FFF':isCur?'var(--navy)':'var(--gray400)';
-    const statusIcon=isPast?'✅':isCur?'📍':'⏳';
-    return `<div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--gray100);background:${bg};">
-      <div style="width:32px;height:32px;border-radius:50%;background:${numBg};color:${numColor};font-family:'Nunito',sans-serif;font-weight:900;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${i+1}</div>
-      <div style="flex:1;">
-        <div style="font-size:13px;font-weight:700;color:var(--gray800);">${a.nome||'—'} ${isCur?'← agora':''}</div>
-        <div style="font-size:11px;color:var(--gray400);">${a.endereco||'—'}${a.horario_previsto?' · ⏰ '+a.horario_previsto:''}</div>
-        ${a.obs_medicas?`<div style="font-size:11px;color:var(--orange);font-weight:600;">⚠️ ${a.obs_medicas}</div>`:''}
-      </div>
-      <div style="font-size:20px;">${statusIcon}</div>
-    </div>`;
-  }).join('')+'<div style="height:16px;"></div>';
-}
-
-function finalizarViagem(){
-  if(!tripStarted){showToast('⚠️ Nenhuma viagem em andamento');return;}
-  if(!confirm('Finalizar a viagem do dia? Isso encerrara o GPS e notificara os pais.')) return;
-  tripStarted = false;
-  currentStopIndex = 0;
-  // Notify pais
-  db.collection('mensagens').add({
-    texto:'🏫 Viagem finalizada! Todos chegaram com seguranca.',
-    tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',
-    timestamp:firebase.firestore.FieldValue.serverTimestamp(),lida:false
-  });
-  // Mark all boarded students with next stage
-  const lista = alunosOperacao.length ? alunosOperacao : alunosData;
-  const proximaEtapa = (operacaoAtual==='busca_manha'||operacaoAtual==='busca_tarde') ? 'na_escola' : 'em_casa';
-  lista.forEach(a=>{
-    db.doc('status_alunos/'+a.id).get().then(snap=>{
-      if(snap.exists && snap.data().etapa==='embarcou') {
-        registrarEtapa(a.id, a.nome, proximaEtapa);
-      }
-    });
-  });
-  // Stop GPS tracking
-  clearGPSFirebase();
-  if(gpsWatchId){navigator.geolocation.clearWatch(gpsWatchId);gpsWatchId=null;}
-  document.getElementById('gps-dot').className='gps-dot off';
-  document.getElementById('gps-txt').textContent='GPS desativado';
-  document.getElementById('gps-btn').textContent='Ativar ▶';
-  document.getElementById('spd-val').textContent='0';
-  document.getElementById('spd-status').className='speed-status stopped';
-  document.getElementById('spd-status').textContent='● PARADO';
-  document.getElementById('trip-st').textContent='Parado';
-  // Reset stop display
-  document.getElementById('cs-name').textContent='Nenhuma parada ativa';
-  document.getElementById('cs-addr').textContent='Inicie a viagem para começar';
-  document.getElementById('cs-obs').textContent='';
-  document.getElementById('cs-num').textContent='—';
-  const listaFin = alunosOperacao.length ? alunosOperacao : alunosData;
-  document.getElementById('stop-count').textContent='0/'+listaFin.length+' paradas';
-  operacaoAtual = null;
-  alunosOperacao = [];
-  document.querySelectorAll('.op-btn').forEach(b=>b.classList.remove('active'));
-  document.getElementById('op-info').style.display='none';
-  updateAux();
-  updateRotaPanel();
-  updateContextBar();
-  showToast('✅ Viagem finalizada! Pais notificados.');
-  updateChatForSpeed();
-}
-function confirmBoard(tipo){
-  if(!tripStarted){showToast('⚠️ Inicie a viagem primeiro');return;}
-  if(!alunosData.length){showToast('⚠️ Nenhum aluno cadastrado');return;}
-  const a = alunosData[currentStopIndex];
-  if(!a){showToast('Todos os alunos foram atendidos');return;}
-  if(tipo==='boarded'){
-    boardAluno(a.id,a.nome);
-    setTimeout(()=>{
-      if(currentStopIndex<alunosData.length-1){currentStopIndex++;updateCurrentStop();}
-      else showToast('🏫 Última parada! Toque em Finalizar viagem.');
-    },800);
-  } else if(tipo==='absent'){
-    absentAluno(a.id,a.nome);
-    setTimeout(()=>{
-      if(currentStopIndex<alunosData.length-1){currentStopIndex++;updateCurrentStop();}
-    },800);
-  } else showToast('⏳ Aguardando aluno...');
-}
-
-// ── MIC ──
-function toggleMic(){
-  const btn=document.getElementById('btn-mic');
-  isRec=!isRec;
-  if(isRec){btn.classList.add('recording');btn.textContent='⏹️';showToast('🎙️ Gravando...');}
-  else{
-    btn.classList.remove('recording');btn.textContent='🎙️';
-    const nome=v('cfg-nome')||'Tio Daniel';
-    db.collection('mensagens').add({texto:'[Áudio]',tipo:'audio',duracao:'0:05',remetente:nome,remetente_tipo:'motorista',timestamp:firebase.firestore.FieldValue.serverTimestamp(),lida:false});
-    showToast('🎙️ Áudio enviado!');
-  }
-}
-
-function playAudio(btn,id){
-  const w=document.getElementById(id);if(!w)return;
-  w.querySelectorAll('.wbar').forEach(b=>{b.style.background='var(--yellow)';});
-  btn.textContent='⏸️';
-  setTimeout(()=>{w.querySelectorAll('.wbar').forEach(b=>{b.style.background='rgba(255,255,255,.4)';});btn.textContent='▶️';},2500);
-}
-
-// ── VIEW / UI ──
-function switchView(name,el){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  if(el&&el.classList.contains('nav-item'))el.classList.add('active');
-  if(name==='chat'){const m=document.getElementById('chat-messages');setTimeout(()=>m.scrollTop=m.scrollHeight,50);} if(name==='aux'){updateAux();} if(name==='mapa'){updateRotaPanel();}
-
-}
-
-function toggleSec(header){
-  const body=header.nextElementSibling;
-  const arrow=header.querySelector('.ash-arrow');
-  const isOpen=!body.classList.contains('collapsed');
-  body.classList.toggle('collapsed',isOpen);
-  arrow.classList.toggle('open',!isOpen);
-}
-
-function toggleAluno(header){
-  const body=header.nextElementSibling;
-  if(body&&body.classList.contains('asc-body'))body.classList.toggle('open');
-}
-
-// ── SOS ──
-function showSOS(){
-  if(confirm('🆘 CONFIRMAR EMERGÊNCIA?\n\nTodos os pais serão notificados imediatamente!')){
-    document.getElementById('sos-overlay').classList.add('open');
-    db.collection('mensagens').add({texto:'🆘 EMERGÊNCIA ATIVADA pelo motorista!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp(),lida:false});
-    rdb.ref('emergencia').set({ativa:true,timestamp:Date.now(),motorista:v('cfg-nome')||'Motorista'});
-    document.getElementById('sos-notified').innerHTML=alunosData.map(a=>`<div class="sn-item">✅ ${a.responsavel_nome||a.nome} — notificado</div>`).join('')||'<div class="sn-item">✅ Todos os pais — notificados</div>';
-  }
-}
-
-function closeSOS(){
-  document.getElementById('sos-overlay').classList.remove('open');
-  rdb.ref('emergencia/ativa').set(false);
-  showToast('✅ Emergência cancelada.');
-}
-
-// ── TOAST ──
+var currentUser = null;
+var alunosData = [];
+var configData = {};
+var gpsWatchId = null;
+var tripStarted = false;
+var openAlunoId = null;
+var pendingAluno = {};
+var statusCache = {};
+
+function el(id){ return document.getElementById(id); }
+function setText(id,v){ var e=el(id); if(e) e.textContent=v; }
+function val(id){ return (el(id)||{value:''}).value.trim(); }
 function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2800);
+  var t=el('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },2800);
 }
+function switchView(name,btn){
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  el('view-'+name).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach(function(n){ n.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  if(name==='chat'){ setTimeout(function(){ var b=el('chat-msgs'); if(b) b.scrollTop=b.scrollHeight; },50); }
+  if(name==='fin') loadFin();
+}
+
+// AUTH
+function doLogin(){
+  var email=val('l-email'), pass=val('l-pass');
+  el('l-err').textContent='🔄 Entrando...';
+  auth.signInWithEmailAndPassword(email,pass)
+    .catch(function(e){ el('l-err').textContent='❌ Email ou senha incorretos'; });
+}
+
+// GPS
+function toggleGPS(){
+  if(gpsWatchId){ stopGPS(); return; }
+  if(!navigator.geolocation){ showToast('GPS não disponível'); return; }
+  showToast('🛰️ Ativando GPS...');
+  gpsWatchId = navigator.geolocation.watchPosition(
+    function(pos){
+      var lat=pos.coords.latitude, lng=pos.coords.longitude;
+      var spd=pos.coords.speed?Math.round(pos.coords.speed*3.6):0;
+      var dot=el('gps-dot'); if(dot) dot.className='gps-dot on';
+      setText('gps-txt','GPS · '+lat.toFixed(5)+', '+lng.toFixed(5));
+      setText('gps-btn','⏹ Parar');
+      setText('spd-val',spd);
+      var badge=el('spd-badge');
+      if(badge){ badge.textContent=spd===0?'● PARADO':'▶ '+spd+' km/h'; badge.className='tb-badge '+(spd===0?'stopped':'moving'); }
+      window.gpsRef.set({lat:lat,lng:lng,velocidade:spd,timestamp:Date.now(),viagem_ativa:tripStarted});
+    },
+    function(err){ showToast('❌ GPS: '+err.message); },
+    {enableHighAccuracy:true,maximumAge:5000}
+  );
+}
+function stopGPS(){
+  if(gpsWatchId){ navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId=null; }
+  var dot=el('gps-dot'); if(dot) dot.className='gps-dot';
+  setText('gps-txt','GPS desativado');
+  setText('gps-btn','Ativar ▶');
+  window.gpsRef.remove();
+}
+
+// TRIP
+function startTrip(){
+  tripStarted=true;
+  el('btn-start').disabled=true;
+  el('btn-finish').disabled=false;
+  setText('trip-status','✅ Viagem em andamento');
+  db.collection('mensagens').add({texto:'🚐 Viagem iniciada!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  rdb.ref('viagem_ativa').set(true);
+  showToast('✅ Viagem iniciada!');
+}
+function finishTrip(){
+  if(!window.confirm('Finalizar viagem?')) return;
+  tripStarted=false;
+  el('btn-start').disabled=false;
+  el('btn-finish').disabled=true;
+  setText('trip-status','Nenhuma viagem ativa');
+  window.gpsRef.remove();
+  rdb.ref('viagem_ativa').set(false);
+  // Clear status
+  db.collection('status_alunos').get().then(function(snap){ snap.forEach(function(d){ d.ref.delete(); }); });
+  db.collection('mensagens').add({texto:'🏁 Viagem finalizada!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  showToast('🏁 Viagem finalizada!');
+}
+
+// PAINEL ALUNOS
+function listenAlunos(){
+  db.collection('alunos').orderBy('ordem_parada','asc').onSnapshot(function(snap){
+    alunosData=[];
+    snap.forEach(function(d){ alunosData.push({id:d.id,...d.data()}); });
+    setText('alunos-count',alunosData.length+' aluno(s)');
+    renderPainel();
+    if(!openAlunoId) renderAlunosAdmin();
+  });
+}
+function listenStatus(){
+  db.collection('status_alunos').onSnapshot(function(snap){
+    statusCache={};
+    snap.forEach(function(d){ statusCache[d.id]=d.data(); });
+    renderPainel();
+  });
+}
+function renderPainel(){
+  var list=el('alunos-painel'); if(!list) return;
+  if(!alunosData.length){ list.innerHTML='<div style="padding:24px;text-align:center;color:var(--gray400);font-size:13px">Nenhum aluno cadastrado</div>'; return; }
+  var etapaLabel={embarcou:'Na van',faltou:'Faltou',em_casa:'Em casa',na_escola:'Na escola',aguardando:'Aguardando'};
+  var etapaClass={embarcou:'etapa-embarcou',faltou:'etapa-faltou',em_casa:'etapa-em_casa',na_escola:'etapa-na_escola',aguardando:'etapa-aguardando'};
+  list.innerHTML=alunosData.map(function(a){
+    var s=statusCache[a.id]||{};
+    var etapa=s.etapa||'aguardando';
+    return '<div class="aluno-row">'
+      +'<div class="aluno-foto">'+(a.foto||'👤')+'</div>'
+      +'<div class="aluno-info"><div class="aluno-nome">'+a.nome+'</div>'
+      +'<div class="aluno-sub">'+(a.endereco||'')+'</div></div>'
+      +'<span class="aluno-etapa '+(etapaClass[etapa]||'etapa-aguardando')+'">'+(etapaLabel[etapa]||etapa)+'</span>'
+      +'</div>';
+  }).join('');
+}
+
+// CHAT
+function listenChat(){
+  db.collection('mensagens').orderBy('timestamp','asc').onSnapshot(function(snap){
+    var box=el('chat-msgs'); if(!box) return;
+    box.innerHTML='';
+    snap.forEach(function(d){
+      var m=d.data();
+      var div=document.createElement('div');
+      if(m.tipo==='sistema'){
+        div.className='msg sys'; div.textContent=m.texto;
+      } else {
+        var isOut=m.remetente_tipo==='motorista';
+        div.className='msg '+(isOut?'out':'in');
+        if(!isOut){ var s=document.createElement('div'); s.className='msg-sender'; s.textContent=m.remetente||'Pai'; div.appendChild(s); }
+        var t=document.createElement('div'); t.textContent=m.texto; div.appendChild(t);
+      }
+      box.appendChild(div);
+    });
+    box.scrollTop=box.scrollHeight;
+  });
+}
+function sendMsg(){
+  var inp=el('chat-inp'); var txt=inp.value.trim(); if(!txt) return;
+  inp.value='';
+  db.collection('mensagens').add({texto:txt,tipo:'texto',remetente:configData.nome||'Motorista',remetente_tipo:'motorista',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+}
+
+// FINANCEIRO
+function loadFin(){
+  var mes=new Date().toISOString().slice(0,7);
+  db.collection('financeiro').where('mes','==',mes).get().then(function(snap){
+    var rec=0,pend=0,atras=0,items=[];
+    snap.forEach(function(d){ var f=d.data(); items.push({id:d.id,...f});
+      if(f.status==='pago') rec+=(f.valor||0);
+      else if(f.status==='pendente') pend+=(f.valor||0);
+      else if(f.status==='atrasado') atras+=(f.valor||0);
+    });
+    el('fin-cards').innerHTML=
+      '<div class="fin-card"><div class="fin-card-lbl">Recebido</div><div class="fin-card-val" style="color:var(--green)">R$ '+rec.toFixed(0)+'</div></div>'
+      +'<div class="fin-card"><div class="fin-card-lbl">Pendente</div><div class="fin-card-val" style="color:var(--orange)">R$ '+pend.toFixed(0)+'</div></div>'
+      +'<div class="fin-card"><div class="fin-card-lbl">Atrasado</div><div class="fin-card-val" style="color:var(--red)">R$ '+atras.toFixed(0)+'</div></div>'
+      +'<div class="fin-card"><div class="fin-card-lbl">Total</div><div class="fin-card-val">R$ '+(rec+pend+atras).toFixed(0)+'</div></div>';
+    el('fin-list').innerHTML=items.map(function(f){
+      var st=f.status||'pendente';
+      return '<div class="fin-item '+st+'"><div><div class="fin-item-name">'+(f.aluno_nome||'—')+'</div><div class="fin-badge">'+st+'</div></div>'
+        +'<div class="fin-val">R$ '+(f.valor||0).toFixed(0)+'</div></div>';
+    }).join('')||'<div style="padding:20px;text-align:center;color:var(--gray400);font-size:13px">Sem registros</div>';
+  });
+}
+
+// ADMIN CONFIG
+function loadConfig(){
+  db.doc('config/main').get().then(function(snap){
+    if(!snap.exists) return;
+    var d=snap.data(); configData=d;
+    if(d.nome){ el('cfg-nome').value=d.nome; setText('tb-name','Motorista — '+d.nome); }
+    if(d.unidade){ el('cfg-unidade').value=d.unidade; setText('tb-sub',d.unidade); }
+    if(d.chegada) el('cfg-chegada').value=d.chegada;
+    if(d.mens) el('cfg-mens').value=d.mens;
+    if(d.pix) el('cfg-pix').value=d.pix;
+    if(d.venc) el('cfg-venc').value=d.venc;
+  });
+}
+function saveConfig(){
+  var data={nome:val('cfg-nome'),unidade:val('cfg-unidade'),chegada:val('cfg-chegada'),mens:parseFloat(val('cfg-mens'))||380,pix:val('cfg-pix'),venc:parseInt(val('cfg-venc'))||10};
+  db.doc('config/main').set(data,{merge:true}).then(function(){
+    configData=data;
+    setText('tb-name','Motorista — '+(data.nome||'Daniel'));
+    setText('tb-sub',data.unidade||'');
+    showToast('✅ Configurações salvas!');
+  });
+}
+
+// ADMIN ALUNOS
+function renderAlunosAdmin(){
+  var list=el('alunos-admin'); if(!list) return;
+  if(!alunosData.length){ list.innerHTML='<div style="padding:16px;text-align:center;font-size:12px;color:var(--gray400)">Nenhum aluno</div>'; return; }
+  list.innerHTML=alunosData.map(function(a){
+    return '<div class="asc" data-id="'+a.id+'">'
+      +'<div class="asc-h" onclick="toggleAluno(this)"><div class="asc-foto">'+(a.foto||'👤')+'</div><div class="asc-name">'+a.nome+'</div><span style="color:var(--gray400);font-size:12px">▼</span></div>'
+      +'<div class="asc-body">'
+      +'<div class="asc-grid">'
+      +'<div class="asc-field"><div class="asc-lbl">Nome</div><input class="asc-inp" value="'+(a.nome||'')+'" oninput="setPending(\''+a.id+'\',\'nome\',this.value)"></div>'
+      +'<div class="asc-field"><div class="asc-lbl">Série</div><input class="asc-inp" value="'+(a.serie||'')+'" oninput="setPending(\''+a.id+'\',\'serie\',this.value)"></div>'
+      +'<div class="asc-field full"><div class="asc-lbl">Endereço</div><input class="asc-inp" value="'+(a.endereco||'')+'" oninput="setPending(\''+a.id+'\',\'endereco\',this.value)"></div>'
+      +'<div class="asc-field"><div class="asc-lbl">Responsável</div><input class="asc-inp" value="'+(a.responsavel_nome||'')+'" oninput="setPending(\''+a.id+'\',\'responsavel_nome\',this.value)"></div>'
+      +'<div class="asc-field"><div class="asc-lbl">WhatsApp</div><input class="asc-inp" value="'+(a.responsavel_tel||'')+'" oninput="setPending(\''+a.id+'\',\'responsavel_tel\',this.value)"></div>'
+      +'<div class="asc-field"><div class="asc-lbl">Ordem rota</div><input class="asc-inp" type="number" value="'+(a.ordem_parada||1)+'" oninput="setPending(\''+a.id+'\',\'ordem_parada\',parseInt(this.value))"></div>'
+      +'<div class="asc-field"><div class="asc-lbl">Horário parada</div><input class="asc-inp" type="time" value="'+(a.horario_previsto||'')+'" oninput="setPending(\''+a.id+'\',\'horario_previsto\',this.value)"></div>'
+      +'</div>'
+      +'<div class="asc-actions"><button class="asc-save" onclick="saveAluno(\''+a.id+'\')">💾 Salvar</button><button class="asc-del" onclick="deleteAluno(\''+a.id+'\',\''+a.nome+'\')">🗑️</button></div>'
+      +'</div></div>';
+  }).join('');
+  if(openAlunoId){
+    var card=list.querySelector('[data-id="'+openAlunoId+'"]');
+    if(card){ var body=card.querySelector('.asc-body'); if(body) body.classList.add('open'); }
+  }
+}
+function toggleAluno(header){
+  var body=header.nextElementSibling;
+  if(body&&body.classList.contains('asc-body')){
+    body.classList.toggle('open');
+    var card=header.closest('.asc');
+    openAlunoId=body.classList.contains('open')?(card?card.dataset.id:null):null;
+  }
+}
+function setPending(id,field,value){ if(!pendingAluno[id]) pendingAluno[id]={}; pendingAluno[id][field]=value; }
+function saveAluno(id){
+  if(!pendingAluno[id]||!Object.keys(pendingAluno[id]).length){ showToast('Sem alterações'); return; }
+  db.doc('alunos/'+id).update(pendingAluno[id])
+    .then(function(){ delete pendingAluno[id]; openAlunoId=null; showToast('✅ Salvo!'); })
+    .catch(function(e){ showToast('❌ '+e.message); });
+}
+function deleteAluno(id,nome){
+  if(!window.confirm('Remover '+nome+'?')) return;
+  db.doc('alunos/'+id).delete();
+  db.doc('status_alunos/'+id).delete();
+  db.collection('financeiro').where('aluno_id','==',id).get().then(function(snap){ snap.forEach(function(d){ d.ref.delete(); }); });
+  // Block pai
+  db.collection('pais').where('aluno_id','==',id).get().then(function(snap){
+    snap.forEach(function(d){ d.ref.update({bloqueado:true}); });
+  });
+  openAlunoId=null;
+  showToast('🗑️ '+nome+' removido');
+}
+
+// CRIAR PAI/ALUNO
+function openModalPai(){ el('modal-pai').classList.add('open'); }
+function closeModalPai(){ el('modal-pai').classList.remove('open'); ['m-pai-nome','m-pai-email','m-pai-pass','m-aluno-nome','m-aluno-serie','m-aluno-end'].forEach(function(id){ el(id).value=''; }); setText('m-err',''); }
+function criarPaiAluno(){
+  var paiNome=val('m-pai-nome'), email=val('m-pai-email'), pass=val('m-pai-pass');
+  var alunoNome=val('m-aluno-nome'), serie=val('m-aluno-serie'), endereco=val('m-aluno-end');
+  if(!paiNome||!email||!pass){ setText('m-err','⚠️ Preencha nome, email e senha do pai'); return; }
+  if(pass.length<6){ setText('m-err','⚠️ Senha deve ter mínimo 6 caracteres'); return; }
+  if(!alunoNome){ setText('m-err','⚠️ Informe o nome do aluno'); return; }
+  setText('m-err','🔄 Criando...');
+  // Save current user
+  var motorista = auth.currentUser;
+  // Create pai account using secondary app instance
+  var secondaryApp;
+  try{ secondaryApp = firebase.app('secondary'); }catch(e){ secondaryApp = firebase.initializeApp(firebase.app().options,'secondary'); }
+  secondaryApp.auth().createUserWithEmailAndPassword(email,pass).then(function(cred){
+    var uid=cred.user.uid;
+    // Sign out secondary
+    secondaryApp.auth().signOut();
+    // Create aluno
+    return db.collection('alunos').add({
+      nome:alunoNome,serie:serie||'',endereco:endereco||'',foto:'👦',
+      responsavel_nome:paiNome,responsavel_tel:'',obs_medicas:'',
+      ordem_parada:alunosData.length+1,horario_previsto:'',ativo:true
+    }).then(function(alunoRef){
+      // Create financeiro
+      var mes=new Date().toISOString().slice(0,7);
+      db.collection('financeiro').add({aluno_id:alunoRef.id,aluno_nome:alunoNome,valor:configData.mens||380,mes:mes,status:'pendente',vencimento:configData.venc||10});
+      // Create pai record
+      return db.collection('pais').add({uid:uid,email:email,nome:paiNome,aluno_id:alunoRef.id,aluno_nome:alunoNome,bloqueado:false,criado_em:firebase.firestore.FieldValue.serverTimestamp()});
+    });
+  }).then(function(){
+    showToast('✅ Pai e aluno criados!');
+    closeModalPai();
+  }).catch(function(e){ setText('m-err','❌ '+e.message); });
+}
+
+// INIT
+function initApp(){
+  loadConfig();
+  listenAlunos();
+  listenStatus();
+  listenChat();
+}
+
+auth.onAuthStateChanged(function(user){
+  if(user){
+    el('login-screen').style.display='none';
+    el('main-app').style.display='flex';
+    currentUser=user;
+    initApp();
+  } else {
+    el('login-screen').style.display='flex';
+    el('main-app').style.display='none';
+  }
+});
 </script>
 </body>
 </html>
