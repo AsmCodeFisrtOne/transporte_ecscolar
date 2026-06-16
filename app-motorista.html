@@ -383,6 +383,10 @@ function listenStatus(){
     renderPainel();
   });
 }
+function regAcaoEl(btn){
+  var id=btn.dataset.id, nome=btn.dataset.nome, etapa=btn.dataset.etapa;
+  regAcao(id,nome,etapa);
+}
 function regAcao(id, nome, etapa){
   db.doc('status_alunos/'+id).set({nome:nome,etapa:etapa,atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
   var msgs={embarcou:'✅ '+nome+' embarcou na van',na_escola:'🏫 '+nome+' chegou na escola',em_casa:'🏠 '+nome+' chegou em casa',faltou:'❌ '+nome+' faltou'};
@@ -406,10 +410,10 @@ function renderPainel(){
       +'<span class="aluno-etapa '+(etapaClass[etapa]||'etapa-aguardando')+'">'+(etapaLabel[etapa]||etapa)+'</span>'
       +'</div>'
       +'<div style="display:flex;gap:6px">'
-      +'<button onclick="regAcao(''+a.id+'',''+a.nome+'','embarcou')" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#DCFCE7;color:#166534;font-size:11px;font-weight:700;cursor:pointer">✅ Van</button>'
-      +'<button onclick="regAcao(''+a.id+'',''+a.nome+'','na_escola')" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#DBEAFE;color:#1D4ED8;font-size:11px;font-weight:700;cursor:pointer">🏫 Escola</button>'
-      +'<button onclick="regAcao(''+a.id+'',''+a.nome+'','em_casa')" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#EDE9FE;color:#6D28D9;font-size:11px;font-weight:700;cursor:pointer">🏠 Casa</button>'
-      +'<button onclick="regAcao(''+a.id+'',''+a.nome+'','faltou')" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#FEF2F2;color:#991B1B;font-size:11px;font-weight:700;cursor:pointer">❌ Faltou</button>'
+      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="embarcou" onclick="regAcaoEl(this)" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#DCFCE7;color:#166534;font-size:11px;font-weight:700;cursor:pointer">✅ Van</button>'
+      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="na_escola" onclick="regAcaoEl(this)" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#DBEAFE;color:#1D4ED8;font-size:11px;font-weight:700;cursor:pointer">🏫 Escola</button>'
+      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="em_casa" onclick="regAcaoEl(this)" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#EDE9FE;color:#6D28D9;font-size:11px;font-weight:700;cursor:pointer">🏠 Casa</button>'
+      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="faltou" onclick="regAcaoEl(this)" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#FEF2F2;color:#991B1B;font-size:11px;font-weight:700;cursor:pointer">❌ Faltou</button>'
       +'</div>'
       +'</div>';
   }).join('');
