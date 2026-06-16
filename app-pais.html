@@ -819,26 +819,24 @@ function checkApprovalStatus() {
   const user = window.currentUser;
   db.collection('pais_pendentes').where('uid','==',user.uid).get().then(snap=>{
     if(snap.empty) {
-      // No record found - show waiting screen
-      showWaitingApproval();
+      // No record - load app normally (old account before new flow)
+      listenAlunos();
+      listenStatusAlunos();
+      listenGPS();
       return;
     }
     const data = snap.docs[0].data();
     if(data.status === 'aprovado') {
-      // Approved - sign out and return to login with message
-      auth.signOut().then(()=>{
-        showStep('step-login');
-        const err = document.getElementById('login-err');
-        if(err) err.textContent = '✅ Acesso liberado! Faça login para entrar.';
-      });
-      return;
+      // Approved - load app normally
+      listenAlunos();
+      listenStatusAlunos();
+      listenGPS();
     } else if(data.status === 'bloqueado') {
       // Blocked - sign out
       auth.signOut();
     } else {
-      // Pending - show waiting screen
+      // Pending - show waiting screen and keep checking
       showWaitingApproval();
-      // Keep checking every 10 seconds
       setTimeout(checkApprovalStatus, 10000);
     }
   });
