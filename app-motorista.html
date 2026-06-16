@@ -694,6 +694,10 @@ html,body{height:100%;overflow:hidden;background:#0F172A;font-family:'Inter',san
 <div class="toast" id="toast"></div>
 
 <script>
+// ── GLOBAL STATE ──
+var openAlunoId = null;
+var pendingAluno = {};
+
 // ── SAFE DOM HELPER ──
 function el(id) { return document.getElementById(id); }
 function setText(id, val) { const e=el(id); if(e) e.textContent=val; }
