@@ -927,7 +927,7 @@ function updateAluno(id, field, val) {
 }
 
 function deleteAluno(id, nome) {
-  if(!confirm('Remover '+nome+' e todos os dados relacionados (pais, embarques, financeiro)?')) return;
+  if(!window.confirm('Remover '+nome+'?')) return;
   
   // Delete aluno
   db.doc('alunos/'+id).delete();
@@ -952,7 +952,9 @@ function deleteAluno(id, nome) {
     });
   });
   
-  showToast('🗑️ '+nome+' e dados relacionados removidos');
+  // Reset openAlunoId so list refreshes immediately
+  openAlunoId = null;
+  showToast('🗑️ '+nome+' removido!');
 }
 
 let alunoCount = 0;
