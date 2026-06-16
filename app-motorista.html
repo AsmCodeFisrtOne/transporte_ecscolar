@@ -706,6 +706,8 @@ let alunosData = [], gpsWatchId = null;
 let currentStopIndex = 0;
 let operacaoAtual = null; // 'busca_manha','leva_manha','busca_tarde','leva_tarde'
 let alunosOperacao = []; // alunos filtrados para operacao atual
+let openAlunoId = null; // ID do aluno com card aberto no admin
+let pendingAluno = {}; // Alteracoes pendentes por aluno
 
 // ── AUTH ──
 function doLogin() {
