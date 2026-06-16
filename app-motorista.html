@@ -386,7 +386,7 @@ function listenStatus(){
 function renderPainel(){
   var list=el('alunos-painel'); if(!list) return;
   if(!alunosData.length){ list.innerHTML='<div style="padding:24px;text-align:center;color:var(--gray400);font-size:13px">Nenhum aluno cadastrado</div>'; return; }
-  var etapaLabel={embarcou:'Na van',faltou:'Faltou',em_casa:'Em casa',na_escola:'Na escola',aguardando:'Aguardando'};
+  var etapaLabel={embarcou:'Na van',faltou:'Faltou',em_casa:'Em casa 🏠',na_escola:'Na escola 🏫',aguardando:'Aguardando'};
   var etapaClass={embarcou:'etapa-embarcou',faltou:'etapa-faltou',em_casa:'etapa-em_casa',na_escola:'etapa-na_escola',aguardando:'etapa-aguardando'};
   list.innerHTML=alunosData.map(function(a){
     var s=statusCache[a.id]||{};

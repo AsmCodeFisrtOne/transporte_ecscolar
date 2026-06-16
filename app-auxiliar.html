@@ -106,7 +106,8 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#0F172A;overflow
 
   <div id="acoes">
     <button class="acao-btn btn-embarcar" onclick="confirmarAcao('embarcou')" disabled id="btn-embarcar">✅ Embarcou</button>
-    <button class="acao-btn btn-desembarcar" onclick="confirmarAcao('desembarcou')" disabled id="btn-desembarcar">🏠 Desembarcou</button>
+    <button class="acao-btn btn-desembarcar" onclick="confirmarAcao('na_escola')" disabled id="btn-desembarcar">🏫 Chegou na Escola</button>
+    <button class="acao-btn btn-desembarcar" onclick="confirmarAcao('em_casa')" disabled id="btn-emcasa" style="background:#8B5CF6">🏠 Chegou em Casa</button>
     <button class="acao-btn btn-faltou" onclick="confirmarAcao('faltou')" disabled id="btn-faltou">❌ Faltou</button>
   </div>
 </div>
@@ -176,6 +177,7 @@ function renderAlunos(){
     return '<div class="aluno-chip'+(selected?' selected':'')+'" onclick="selectAluno(\''+a.id+'\')">'
       +'<div class="chip-foto">'+(a.foto||'👤')+'</div>'
       +'<div class="chip-nome">'+a.nome+'</div>'
+      +(a.serie?'<div style="font-size:9px;color:var(--gray400)">'+a.serie+'</div>':'')
       +(etapa?'<span class="chip-status '+etapa+'">'+(etapaLabel[etapa]||etapa)+'</span>':'')
       +'</div>';
   }).join('');
@@ -185,7 +187,7 @@ function selectAluno(id){
   selectedAlunoId=id;
   renderAlunos();
   // Enable buttons
-  ['btn-embarcar','btn-desembarcar','btn-faltou'].forEach(function(bid){ el(bid).disabled=false; });
+  ['btn-embarcar','btn-desembarcar','btn-emcasa','btn-faltou'].forEach(function(bid){ el(bid).disabled=false; });
 }
 
 function confirmarAcao(acao){
@@ -193,9 +195,9 @@ function confirmarAcao(acao){
   var aluno=alunosData.find(function(a){ return a.id===selectedAlunoId; });
   if(!aluno) return;
   pendingAcao={acao:acao,aluno:aluno};
-  var icons={embarcou:'✅',desembarcou:'🏠',faltou:'❌'};
-  var titles={embarcou:'Embarcou',desembarcou:'Desembarcou',faltou:'Faltou'};
-  var colors={embarcou:'var(--green)',desembarcou:'var(--orange)',faltou:'var(--red)'};
+  var icons={embarcou:'✅',na_escola:'🏫',em_casa:'🏠',faltou:'❌'};
+  var titles={embarcou:'Embarcou na van',na_escola:'Chegou na escola',em_casa:'Chegou em casa',faltou:'Faltou'};
+  var colors={embarcou:'var(--green)',na_escola:'var(--blue)',em_casa:'#8B5CF6',faltou:'var(--red)'};
   el('c-icon').textContent=icons[acao];
   el('c-title').textContent=aluno.nome+' — '+titles[acao];
   el('c-sub').textContent='Confirmar esta ação?';
@@ -211,12 +213,12 @@ function closeConfirm(){
 function executarAcao(){
   if(!pendingAcao) return;
   var acao=pendingAcao.acao, aluno=pendingAcao.aluno;
-  var etapa=acao==='desembarcou'?'em_casa':acao;
+  var etapa=acao;
   db.doc('status_alunos/'+aluno.id).set({
     nome:aluno.nome,etapa:etapa,
     atualizado_em:firebase.firestore.FieldValue.serverTimestamp()
   },{merge:true});
-  var msgs={embarcou:'✅ '+aluno.nome+' embarcou',desembarcou:'🏠 '+aluno.nome+' desembarcou',faltou:'❌ '+aluno.nome+' faltou'};
+  var msgs={embarcou:'✅ '+aluno.nome+' embarcou na van',na_escola:'🏫 '+aluno.nome+' chegou na escola',em_casa:'🏠 '+aluno.nome+' chegou em casa',faltou:'❌ '+aluno.nome+' faltou'};
   db.collection('mensagens').add({texto:msgs[acao],tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   showToast(msgs[acao]);
   closeConfirm();

@@ -332,6 +332,8 @@ function listenStatus(){
     var html='';
     snap.forEach(function(d){
       var s=d.data();
+      // Only show pai's own child
+      if(paisData && paisData.aluno_id && d.id !== paisData.aluno_id) return;
       html+='<div class="s-chip"><div class="s-dot '+(s.etapa||'')+'"></div>'+s.nome+' · '+(labels[s.etapa]||s.etapa||'—')+'</div>';
     });
     el('status-chips').innerHTML=html||'<span style="font-size:12px;color:var(--gray400)">Aguardando viagem...</span>';
@@ -347,7 +349,7 @@ function listenChat(){
       var m=d.data();
       var div=document.createElement('div');
       if(m.tipo==='sistema'){
-        div.className='msg sys'; div.textContent=m.texto;
+        return; // sistema messages go to Avisos only, not chat
       } else {
         var isOut=m.remetente_tipo==='pai'&&m.remetente===paisNome;
         div.className='msg '+(isOut?'out':'in');
