@@ -220,9 +220,8 @@ function executarAcao(){
   db.collection('mensagens').add({texto:msgs[acao],tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   showToast(msgs[acao]);
   closeConfirm();
-  // Deselect
+  // Deselect aluno only - buttons stay enabled for next selection
   selectedAlunoId=null;
-  ['btn-embarcar','btn-desembarcar','btn-faltou'].forEach(function(bid){ el(bid).disabled=true; });
   renderAlunos();
 }
 </script>
