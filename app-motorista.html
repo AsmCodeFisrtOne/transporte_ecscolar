@@ -808,9 +808,7 @@ function listenMessages() {
     snap.forEach(d => {
       const m = d.data();
       if(m.tipo === 'sistema') {
-        const el = document.createElement('div');
-        el.className = 'sys-msg'; el.textContent = m.texto;
-        box.appendChild(el);
+        return; // Sistema messages not shown in motorista chat
       } else {
         const isDriver = m.remetente_tipo === 'motorista';
         const el = document.createElement('div');
@@ -930,8 +928,30 @@ function updateAluno(id, field, val) {
 }
 
 function deleteAluno(id, nome) {
-  if(!confirm('Remover '+nome+'?')) return;
-  db.doc('alunos/'+id).delete().then(()=>showToast('🗑️ '+nome+' removido')).catch(e=>showToast('❌ '+e.message));
+  if(!confirm('Remover '+nome+' e todos os dados relacionados (pais, embarques, financeiro)?')) return;
+  
+  // Delete aluno
+  db.doc('alunos/'+id).delete();
+  
+  // Delete financial records
+  db.collection('financeiro').where('aluno_id','==',id).get().then(snap=>{
+    snap.forEach(d=>d.ref.delete());
+  });
+  
+  // Delete embarques
+  db.collection('embarques').get().then(snap=>{
+    snap.forEach(d=>{ if(d.id.startsWith(id)) d.ref.delete(); });
+  });
+  
+  // Delete status
+  db.doc('status_alunos/'+id).delete();
+  
+  // Delete pais_pendentes linked to this aluno
+  db.collection('pais_pendentes').where('aluno_nome','==',nome).get().then(snap=>{
+    snap.forEach(d=>d.ref.delete());
+  });
+  
+  showToast('🗑️ '+nome+' e dados relacionados removidos');
 }
 
 let alunoCount = 0;
