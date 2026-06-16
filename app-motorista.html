@@ -277,6 +277,19 @@ html,body{height:100%;font-family:'Inter',sans-serif;background:#0F172A;overflow
   </div>
 </div>
 
+<!-- MODAL CONFIRMAÇÃO AÇÃO -->
+<div id="modal-acao" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:20px;padding:24px;width:100%;max-width:340px;text-align:center">
+    <div id="mac-icon" style="font-size:48px;margin-bottom:10px"></div>
+    <div id="mac-title" style="font-size:17px;font-weight:700;color:#1E293B;margin-bottom:6px"></div>
+    <div id="mac-sub" style="font-size:13px;color:#94A3B8;margin-bottom:20px"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="closeModalAcao()" style="flex:1;padding:13px;border-radius:12px;border:none;background:#F1F5F9;color:#94A3B8;font-size:14px;font-weight:700;cursor:pointer">Cancelar</button>
+      <button id="mac-ok" onclick="confirmRegAcao()" style="flex:1;padding:13px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;color:#fff">Confirmar</button>
+    </div>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -383,9 +396,24 @@ function listenStatus(){
     renderPainel();
   });
 }
+var pendingReg = null;
 function regAcaoEl(btn){
   var id=btn.dataset.id, nome=btn.dataset.nome, etapa=btn.dataset.etapa;
-  regAcao(id,nome,etapa);
+  pendingReg={id:id,nome:nome,etapa:etapa};
+  var icons={embarcou:'✅',na_escola:'🏫',em_casa:'🏠',faltou:'❌'};
+  var titles={embarcou:'Embarcou na van',na_escola:'Chegou na escola',em_casa:'Chegou em casa',faltou:'Faltou'};
+  var colors={embarcou:'#22C55E',na_escola:'#3B82F6',em_casa:'#8B5CF6',faltou:'#EF4444'};
+  el('mac-icon').textContent=icons[etapa]||'✅';
+  el('mac-title').textContent=nome+' — '+titles[etapa];
+  el('mac-sub').textContent='Confirmar esta ação?';
+  el('mac-ok').style.background=colors[etapa]||'#0F172A';
+  el('modal-acao').style.display='flex';
+}
+function closeModalAcao(){ el('modal-acao').style.display='none'; pendingReg=null; }
+function confirmRegAcao(){
+  if(!pendingReg) return;
+  regAcao(pendingReg.id,pendingReg.nome,pendingReg.etapa);
+  closeModalAcao();
 }
 function regAcao(id, nome, etapa){
   db.doc('status_alunos/'+id).set({nome:nome,etapa:etapa,atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
@@ -402,18 +430,18 @@ function renderPainel(){
   list.innerHTML=alunosData.map(function(a){
     var s=statusCache[a.id]||{};
     var etapa=s.etapa||'aguardando';
-    return '<div class="aluno-row" style="flex-direction:column;align-items:stretch;gap:8px">'
-      +'<div style="display:flex;align-items:center;gap:10px">'
+    return '<div style="background:#fff;border-bottom:1px solid #E2E8F0;padding:12px 14px">'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">'
       +'<div class="aluno-foto">'+(a.foto||'👤')+'</div>'
       +'<div class="aluno-info"><div class="aluno-nome">'+a.nome+'</div>'
       +'<div class="aluno-sub">'+(a.serie?a.serie+' · ':'')+(a.endereco||'')+'</div></div>'
       +'<span class="aluno-etapa '+(etapaClass[etapa]||'etapa-aguardando')+'">'+(etapaLabel[etapa]||etapa)+'</span>'
       +'</div>'
-      +'<div style="display:flex;gap:6px">'
-      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="embarcou" onclick="regAcaoEl(this)" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#DCFCE7;color:#166534;font-size:11px;font-weight:700;cursor:pointer">✅ Van</button>'
-      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="na_escola" onclick="regAcaoEl(this)" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#DBEAFE;color:#1D4ED8;font-size:11px;font-weight:700;cursor:pointer">🏫 Escola</button>'
-      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="em_casa" onclick="regAcaoEl(this)" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#EDE9FE;color:#6D28D9;font-size:11px;font-weight:700;cursor:pointer">🏠 Casa</button>'
-      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="faltou" onclick="regAcaoEl(this)" style="flex:1;padding:8px 4px;border-radius:8px;border:none;background:#FEF2F2;color:#991B1B;font-size:11px;font-weight:700;cursor:pointer">❌ Faltou</button>'
+      +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="embarcou" onclick="regAcaoEl(this)" style="padding:12px;border-radius:12px;border:none;background:#22C55E;color:#fff;font-size:13px;font-weight:700;cursor:pointer">✅ Embarcou na van</button>'
+      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="na_escola" onclick="regAcaoEl(this)" style="padding:12px;border-radius:12px;border:none;background:#3B82F6;color:#fff;font-size:13px;font-weight:700;cursor:pointer">🏫 Chegou na escola</button>'
+      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="em_casa" onclick="regAcaoEl(this)" style="padding:12px;border-radius:12px;border:none;background:#8B5CF6;color:#fff;font-size:13px;font-weight:700;cursor:pointer">🏠 Chegou em casa</button>'
+      +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="faltou" onclick="regAcaoEl(this)" style="padding:12px;border-radius:12px;border:none;background:#EF4444;color:#fff;font-size:13px;font-weight:700;cursor:pointer">❌ Faltou</button>'
       +'</div>'
       +'</div>';
   }).join('');
