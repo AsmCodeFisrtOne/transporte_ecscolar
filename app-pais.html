@@ -3,1251 +3,564 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#1A2744">
 <title>Van Escolar — Pais</title>
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700;800;900&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
-<!-- Firebase COMPAT — funciona sem servidor -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-
 <script>
 firebase.initializeApp({
-  apiKey: "AIzaSyD0WWqTfOto8cJ5iUN_w140q1RiTeGpHFc",
-  authDomain: "van-escolar-daniel-irene.firebaseapp.com",
-  projectId: "van-escolar-daniel-irene",
-  storageBucket: "van-escolar-daniel-irene.firebasestorage.app",
-  messagingSenderId: "883890897086",
-  appId: "1:883890897086:web:4dfb8b69d99046fbbb9eef",
-  databaseURL: "https://van-escolar-daniel-irene-default-rtdb.firebaseio.com"
+  apiKey:"AIzaSyD0WWqTfOto8cJ5iUN_w140q1RiTeGpHFc",
+  authDomain:"van-escolar-daniel-irene.firebaseapp.com",
+  projectId:"van-escolar-daniel-irene",
+  storageBucket:"van-escolar-daniel-irene.firebasestorage.app",
+  messagingSenderId:"883890897086",
+  appId:"1:883890897086:web:4dfb8b69d99046fbbb9eef",
+  databaseURL:"https://van-escolar-daniel-irene-default-rtdb.firebaseio.com"
 });
-const db   = firebase.firestore();
-const rdb  = firebase.database();
+const db = firebase.firestore();
+const rdb = firebase.database();
 const auth = firebase.auth();
-
-auth.onAuthStateChanged(user => {
-  if(user) {
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('main-app').style.display = 'flex';
-    window.currentUser = user;
-    initPaisApp();
-  } else {
-    document.getElementById('login-screen').style.display = 'flex';
-    document.getElementById('main-app').style.display = 'none';
-  }
-});
 </script>
-
 <style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Inter',sans-serif;background:#0F172A;overflow:hidden}
 :root{
-  --yellow:#FFD23F;--yellow2:#E6B800;--navy:#1A2744;--navy2:#243460;
-  --green:#22C55E;--red:#EF4444;--orange:#F97316;--blue:#3B82F6;--green-ie:#2E7D32;
-  --white:#FFF;--gray50:#F8FAFC;--gray100:#F1F5F9;
-  --gray200:#E2E8F0;--gray400:#94A3B8;--gray600:#475569;--gray800:#1E293B;
-  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --navy:#0F172A;--navy2:#1E293B;--yellow:#FFD23F;
+  --green:#22C55E;--red:#EF4444;--orange:#F97316;--blue:#3B82F6;
+  --white:#FFFFFF;--gray50:#F8FAFC;--gray100:#F1F5F9;--gray200:#E2E8F0;
+  --gray400:#94A3B8;--gray600:#475569;
 }
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{height:100%;overflow:hidden;background:#0F172A;font-family:'Inter',sans-serif;}
-#app{width:100%;max-width:430px;height:100%;margin:0 auto;display:flex;flex-direction:column;background:var(--white);overflow:hidden;}
 
-/* LOGIN */
-#login-screen{position:fixed;inset:0;background:var(--navy);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;gap:14px;z-index:9999;}
-.login-logo{font-size:60px;}
-.login-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:24px;color:var(--yellow);text-align:center;}
-.login-sub{font-size:12px;color:rgba(255,255,255,.5);text-align:center;}
-.login-note{font-size:11px;color:rgba(255,255,255,.35);text-align:center;line-height:1.5;}
-.login-field{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);font-size:15px;color:#FFF;font-family:'Inter',sans-serif;outline:none;}
-.login-field::placeholder{color:rgba(255,255,255,.4);}
-.login-field:focus{border-color:var(--yellow);}
-.login-btn{width:100%;padding:14px;background:var(--yellow);border:none;border-radius:12px;font-size:15px;font-weight:700;color:var(--navy);cursor:pointer;font-family:'Inter',sans-serif;}
-.login-btn.sec{background:rgba(255,255,255,.12);color:#FFF;}
-.login-err{font-size:13px;color:#FCA5A5;text-align:center;min-height:18px;font-weight:500;}
-.login-div{font-size:11px;color:rgba(255,255,255,.3);}
+/* ── LOGIN / REGISTER ── */
+#auth-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;background:var(--navy);padding:24px;gap:14px}
+.auth-logo{font-size:56px;margin-bottom:4px}
+.auth-title{font-size:22px;font-weight:800;color:var(--yellow);text-align:center}
+.auth-sub{font-size:13px;color:var(--gray400);text-align:center;margin-bottom:4px}
+.auth-input{width:100%;padding:14px 16px;border-radius:12px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.08);color:#fff;font-size:15px;font-family:'Inter',sans-serif;outline:none}
+.auth-input::placeholder{color:var(--gray400)}
+.auth-btn{width:100%;padding:15px;border-radius:12px;border:none;background:var(--yellow);color:var(--navy);font-size:16px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
+.auth-btn.secondary{background:rgba(255,255,255,.08);color:#fff;border:1.5px solid rgba(255,255,255,.15)}
+.auth-err{font-size:13px;color:#FCA5A5;text-align:center;min-height:18px}
+.auth-link{font-size:13px;color:var(--yellow);text-decoration:underline;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif}
+.auth-divider{display:flex;align-items:center;gap:10px;width:100%}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:rgba(255,255,255,.1)}
+.auth-divider span{font-size:12px;color:var(--gray400)}
+.step{display:none;flex-direction:column;gap:14px;width:100%}
+.step.active{display:flex}
+.step-title{font-size:16px;font-weight:700;color:#fff;text-align:center}
+.step-sub{font-size:12px;color:var(--gray400);text-align:center;margin-top:-8px}
 
-/* MAIN */
-#main-app{display:none;flex-direction:column;width:100%;max-width:430px;height:100%;margin:0 auto;background:var(--white);overflow:hidden;}
+/* ── WAITING ── */
+#waiting-screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--navy);padding:24px;gap:16px;text-align:center}
+.wait-icon{font-size:64px}
+.wait-title{font-size:20px;font-weight:700;color:var(--yellow)}
+.wait-sub{font-size:14px;color:var(--gray400);line-height:1.6}
+.wait-btn{padding:12px 24px;border-radius:12px;border:none;background:rgba(255,255,255,.08);color:var(--gray400);font-size:13px;cursor:pointer;font-family:'Inter',sans-serif;margin-top:8px}
 
-/* TOPBAR */
-.topbar{background:var(--navy);padding:10px 14px 8px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;border-bottom:3px solid var(--yellow);}
-.brand{display:flex;align-items:center;gap:9px;}
-.brand-icon{width:38px;height:38px;background:var(--yellow);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:19px;flex-shrink:0;}
-.brand-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:14px;color:var(--yellow);line-height:1.1;}
-.brand-sub{font-size:10px;color:rgba(255,255,255,.45);}
-.live-badge{display:flex;align-items:center;gap:5px;background:rgba(34,197,94,.15);border:1px solid rgba(34,197,94,.3);padding:4px 10px;border-radius:100px;}
-.live-dot{width:6px;height:6px;border-radius:50%;animation:blink 1.5s infinite;}
-.live-dot.active{background:var(--green);}
-.live-dot.off{background:var(--gray400);animation:none;}
-.live-txt{font-size:10px;font-weight:600;color:var(--green);}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+/* ── MAIN APP ── */
+#main-app{display:none;flex-direction:column;height:100vh;background:var(--gray50)}
 
-.view{display:none;flex:1;flex-direction:column;overflow:hidden;}
-.view.active{display:flex;}
-.scroll{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch;}
-.navbar{display:flex;background:var(--white);border-top:1px solid var(--gray200);padding-bottom:var(--safe-bottom);flex-shrink:0;}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:7px 2px 5px;gap:2px;cursor:pointer;color:var(--gray400);font-size:9px;font-weight:600;position:relative;}
-.nav-item.active{color:var(--navy);}
-.nav-icon{font-size:19px;line-height:1;}
-.nav-dot{width:4px;height:4px;border-radius:50%;background:var(--yellow);margin-top:1px;}
-.nav-badge{position:absolute;top:5px;right:calc(50% - 18px);background:var(--red);color:#FFF;font-size:9px;font-weight:700;border-radius:100px;padding:1px 5px;display:none;}
+/* ── TOPBAR ── */
+#topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--navy);flex-shrink:0}
+.tb-logo{font-size:26px}
+.tb-name{font-size:14px;font-weight:700;color:var(--yellow)}
+.tb-sub{font-size:11px;color:var(--gray400)}
+.live-badge{display:flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;background:rgba(255,255,255,.08);font-size:12px;font-weight:600}
+.live-dot{width:7px;height:7px;border-radius:50%;background:var(--gray400)}
+.live-dot.active{background:var(--green);animation:pulse 1.5s infinite}
+.live-txt{color:#fff}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 
-/* STATUS */
-.status-bar{background:var(--white);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray200);flex-shrink:0;}
-.sp{display:flex;align-items:center;gap:7px;padding:5px 14px;border-radius:100px;font-family:'Nunito',sans-serif;font-weight:800;font-size:13px;}
-.sp.wait{background:var(--gray100);color:var(--gray600);}
-.sp.ok{background:#DCFCE7;color:#15803D;}
-.sp.delay{background:#FEF3C7;color:#92400E;}
-.sp.late{background:#FEE2E2;color:#991B1B;}
-.sp-dot{width:7px;height:7px;border-radius:50%;animation:blink 1.5s infinite;}
-.ok .sp-dot{background:var(--green);} .delay .sp-dot{background:var(--orange);} .late .sp-dot{background:var(--red);} .wait .sp-dot{background:var(--gray400);animation:none;}
-.sp.late{background:#FEE2E2;color:#991B1B;}
-.eta-val{font-family:'Nunito',sans-serif;font-weight:800;font-size:14px;color:var(--gray800);text-align:right;}
-.eta-sub-txt{font-size:10px;color:var(--gray400);text-align:right;}
+/* ── VIEWS ── */
+.view{display:none;flex:1;flex-direction:column;overflow:hidden}
+.view.active{display:flex}
+.scroll{overflow-y:auto;flex:1;-webkit-overflow-scrolling:touch}
 
-/* MAP */
-.map-container{position:relative;overflow:hidden;}
-.meta{position:absolute;top:10px;left:10px;z-index:1000;background:rgba(15,23,42,.9);border-radius:10px;padding:7px 12px;border:1px solid rgba(255,255,255,.1);}
-.meta-lbl{font-size:8px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;}
-.meta-val{font-family:'Nunito',sans-serif;font-weight:900;font-size:20px;color:#FFF;line-height:1;}
-.meta-sub{font-size:9px;color:rgba(255,255,255,.5);}
-.map-leg{position:absolute;bottom:10px;right:10px;z-index:30;background:rgba(15,23,42,.85);border-radius:9px;padding:7px 10px;}
-.ml-item{display:flex;align-items:center;gap:6px;font-size:10px;color:#FFF;margin-bottom:3px;}
-.ml-item:last-child{margin-bottom:0;}
-.ml-dot{width:12px;height:4px;border-radius:2px;flex-shrink:0;}
+/* ── MAPA ── */
+#mapa-container{position:relative;flex:1}
+#mapa-iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+#mapa-overlay{position:absolute;top:12px;left:12px;right:12px;z-index:10;pointer-events:none}
+.mapa-status{background:rgba(255,255,255,.95);border-radius:12px;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.mapa-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:5}
+.mapa-loading-icon{font-size:40px;margin-bottom:8px}
+.mapa-loading-txt{font-size:13px;color:var(--gray400);font-weight:600}
 
-/* NOTIF BANNER */
-.nb{margin:6px 14px;padding:9px 12px;border-radius:10px;border-left:4px solid;font-size:11px;font-weight:500;line-height:1.5;display:none;}
-.nb.show{display:block;}
-.nb.warn{background:#FFFBEB;border-color:#F59E0B;color:#92400E;}
-.nb.danger{background:#FEF2F2;border-color:#EF4444;color:#991B1B;}
-.nb.info{background:#EFF6FF;border-color:#3B82F6;color:#1E40AF;}
+/* ── STATUS BOLINHAS ── */
+#status-bar{background:var(--white);border-top:1px solid var(--gray200);padding:12px 14px;flex-shrink:0}
+.status-title{font-size:11px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+#status-chips{display:flex;gap:8px;flex-wrap:wrap}
+.status-chip{display:flex;align-items:center;gap:6px;background:var(--gray50);border:1px solid var(--gray200);border-radius:20px;padding:5px 10px;font-size:12px;font-weight:600;color:var(--navy)}
+.status-bolinha{width:10px;height:10px;border-radius:50%;background:var(--gray200)}
+.status-bolinha.embarcou{background:var(--blue)}
+.status-bolinha.na_escola{background:var(--green)}
+.status-bolinha.saiu_escola{background:var(--orange)}
+.status-bolinha.em_casa{background:var(--green)}
+.status-bolinha.faltou{background:var(--red)}
 
-/* TRAFFIC */
-.traffic-bar{display:flex;gap:6px;padding:7px 14px;background:var(--white);border-bottom:1px solid var(--gray200);flex-shrink:0;}
-.tc{flex:1;padding:6px 7px;border-radius:8px;}
-.tc.g{background:#F0FDF4;border:1px solid #BBF7D0;}
-.tc.y{background:#FFFBEB;border:1px solid #FDE68A;}
-.tc.r{background:#FEF2F2;border:1px solid #FECACA;}
-.tc-lbl{font-size:8px;font-weight:700;text-transform:uppercase;}
-.tc.g .tc-lbl{color:#15803D;} .tc.y .tc-lbl{color:#92400E;} .tc.r .tc-lbl{color:#991B1B;}
-.tc-road{font-size:10px;color:var(--gray600);}
-.tc-delay{font-size:9px;color:var(--gray400);}
+/* ── CHAT ── */
+#chat-box{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;background:var(--gray50)}
+.msg{max-width:80%;padding:10px 12px;border-radius:14px;font-size:13px;line-height:1.4}
+.msg.out{background:var(--navy);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
+.msg.in{background:var(--white);color:var(--navy);align-self:flex-start;border-bottom-left-radius:4px;border:1px solid var(--gray200)}
+.msg.sys{background:var(--gray100);color:var(--gray600);align-self:center;font-size:11px;border-radius:20px;padding:5px 12px;max-width:90%;text-align:center}
+.msg-sender{font-size:10px;color:var(--gray400);margin-bottom:3px}
+#chat-input-bar{padding:8px 14px;border-top:1px solid var(--gray200);background:var(--white);display:flex;gap:8px;flex-shrink:0}
+#chat-input{flex:1;padding:10px 14px;border-radius:22px;border:1.5px solid var(--gray200);font-size:14px;font-family:'Inter',sans-serif;outline:none}
+#chat-send{width:40px;height:40px;border-radius:50%;background:var(--navy);border:none;color:var(--yellow);font-size:18px;cursor:pointer}
+.quick-btns{display:flex;gap:6px;padding:6px 14px;background:var(--white);overflow-x:auto;flex-shrink:0;border-top:1px solid var(--gray100)}
+.quick-btn{padding:5px 12px;border-radius:20px;border:1.5px solid var(--gray200);background:var(--white);font-size:12px;white-space:nowrap;cursor:pointer;font-family:'Inter',sans-serif}
 
-/* TIMELINE */
-.tl-bar{padding:9px 14px;background:var(--white);display:flex;align-items:center;border-bottom:1px solid var(--gray200);flex-shrink:0;}
-.tl-stop{display:flex;flex-direction:column;align-items:center;flex:1;}
-.tl-dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--gray200);background:var(--white);}
-.tl-dot.done{background:var(--green);border-color:var(--green);}
-.tl-dot.cur{background:var(--yellow);border-color:var(--yellow2);box-shadow:0 0 0 4px rgba(255,210,63,.25);}
-.tl-name{font-size:9px;font-weight:600;color:var(--gray400);margin-top:4px;text-align:center;white-space:nowrap;}
-.tl-name.done{color:var(--green);} .tl-name.cur{color:var(--navy);font-weight:700;}
-.tl-line{flex:1;height:2px;background:var(--gray200);}
-.tl-line.done{background:var(--green);}
+/* ── AVISOS ── */
+.aviso-card{margin:10px 14px;background:var(--white);border-radius:12px;border:1px solid var(--gray200);padding:12px 14px}
+.aviso-time{font-size:11px;color:var(--gray400);margin-bottom:4px}
+.aviso-txt{font-size:13px;color:var(--navy);line-height:1.5}
 
-/* CHIPS */
-.chips-bar{display:flex;flex-wrap:wrap;gap:5px;padding:7px 14px;background:var(--white);border-bottom:1px solid var(--gray200);flex-shrink:0;}
-.chip{display:flex;align-items:center;gap:5px;padding:4px 10px 4px 5px;border-radius:100px;font-size:11px;font-weight:600;}
-.chip.boarded{background:#DCFCE7;color:#15803D;}
-.chip.pend{background:var(--gray100);color:var(--gray400);}
-.chip.absent{background:#FEE2E2;color:#991B1B;}
-.chip-av{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;}
-.chip.boarded .chip-av{background:var(--green);color:#FFF;}
-.chip.pend .chip-av{background:var(--gray200);color:var(--gray400);}
-.chip.absent .chip-av{background:var(--red);color:#FFF;}
+/* ── PERFIL ── */
+.perfil-section{margin:14px;background:var(--white);border-radius:14px;border:1px solid var(--gray200);overflow:hidden}
+.perfil-title{padding:12px 14px;font-size:13px;font-weight:700;color:var(--navy);border-bottom:1px solid var(--gray200);background:var(--gray50)}
+.perfil-row{padding:12px 14px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--gray100);font-size:13px}
+.perfil-row:last-child{border-bottom:none}
+.perfil-label{color:var(--gray400);font-size:12px}
+.perfil-val{font-weight:600;color:var(--navy)}
+.perfil-btn{width:calc(100% - 28px);margin:0 14px 14px;padding:14px;border-radius:12px;border:none;background:#FEF2F2;color:var(--red);font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif}
 
-/* CHAT */
-.chat-header{padding:10px 14px;background:var(--white);border-bottom:1px solid var(--gray200);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.chat-driver{display:flex;align-items:center;gap:10px;}
-.driver-av{width:38px;height:38px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:2px solid var(--yellow);}
-.driver-name{font-weight:700;font-size:14px;color:var(--gray800);}
-.driver-status{font-size:10px;color:var(--green);font-weight:600;}
-.absence-btn{font-size:11px;font-weight:600;color:var(--blue);padding:6px 10px;background:var(--gray100);border-radius:8px;border:none;cursor:pointer;font-family:'Inter',sans-serif;}
-.chat-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;background:var(--gray50);}
-.msg{display:flex;flex-direction:column;max-width:82%;}
-.msg.driver{align-self:flex-start;} .msg.parent{align-self:flex-end;}
-.msg-sender{font-size:9px;font-weight:700;color:var(--gray400);margin-bottom:2px;text-transform:uppercase;}
-.msg.driver .msg-sender{color:var(--navy);}
-.bubble{padding:9px 13px;border-radius:16px;font-size:13px;line-height:1.45;color:var(--gray800);}
-.msg.driver .bubble{background:var(--white);border:1px solid var(--gray200);border-radius:4px 16px 16px 16px;}
-.msg.parent .bubble{background:var(--navy);color:#FFF;border-radius:16px 4px 16px 16px;}
-.msg-time{font-size:9px;color:var(--gray400);margin-top:2px;}
-.msg.parent .msg-time{text-align:right;}
-.sys-msg{align-self:center;background:rgba(30,41,59,.07);border-radius:100px;padding:3px 12px;font-size:10px;color:var(--gray400);font-weight:500;}
-.audio-bubble{display:flex;align-items:center;gap:8px;padding:7px 11px;}
-.audio-play-btn{width:28px;height:28px;background:var(--yellow);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;border:none;font-size:11px;flex-shrink:0;}
-.waveform{display:flex;align-items:center;gap:2px;flex:1;}
-.wbar{width:3px;background:var(--gray200);border-radius:2px;}
-.chat-input-wrap{padding:8px 12px;background:var(--white);border-top:1px solid var(--gray200);flex-shrink:0;padding-bottom:max(8px,var(--safe-bottom));}
-.input-row{display:flex;align-items:center;gap:7px;}
-.chat-txt{flex:1;padding:10px 14px;border-radius:100px;border:1.5px solid var(--gray200);background:var(--gray50);font-size:13px;font-family:'Inter',sans-serif;color:var(--gray800);outline:none;}
-.chat-txt:focus{border-color:var(--navy);}
-.btn-mic,.btn-send{width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
-.btn-mic{background:var(--yellow);color:var(--navy);}
-.btn-mic.recording{background:var(--red);color:#FFF;animation:rec .8s infinite;}
-@keyframes rec{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
-.btn-send{background:var(--navy);color:#FFF;}
+/* ── NAVBAR ── */
+#navbar{display:flex;background:var(--white);border-top:1px solid var(--gray200);flex-shrink:0}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;cursor:pointer;color:var(--gray400);font-size:10px;gap:2px;border:none;background:none;font-family:'Inter',sans-serif}
+.nav-item.active{color:var(--navy)}
+.nav-icon{font-size:20px}
+.nav-dot{width:5px;height:5px;border-radius:50%;background:var(--yellow);display:none}
+.nav-item.active .nav-dot{display:block}
+#notif-badge{display:none;position:absolute;top:2px;right:2px;width:8px;height:8px;border-radius:50%;background:var(--red)}
 
-/* AVISOS */
-.notif-header{padding:12px 14px 4px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.notif-title{font-family:'Nunito',sans-serif;font-weight:800;font-size:16px;color:var(--gray800);}
-.mark-read-btn{font-size:11px;color:var(--blue);font-weight:600;cursor:pointer;background:none;border:none;font-family:'Inter',sans-serif;}
-.notif-list{padding:8px 12px;display:flex;flex-direction:column;gap:7px;}
-.notif-item{display:flex;align-items:flex-start;gap:10px;padding:11px 12px;background:var(--white);border-radius:12px;border:1px solid var(--gray200);}
-.notif-item.unread{border-color:#BFDBFE;background:#EFF6FF;}
-.ni-icon{font-size:20px;flex-shrink:0;}
-.ni-body{flex:1;}
-.ni-title{font-size:13px;font-weight:700;color:var(--gray800);margin-bottom:2px;}
-.ni-text{font-size:12px;color:var(--gray600);line-height:1.4;}
-.ni-time{font-size:10px;color:var(--gray400);white-space:nowrap;}
-.abs-card{margin:4px 12px 0;padding:12px;background:var(--white);border-radius:12px;border:1.5px solid var(--blue);display:flex;align-items:center;gap:10px;}
-.abs-btn{padding:7px 14px;background:var(--navy);border:none;border-radius:8px;color:#FFF;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;}
-
-/* FINANCEIRO */
-.fin-header{padding:14px;background:var(--navy);flex-shrink:0;}
-.fin-month{font-size:10px;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;}
-.fin-amount{font-family:'Nunito',sans-serif;font-weight:900;font-size:30px;color:var(--yellow);line-height:1;}
-.fin-due-txt{font-size:11px;color:rgba(255,255,255,.6);}
-.fin-status-row{display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
-.fin-badge{padding:3px 10px;border-radius:100px;font-size:11px;font-weight:700;}
-.fin-badge.paid{background:#DCFCE7;color:#15803D;}
-.fin-badge.pending{background:#FEF3C7;color:#92400E;}
-.fin-badge.late{background:#FEE2E2;color:#991B1B;}
-.pay-btns{display:flex;gap:8px;padding:12px 14px;flex-shrink:0;}
-.pay-btn{flex:1;padding:11px;border-radius:12px;border:none;cursor:pointer;display:flex;align-items:center;gap:8px;font-family:'Inter',sans-serif;}
-.pay-btn.pix{background:var(--navy);}
-.pay-btn.boleto{background:var(--gray100);border:1px solid var(--gray200);}
-.pay-icon{width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
-.pay-btn.pix .pay-icon{background:#32BCAD;}
-.pay-btn.boleto .pay-icon{background:var(--blue);}
-.pay-txt{font-size:12px;font-weight:700;}
-.pay-btn.pix .pay-txt{color:#FFF;}
-.pay-btn.boleto .pay-txt{color:var(--gray800);}
-.pay-sub{font-size:10px;opacity:.7;}
-.pay-btn.pix .pay-sub{color:rgba(255,255,255,.7);}
-.pay-btn.boleto .pay-sub{color:var(--gray400);}
-.hist-section{padding:10px 14px;}
-.hist-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray400);margin-bottom:8px;}
-.hist-item{display:flex;align-items:center;padding:10px 0;border-bottom:1px solid var(--gray100);}
-.hi-month{flex:1;font-size:13px;font-weight:600;color:var(--gray800);}
-.hi-val{font-size:13px;font-weight:700;color:var(--gray800);margin-right:10px;}
-.hi-badge{padding:2px 8px;border-radius:100px;font-size:10px;font-weight:700;}
-.hi-badge.paid{background:#DCFCE7;color:#15803D;}
-.hi-badge.late{background:#FEE2E2;color:#991B1B;}
-
-/* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:999;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;}
-.modal-overlay.open{opacity:1;pointer-events:auto;}
-.modal-sheet{background:var(--white);border-radius:24px 24px 0 0;padding:22px 18px 30px;width:100%;max-width:430px;transform:translateY(100%);transition:transform .3s;}
-.modal-overlay.open .modal-sheet{transform:translateY(0);}
-.modal-handle{width:40px;height:4px;background:var(--gray200);border-radius:2px;margin:0 auto 18px;}
-.modal-title{font-family:'Nunito',sans-serif;font-weight:900;font-size:20px;color:var(--gray800);margin-bottom:4px;}
-.modal-sub{font-size:12px;color:var(--gray400);margin-bottom:18px;}
-.pix-qr{width:150px;height:150px;background:var(--gray100);border-radius:12px;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;border:2px dashed var(--gray200);flex-direction:column;gap:6px;}
-.pix-value{font-family:'Nunito',sans-serif;font-weight:900;font-size:26px;color:var(--yellow);text-align:center;margin-bottom:4px;}
-.pix-desc{font-size:11px;color:var(--gray400);text-align:center;margin-bottom:14px;}
-.pix-copy-btn{width:100%;padding:13px;background:var(--navy);border:none;border-radius:12px;color:#FFF;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-bottom:8px;}
-.modal-close-btn{width:100%;padding:11px;background:var(--gray100);border:none;border-radius:12px;font-size:13px;font-weight:600;color:var(--gray600);cursor:pointer;font-family:'Inter',sans-serif;}
-
-/* ABSENCE MODAL */
-.abs-form{display:flex;flex-direction:column;gap:11px;}
-.ab-child{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--gray50);border-radius:10px;border:1px solid var(--gray200);}
-.ab-photo{width:36px;height:36px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;border:2px solid var(--yellow);}
-.ab-dates{display:flex;gap:6px;}
-.ab-date-btn{flex:1;padding:9px 4px;border-radius:10px;border:1.5px solid var(--gray200);background:var(--white);font-size:11px;font-weight:600;cursor:pointer;text-align:center;color:var(--gray600);font-family:'Inter',sans-serif;}
-.ab-date-btn.sel{background:var(--yellow);border-color:var(--yellow2);color:var(--navy);}
-.ab-reason{width:100%;padding:10px 12px;border:1.5px solid var(--gray200);border-radius:10px;font-size:13px;font-family:'Inter',sans-serif;color:var(--gray800);outline:none;resize:none;}
-.ab-submit{padding:13px;background:var(--red);border:none;border-radius:12px;color:#FFF;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;}
-
-/* PERFIL */
-.profile-hero{padding:18px 14px 14px;background:var(--navy);display:flex;align-items:center;gap:14px;flex-shrink:0;}
-.profile-photo{width:62px;height:62px;border-radius:50%;background:linear-gradient(135deg,var(--navy2),var(--blue));border:3px solid var(--yellow);display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;}
-.profile-name{font-family:'Nunito',sans-serif;font-weight:900;font-size:17px;color:#FFF;}
-.profile-grade{font-size:11px;color:rgba(255,255,255,.6);}
-.profile-unit{font-size:11px;color:var(--yellow);font-weight:600;margin-top:2px;}
-.prof-section{padding:10px 14px;}
-.ps-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--gray400);margin-bottom:6px;}
-.prof-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--white);border-radius:10px;border:1px solid var(--gray200);margin-bottom:6px;}
-.pr-icon{font-size:18px;flex-shrink:0;}
-.pr-body{flex:1;}
-.pr-label{font-size:10px;color:var(--gray400);}
-.pr-value{font-size:13px;font-weight:600;color:var(--gray800);}
-.emrg-row{display:flex;align-items:center;gap:10px;padding:10px 12px;background:#FEF2F2;border-radius:10px;border:1px solid #FECACA;margin-bottom:6px;}
-.sos-btn{margin:4px 14px 14px;padding:15px;background:var(--red);border:none;border-radius:14px;width:calc(100% - 28px);cursor:pointer;display:flex;align-items:center;gap:12px;box-shadow:0 4px 16px rgba(239,68,68,.3);font-family:'Inter',sans-serif;}
-.sos-icon{font-size:26px;}
-.sos-txt{font-weight:700;font-size:14px;color:#FFF;text-align:left;}
-.sos-sub{font-size:11px;color:rgba(255,255,255,.7);}
-.logout-btn{margin:0 14px 20px;width:calc(100% - 28px);padding:12px;background:var(--gray100);border:1px solid var(--gray200);border-radius:12px;font-size:13px;font-weight:600;color:var(--gray600);cursor:pointer;font-family:'Inter',sans-serif;}
-
-/* UNIT TAG */
-.unit-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;background:rgba(46,125,50,.15);border-radius:100px;border:1px solid rgba(46,125,50,.3);}
-.unit-tag-dot{width:5px;height:5px;border-radius:50%;background:var(--green-ie);}
-.unit-tag-txt{font-size:9px;font-weight:700;color:var(--green-ie);}
-
-/* STATUS BOARD */
-.sb-table{width:100%;border-collapse:collapse;}
-.sb-table th{font-size:9px;font-weight:700;text-transform:uppercase;color:rgba(255,255,255,.6);padding:7px 6px;text-align:center;letter-spacing:.3px;}
-.sb-table th:first-child{text-align:left;padding-left:12px;}
-.sb-table td{padding:10px 6px;border-bottom:1px solid var(--gray100);text-align:center;vertical-align:middle;}
-.sb-table td:first-child{text-align:left;padding-left:12px;}
-.sb-table tr:last-child td{border-bottom:none;}
-.sb-aluno-name{font-size:13px;font-weight:700;color:var(--gray800);}
-.sb-aluno-obs{font-size:10px;color:var(--orange);}
-.bolinha{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;transition:all .4s;margin:0 auto;}
-.bolinha.verde{background:#22C55E;color:#FFF;box-shadow:0 2px 8px rgba(34,197,94,.4);}
-.bolinha.vermelha{background:#EF4444;color:#FFF;}
-.bolinha.cinza{background:#E2E8F0;color:#94A3B8;}
-.bolinha.amarela{background:#FFD23F;color:#1A2744;animation:pulse-dot 1.2s infinite;}
-@keyframes pulse-dot{0%,100%{box-shadow:0 0 0 0 rgba(255,210,63,.5)}50%{box-shadow:0 0 0 5px rgba(255,210,63,0)}}
-.sb-horario{font-size:9px;color:var(--gray400);margin-top:2px;}
-
-/* TOAST */
-.toast{position:fixed;top:76px;left:50%;transform:translateX(-50%);background:var(--gray800);color:#FFF;padding:10px 18px;border-radius:100px;font-size:12px;font-weight:600;z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;max-width:90%;text-align:center;}
-.toast.show{opacity:1;}
+/* ── TOAST ── */
+#toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:22px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
-<div id="app">
 
-<!-- LOGIN -->
-<div id="login-screen">
+<!-- AUTH SCREEN -->
+<div id="auth-screen">
+  <div class="auth-logo">🚐</div>
+  <div class="auth-title">Van Escolar</div>
+  <div class="auth-sub">Tio Daniel & Tia Irene</div>
 
-  <!-- STEP 1: LOGIN -->
-  <div id="step-login" style="display:flex;flex-direction:column;align-items:center;width:100%;gap:14px;">
-    <div class="login-logo">🚐</div>
-    <div class="login-title">Tio Daniel & Tia Irene</div>
-    <div class="login-sub">Acompanhe a van do seu filho</div>
-    <input type="email" class="login-field" id="login-email" placeholder="Seu e-mail" autocomplete="email">
-    <input type="password" class="login-field" id="login-pass" placeholder="Senha (mín. 6 caracteres)" autocomplete="current-password">
-    <div class="login-err" id="login-err"></div>
-    <button class="login-btn" onclick="doLogin()">Entrar</button>
-    <div class="login-div">— primeira vez? —</div>
-    <button class="login-btn sec" onclick="showStep('step-register1')">Criar conta de pai/mãe</button>
+  <!-- LOGIN STEP -->
+  <div class="step active" id="step-login">
+    <input class="auth-input" id="login-email" type="email" placeholder="Seu e-mail">
+    <input class="auth-input" id="login-pass" type="password" placeholder="Senha">
+    <div class="auth-err" id="login-err"></div>
+    <button class="auth-btn" onclick="doLogin()">Entrar</button>
+    <div class="auth-divider"><span>ou</span></div>
+    <button class="auth-btn secondary" onclick="showStep('step-reg1')">Criar conta de pai/mãe</button>
   </div>
 
-  <!-- STEP 2: DADOS DO PAI -->
-  <div id="step-register1" style="display:none;flex-direction:column;align-items:center;width:100%;gap:12px;">
-    <div class="login-logo">👤</div>
-    <div class="login-title" style="font-size:22px;">Seus dados</div>
-    <div class="login-sub">Passo 1 de 2</div>
-    <input type="email" class="login-field" id="reg-email" placeholder="Seu e-mail" autocomplete="email">
-    <input type="password" class="login-field" id="reg-pass" placeholder="Senha (mín. 6 caracteres)">
-    <input type="text" class="login-field" id="reg-nome" placeholder="Seu nome completo">
-    <input type="tel" class="login-field" id="reg-tel" placeholder="Seu WhatsApp (11) 9xxxx-xxxx">
-    <div class="login-err" id="reg-err1"></div>
-    <button class="login-btn" onclick="goStep2()">Próximo →</button>
-    <button class="login-btn sec" onclick="showStep('step-login')">← Voltar</button>
+  <!-- REGISTER STEP 1 -->
+  <div class="step" id="step-reg1">
+    <div class="step-title">Seus dados</div>
+    <div class="step-sub">Passo 1 de 2</div>
+    <input class="auth-input" id="reg-nome" type="text" placeholder="Seu nome completo">
+    <input class="auth-input" id="reg-tel" type="tel" placeholder="WhatsApp (com DDD)">
+    <input class="auth-input" id="reg-email" type="email" placeholder="E-mail">
+    <input class="auth-input" id="reg-pass" type="password" placeholder="Senha (mín. 6 caracteres)">
+    <div class="auth-err" id="reg-err1"></div>
+    <button class="auth-btn" onclick="goToStep2()">Próximo →</button>
+    <button class="auth-link" onclick="showStep('step-login')">← Voltar</button>
   </div>
 
-  <!-- STEP 3: DADOS DO FILHO -->
-  <div id="step-register2" style="display:none;flex-direction:column;align-items:center;width:100%;gap:12px;">
-    <div class="login-logo">👦</div>
-    <div class="login-title" style="font-size:22px;">Dados do filho</div>
-    <div class="login-sub">Passo 2 de 2</div>
-    <input type="text" class="login-field" id="reg-filho-nome" placeholder="Nome completo do filho">
-    <input type="text" class="login-field" id="reg-filho-serie" placeholder="Série (ex: 3º ano, Maternal)">
-    <input type="text" class="login-field" id="reg-filho-end" placeholder="Endereço de embarque (Rua, nº)">
-    <input type="text" class="login-field" id="reg-filho-obs" placeholder="Observações médicas (opcional)">
-    <div class="login-err" id="reg-err2"></div>
-    <button class="login-btn" onclick="doRegister()">✅ Criar conta</button>
-    <button class="login-btn sec" onclick="showStep('step-register1')">← Voltar</button>
-    <div class="login-note">Após o cadastro, o Tio Daniel<br>aprova seu acesso em breve.</div>
+  <!-- REGISTER STEP 2 -->
+  <div class="step" id="step-reg2">
+    <div class="step-title">Dados do seu filho(a)</div>
+    <div class="step-sub">Passo 2 de 2</div>
+    <input class="auth-input" id="reg-filho-nome" type="text" placeholder="Nome do filho(a)">
+    <input class="auth-input" id="reg-filho-serie" type="text" placeholder="Série/Turma (ex: 8ºA)">
+    <input class="auth-input" id="reg-filho-end" type="text" placeholder="Endereço de embarque">
+    <input class="auth-input" id="reg-filho-obs" type="text" placeholder="Obs. médicas (opcional)">
+    <div class="auth-err" id="reg-err2"></div>
+    <button class="auth-btn" onclick="doRegister()">Enviar cadastro</button>
+    <button class="auth-link" onclick="showStep('step-reg1')">← Voltar</button>
   </div>
-
 </div>
 
-<!-- MAIN -->
+<!-- WAITING SCREEN -->
+<div id="waiting-screen">
+  <div class="wait-icon">⏳</div>
+  <div class="wait-title">Aguardando aprovação</div>
+  <div class="wait-sub">O Tio Daniel vai liberar seu acesso em breve.<br>Você receberá uma notificação quando aprovado.</div>
+  <button class="wait-btn" onclick="auth.signOut()">Sair da conta</button>
+</div>
+
+<!-- MAIN APP -->
 <div id="main-app">
-  <div class="topbar">
-    <div class="brand">
-      <div class="brand-icon">🚐</div>
-      <div class="brand-text">
-        <div class="brand-name" id="topbar-name">Tio Daniel & Tia Irene</div>
-        <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
-          <div class="unit-tag"><div class="unit-tag-dot"></div><span class="unit-tag-txt" id="topbar-unit">Paulista IE</span></div>
-        </div>
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div class="tb-logo">🚐</div>
+      <div>
+        <div class="tb-name" id="tb-driver">Tio Daniel</div>
+        <div class="tb-sub" id="tb-school">Paulista IE</div>
       </div>
     </div>
     <div class="live-badge">
-      <div class="live-dot off" id="live-dot"></div>
-      <span class="live-txt" id="live-txt">Aguardando</span>
+      <div class="live-dot" id="live-dot"></div>
+      <span class="live-txt" id="live-txt">Offline</span>
     </div>
   </div>
 
-  <!-- MAPA -->
-  <div id="view-map" class="view active">
-    <div class="status-bar">
-      <div class="sp wait" id="status-pill"><div class="sp-dot"></div><span id="status-txt">Aguardando van</span></div>
-      <div><div class="eta-val" id="eta-main">--:--</div><div class="eta-sub-txt" id="eta-sub">GPS não iniciado</div></div>
-    </div>
-    <div class="map-container" style="position:relative;flex:1;">
-      <iframe id="mapa-van"
-        style="position:absolute;top:0;left:0;width:100%;height:100%;border:none;"
-        src="about:blank">
-      </iframe>
-      <div id="mapa-loading" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;color:#94A3B8;z-index:50;background:rgba(255,255,255,.9);padding:20px;border-radius:12px;">
-        <div style="font-size:32px;">🗺️</div>
-        <div style="font-size:12px;margin-top:4px;">Aguardando GPS da van...</div>
-      </div>
-      <div class="meta" style="z-index:30;">
-        <div class="meta-lbl">Chegada prevista</div>
-        <div class="meta-val" id="map-eta">--:--</div>
-        <div class="meta-sub" id="map-eta-sub">Aguardando GPS da van</div>
-      </div>
-    </div>
-    <div class="nb" id="notif-banner"></div>
-    <div class="tl-bar" id="tl-bar">
-      <div class="tl-stop"><div class="tl-dot"></div><div class="tl-name">Início</div></div>
-      <div class="tl-line"></div>
-      <div class="tl-stop"><div class="tl-dot"></div><div class="tl-name">Paradas</div></div>
-      <div class="tl-line"></div>
-      <div class="tl-stop"><div class="tl-dot"></div><div class="tl-name">🏫</div></div>
-    </div>
-    <!-- STATUS BOARD -->
-    <div style="background:var(--white);border-top:1px solid var(--gray200);flex-shrink:0;">
-      <div style="padding:8px 14px 4px;display:flex;align-items:center;justify-content:space-between;">
-        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray400);">Status das crianças</div>
-        <div style="font-size:9px;color:var(--gray400);" id="board-operacao">Aguardando viagem...</div>
-      </div>
-      <div id="status-board" style="padding:0;">
-        <div id="sb-tbody">
-          <div style="padding:12px 14px;text-align:center;font-size:12px;color:var(--gray400);">Aguardando viagem...</div>
+  <!-- MAPA VIEW -->
+  <div id="view-mapa" class="view active">
+    <div id="mapa-container">
+      <iframe id="mapa-iframe" src="about:blank"></iframe>
+      <div id="mapa-overlay">
+        <div class="mapa-status">
+          <div>
+            <div style="font-size:11px;color:var(--gray400);font-weight:600">STATUS</div>
+            <div style="font-size:13px;font-weight:700;color:var(--navy)" id="van-status">Aguardando van</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:11px;color:var(--gray400)">ETA escola</div>
+            <div style="font-size:16px;font-weight:800;color:var(--navy)" id="eta-val">--:--</div>
+          </div>
         </div>
       </div>
+      <div class="mapa-loading" id="mapa-loading">
+        <div class="mapa-loading-icon">🗺️</div>
+        <div class="mapa-loading-txt">Aguardando GPS da van...</div>
+      </div>
+    </div>
+    <div id="status-bar">
+      <div class="status-title">Status das crianças</div>
+      <div id="status-chips"></div>
     </div>
   </div>
 
-  <!-- CHAT -->
+  <!-- CHAT VIEW -->
   <div id="view-chat" class="view">
-    <div class="chat-header">
-      <div class="chat-driver">
-        <div class="driver-av">🧔</div>
-        <div>
-          <div class="driver-name" id="driver-name">Tio Daniel</div>
-          <div class="driver-status" id="driver-online">● Aguardando viagem</div>
-        </div>
-      </div>
-      <button class="absence-btn" onclick="showModal('absence-modal')">📅 Avisar falta</button>
+    <div class="quick-btns">
+      <button class="quick-btn" onclick="sendQuick('Ok!')">Ok!</button>
+      <button class="quick-btn" onclick="sendQuick('Já estou na parada')">Na parada</button>
+      <button class="quick-btn" onclick="sendQuick('Obrigado!')">Obrigado!</button>
+      <button class="quick-btn" onclick="sendQuick('Qual o horário?')">Horário?</button>
+      <button class="quick-btn" onclick="sendQuick('Meu filho não vai hoje')">Faltará hoje</button>
     </div>
-    <div class="chat-messages" id="chat-messages">
-      <div class="sys-msg">Conectando ao Firebase... 🔄</div>
-    </div>
-    <div class="chat-input-wrap">
-      <div class="input-row">
-        <input type="text" class="chat-txt" id="chat-input" placeholder="Digite uma mensagem..." onkeydown="if(event.key==='Enter')sendMsg()">
-        <button class="btn-mic" id="btn-mic" onclick="toggleMic()">🎙️</button>
-        <button class="btn-send" onclick="sendMsg()">➤</button>
-      </div>
+    <div id="chat-box"></div>
+    <div id="chat-input-bar">
+      <input id="chat-input" type="text" placeholder="Mensagem..." onkeydown="if(event.key==='Enter')sendMsg()">
+      <button id="chat-send" onclick="sendMsg()">➤</button>
     </div>
   </div>
 
-  <!-- AVISOS -->
+  <!-- AVISOS VIEW -->
   <div id="view-avisos" class="view">
-    <div class="notif-header">
-      <div class="notif-title">🔔 Avisos</div>
-      <button class="mark-read-btn" onclick="markAllRead()">Marcar lidos</button>
-    </div>
-    <div class="scroll">
-      <div style="padding:8px 12px 4px;">
-        <div class="abs-card">
-          <div style="font-size:24px;">📅</div>
-          <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:var(--gray800);">Avisar falta do filho?</div><div style="font-size:11px;color:var(--gray400);margin-top:2px;">Informe o Tio Daniel com antecedência</div></div>
-          <button class="abs-btn" onclick="showModal('absence-modal')">Avisar</button>
-        </div>
-      </div>
-      <!-- Status table -->
-      <div style="margin:8px 12px 0;background:var(--white);border-radius:12px;border:1px solid var(--gray200);overflow:hidden;">
-        <div style="padding:10px 14px;background:var(--navy);display:flex;align-items:center;justify-content:space-between;">
-          <div style="font-size:12px;font-weight:700;color:var(--yellow);">📊 Status das Crianças</div>
-          <div style="font-size:10px;color:rgba(255,255,255,.5);" id="av-operacao">Hoje</div>
-        </div>
-        <div id="av-status-table" style="overflow-x:auto;">
-          <table class="sb-table">
-            <thead style="background:var(--navy);">
-              <tr>
-                <th>Criança</th>
-                <th>🚐<br>Embarcou</th>
-                <th>🏫<br>Escola</th>
-                <th>🔄<br>Saiu</th>
-                <th>🏠<br>Em casa</th>
-              </tr>
-            </thead>
-            <tbody id="av-tbody">
-              <tr><td colspan="5" style="text-align:center;padding:16px;font-size:12px;color:var(--gray400);">Aguardando viagem...</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-<!-- notif-list hidden - only status table shown -->
-      <div id="notif-list" style="display:none;"></div>
+    <div class="scroll" id="avisos-list">
+      <div style="padding:24px;text-align:center;color:var(--gray400);font-size:13px">Nenhum aviso</div>
     </div>
   </div>
 
-  <!-- FINANCEIRO -->
-  <div id="view-fin" class="view">
-    <div class="fin-header">
-      <div class="fin-month" id="fin-month-lbl">Carregando...</div>
-      <div class="fin-amount" id="fin-valor">R$ ---</div>
-      <div class="fin-status-row">
-        <div class="fin-due-txt" id="fin-venc">Buscando dados...</div>
-        <div class="fin-badge pending" id="fin-badge">⏳ Carregando</div>
-      </div>
-    </div>
-    <div class="pay-btns">
-      <button class="pay-btn pix" onclick="showModal('pix-modal')">
-        <div class="pay-icon">⚡</div>
-        <div><div class="pay-txt">Pagar com PIX</div><div class="pay-sub">Aprovação instantânea</div></div>
-      </button>
-      <button class="pay-btn boleto" onclick="showToast('📄 Boleto enviado para seu WhatsApp!')">
-        <div class="pay-icon">📄</div>
-        <div><div class="pay-txt">Gerar Boleto</div><div class="pay-sub" id="bol-venc-txt">Buscando...</div></div>
-      </button>
-    </div>
-    <div class="scroll">
-      <div class="hist-section">
-        <div class="hist-title">Histórico de pagamentos</div>
-        <div id="hist-list"><div style="padding:16px;text-align:center;font-size:12px;color:var(--gray400);">Carregando...</div></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PERFIL -->
+  <!-- PERFIL VIEW -->
   <div id="view-perfil" class="view">
     <div class="scroll">
-      <div class="profile-hero">
-        <div class="profile-photo" id="prof-photo">👦</div>
-        <div>
-          <div class="profile-name" id="prof-name">Carregando...</div>
-          <div class="profile-grade" id="prof-grade">—</div>
-          <div class="profile-unit" id="prof-unit">Paulista IE</div>
-        </div>
+      <div class="perfil-section" style="margin-top:14px">
+        <div class="perfil-title">👤 Minha conta</div>
+        <div class="perfil-row"><span class="perfil-label">E-mail</span><span class="perfil-val" id="perfil-email">—</span></div>
+        <div class="perfil-row"><span class="perfil-label">Nome</span><span class="perfil-val" id="perfil-nome">—</span></div>
       </div>
-      <button class="sos-btn" onclick="triggerSOS()">
-        <div class="sos-icon">🆘</div>
-        <div><div class="sos-txt">Botão de Emergência</div><div class="sos-sub">Notifica o motorista imediatamente</div></div>
-      </button>
-      <div class="prof-section">
-        <div class="ps-title">Dados da criança</div>
-        <div class="prof-row"><div class="pr-icon">📍</div><div class="pr-body"><div class="pr-label">Endereço de embarque</div><div class="pr-value" id="prof-addr">—</div></div></div>
-        <div class="prof-row"><div class="pr-icon">⚠️</div><div class="pr-body"><div class="pr-label">Observações médicas</div><div class="pr-value" id="prof-obs">Nenhuma</div></div></div>
+      <div class="perfil-section">
+        <div class="perfil-title">🎒 Meu filho(a)</div>
+        <div class="perfil-row"><span class="perfil-label">Nome</span><span class="perfil-val" id="perfil-filho">—</span></div>
+        <div class="perfil-row"><span class="perfil-label">Série</span><span class="perfil-val" id="perfil-serie">—</span></div>
+        <div class="perfil-row"><span class="perfil-label">Endereço</span><span class="perfil-val" id="perfil-end">—</span></div>
       </div>
-      <div class="prof-section">
-        <div class="ps-title">Minha conta</div>
-        <div class="prof-row"><div class="pr-icon">✉️</div><div class="pr-body"><div class="pr-label">E-mail cadastrado</div><div class="pr-value" id="prof-email">—</div></div></div>
-      </div>
-      <div class="prof-section">
-        <div class="ps-title">Motorista</div>
-        <div class="prof-row"><div class="pr-icon">🧔</div><div class="pr-body"><div class="pr-label">Responsável pela rota</div><div class="pr-value" id="prof-motorista">Tio Daniel · Tia Irene</div></div></div>
-        <div class="prof-row"><div class="pr-icon">🚐</div><div class="pr-body"><div class="pr-label">Placa do veículo</div><div class="pr-value" id="prof-placa">—</div></div></div>
-      </div>
-      <button class="logout-btn" onclick="doLogout()">🚪 Sair da conta</button>
-      <div style="height:10px;"></div>
+      <button class="perfil-btn" onclick="auth.signOut()">Sair da conta</button>
     </div>
   </div>
 
-  <div class="navbar">
-    <div class="nav-item active" onclick="switchView('map',this)"><span class="nav-icon">🗺️</span>Mapa<div class="nav-dot"></div></div>
-    <div class="nav-item" onclick="switchView('chat',this)"><span class="nav-icon">💬</span>Chat</div>
-    <div class="nav-item" onclick="switchView('avisos',this)" id="nav-avisos"><span class="nav-icon">🔔</span>Avisos<span class="nav-badge" id="notif-badge">0</span></div>
-    <div class="nav-item" onclick="switchView('fin',this)"><span class="nav-icon">💰</span>Financ.</div>
-    <div class="nav-item" onclick="switchView('perfil',this)"><span class="nav-icon">👤</span>Perfil</div>
+  <!-- NAVBAR -->
+  <div id="navbar">
+    <button class="nav-item active" onclick="switchView('mapa',this)"><span class="nav-icon">🗺️</span>Mapa<div class="nav-dot"></div></button>
+    <button class="nav-item" onclick="switchView('chat',this)"><span class="nav-icon">💬</span>Chat<div class="nav-dot"></div></button>
+    <button class="nav-item" style="position:relative" onclick="switchView('avisos',this)"><span class="nav-icon">🔔</span>Avisos<div class="nav-dot"></div><div id="notif-badge"></div></button>
+    <button class="nav-item" onclick="switchView('perfil',this)"><span class="nav-icon">👤</span>Perfil<div class="nav-dot"></div></button>
   </div>
-</div>
-</div>
 
-<!-- PIX MODAL -->
-<div class="modal-overlay" id="pix-modal" onclick="if(event.target===this)closeModal('pix-modal')">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">Pagamento via PIX</div>
-    <div class="modal-sub" id="pix-modal-sub">Carregando...</div>
-    <div class="pix-qr"><div style="font-size:40px;">📱</div><div style="font-size:11px;color:var(--gray400);text-align:center;">QR Code PIX<br><span style="font-size:9px;">Integração Mercado Pago em breve</span></div></div>
-    <div class="pix-value" id="pix-valor">R$ ---</div>
-    <div class="pix-desc" id="pix-desc">Tio Daniel & Tia Irene · Transporte Escolar</div>
-    <button class="pix-copy-btn" onclick="copyPix()">📋 Copiar código PIX</button>
-    <button class="modal-close-btn" onclick="closeModal('pix-modal')">Fechar</button>
-  </div>
-</div>
+</div><!-- /main-app -->
 
-<!-- ABSENCE MODAL -->
-<div class="modal-overlay" id="absence-modal" onclick="if(event.target===this)closeModal('absence-modal')">
-  <div class="modal-sheet">
-    <div class="modal-handle"></div>
-    <div class="modal-title">📅 Avisar Falta</div>
-    <div class="modal-sub">Informe o Tio Daniel com antecedência</div>
-    <div class="abs-form">
-      <div class="ab-child">
-        <div class="ab-photo" id="ab-photo">👦</div>
-        <div><div style="font-weight:700;font-size:13px;color:var(--gray800);" id="ab-name">Seu filho</div><div style="font-size:11px;color:var(--gray400);">Turma Manhã</div></div>
-      </div>
-      <div>
-        <div style="font-size:12px;font-weight:600;color:var(--gray600);margin-bottom:6px;">Data da falta</div>
-        <div class="ab-dates">
-          <button class="ab-date-btn sel" onclick="selDate(this,'amanha')">Amanhã</button>
-          <button class="ab-date-btn" onclick="selDate(this,'2dias')">Em 2 dias</button>
-          <button class="ab-date-btn" onclick="selDate(this,'semana')">Na semana</button>
-          <button class="ab-date-btn" onclick="selDate(this,'outra')">Outra</button>
-        </div>
-      </div>
-      <div>
-        <div style="font-size:12px;font-weight:600;color:var(--gray600);margin-bottom:6px;">Motivo (opcional)</div>
-        <textarea class="ab-reason" id="ab-reason" rows="2" placeholder="Ex: consulta médica, viagem..."></textarea>
-      </div>
-      <button class="ab-submit" onclick="sendAbsence()">📩 Enviar aviso de falta</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
+<div id="toast"></div>
 
 <script>
-// ── STATE ──
-let isRec = false, selectedDate = 'amanha';
-let alunosCache = [], configCache = {};
+// ── GLOBALS ──
+var currentUser = null;
+var paisData = null;
+var lastMapLat = null, lastMapLng = null;
+var approvalListener = null;
+var paisNome = '';
+
+// ── HELPERS ──
+function el(id){ return document.getElementById(id); }
+function setText(id,v){ var e=el(id); if(e) e.textContent=v; }
+function showToast(msg){
+  var t=el('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(function(){ t.classList.remove('show'); },2800);
+}
+function showStep(id){
+  document.querySelectorAll('.step').forEach(function(s){ s.classList.remove('active'); });
+  el(id).classList.add('active');
+}
+function switchView(name,btn){
+  document.querySelectorAll('.view').forEach(function(v){ v.classList.remove('active'); });
+  el('view-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+  if(btn) btn.classList.add('active');
+  if(name==='chat'){ setTimeout(function(){ var b=el('chat-box'); if(b) b.scrollTop=b.scrollHeight; },50); }
+  if(name==='avisos') el('notif-badge').style.display='none';
+}
 
 // ── AUTH ──
-function showStep(id) {
-  ['step-login','step-register1','step-register2'].forEach(s=>{
-    const el=document.getElementById(s);
-    if(el) el.style.display = s===id ? 'flex' : 'none';
+function doLogin(){
+  var email=el('login-email').value.trim(), pass=el('login-pass').value;
+  if(!email||!pass){ el('login-err').textContent='⚠️ Preencha todos os campos'; return; }
+  el('login-err').textContent='🔄 Entrando...';
+  auth.signInWithEmailAndPassword(email,pass)
+    .catch(function(e){ el('login-err').textContent='❌ Email ou senha incorretos'; });
+}
+function goToStep2(){
+  var nome=el('reg-nome').value.trim(), email=el('reg-email').value.trim(), pass=el('reg-pass').value;
+  if(!nome){ el('reg-err1').textContent='⚠️ Informe seu nome'; return; }
+  if(!email){ el('reg-err1').textContent='⚠️ Informe seu e-mail'; return; }
+  if(pass.length<6){ el('reg-err1').textContent='⚠️ Senha deve ter mínimo 6 caracteres'; return; }
+  el('reg-err1').textContent='';
+  showStep('step-reg2');
+}
+function doRegister(){
+  var nome=el('reg-nome').value.trim();
+  var tel=el('reg-tel').value.trim();
+  var email=el('reg-email').value.trim();
+  var pass=el('reg-pass').value;
+  var filhoNome=el('reg-filho-nome').value.trim();
+  var filhoSerie=el('reg-filho-serie').value.trim();
+  var filhoEnd=el('reg-filho-end').value.trim();
+  var filhoObs=el('reg-filho-obs').value.trim();
+  if(!filhoNome){ el('reg-err2').textContent='⚠️ Informe o nome do filho'; return; }
+  if(!filhoEnd){ el('reg-err2').textContent='⚠️ Informe o endereço de embarque'; return; }
+  el('reg-err2').textContent='🔄 Criando conta...';
+  auth.createUserWithEmailAndPassword(email,pass).then(function(cred){
+    return db.collection('pais_pendentes').add({
+      uid:cred.user.uid, email:email, nome:nome, tel:tel,
+      aluno_nome:filhoNome, aluno_serie:filhoSerie,
+      endereco:filhoEnd, obs:filhoObs,
+      status:'pendente',
+      criado_em:firebase.firestore.FieldValue.serverTimestamp()
+    });
+  }).then(function(){
+    // Sign out and return to login
+    return auth.signOut();
+  }).then(function(){
+    showStep('step-login');
+    el('login-err').textContent='✅ Cadastro enviado! Aguarde aprovação do Tio Daniel.';
+  }).catch(function(e){
+    el('reg-err2').textContent='❌ '+e.message;
   });
 }
 
-function goStep2() {
-  const email=document.getElementById('reg-email').value.trim();
-  const pass=document.getElementById('reg-pass').value;
-  const nome=document.getElementById('reg-nome').value.trim();
-  const tel=document.getElementById('reg-tel').value.trim();
-  const err=document.getElementById('reg-err1');
-  if(!email||!pass){err.textContent='⚠️ Preencha e-mail e senha';return;}
-  if(pass.length<6){err.textContent='❌ Senha mínimo 6 caracteres';return;}
-  if(!nome){err.textContent='⚠️ Preencha seu nome';return;}
-  err.textContent='';
-  showStep('step-register2');
-}
-
-function doLogin() {
-  const email=document.getElementById('login-email').value.trim();
-  const pass=document.getElementById('login-pass').value;
-  const err=document.getElementById('login-err');
-  if(!email||!pass){err.textContent='⚠️ Preencha e-mail e senha';return;}
-  err.textContent='🔄 Conectando...';
-  auth.signInWithEmailAndPassword(email,pass)
-    .then(()=>err.textContent='')
-    .catch(e=>{
-      if(e.code==='auth/invalid-credential'||e.code==='auth/wrong-password'||e.code==='auth/user-not-found')
-        err.textContent='❌ E-mail ou senha incorretos';
-      else if(e.code==='auth/network-request-failed')
-        err.textContent='❌ Sem internet — conecte ao Wi-Fi';
-      else if(e.code==='auth/operation-not-allowed')
-        err.textContent='❌ Ative E-mail/senha no Firebase Console → Authentication';
-      else err.textContent='❌ '+e.code;
-    });
-}
-
-function doRegister() {
-  const email=document.getElementById('reg-email').value.trim();
-  const pass=document.getElementById('reg-pass').value;
-  const nome=document.getElementById('reg-nome').value.trim();
-  const tel=document.getElementById('reg-tel').value.trim();
-  const filhoNome=document.getElementById('reg-filho-nome').value.trim();
-  const filhoSerie=document.getElementById('reg-filho-serie').value.trim();
-  const filhoEnd=document.getElementById('reg-filho-end').value.trim();
-  const filhoObs=document.getElementById('reg-filho-obs').value.trim();
-  const err=document.getElementById('reg-err2');
-  if(!filhoNome){err.textContent='⚠️ Preencha o nome do filho';return;}
-  if(!filhoEnd){err.textContent='⚠️ Preencha o endereço de embarque';return;}
-  err.textContent='🔄 Criando conta...';
-  auth.createUserWithEmailAndPassword(email,pass)
-    .then(userCred=>{
-      // Save to pais_pendentes with child info
-      return db.collection('pais_pendentes').add({
-        nome: nome,
-        email: email,
-        tel: tel,
-        aluno_nome: filhoNome,
-        aluno_serie: filhoSerie,
-        endereco: filhoEnd,
-        obs_medicas: filhoObs,
-        uid: userCred.user.uid,
-        status: 'pendente',
-        criado_em: firebase.firestore.FieldValue.serverTimestamp()
-      });
-    })
-    .then(()=>{
-      err.textContent='✅ Cadastro enviado! Aguarde aprovação do Tio Daniel.';
-      // Sign out and go back to login after 3 seconds
-      setTimeout(()=>{
+// ── APPROVAL FLOW ──
+function checkApproval(){
+  if(approvalListener){ approvalListener(); approvalListener=null; }
+  approvalListener = db.collection('pais_pendentes')
+    .where('uid','==',currentUser.uid)
+    .onSnapshot(function(snap){
+      if(snap.empty){
+        // No record - could be motorista logged in wrong app
+        showWaiting('Conta não encontrada neste sistema.');
+        return;
+      }
+      var doc=snap.docs[0];
+      var data=doc.data();
+      paisData=data;
+      if(data.status==='aprovado'){
+        if(approvalListener){ approvalListener(); approvalListener=null; }
+        loadMainApp();
+      } else if(data.status==='bloqueado'){
+        if(approvalListener){ approvalListener(); approvalListener=null; }
         auth.signOut();
         showStep('step-login');
-        document.getElementById('login-err').textContent='✅ Cadastro enviado! Aguarde aprovação do Tio Daniel.';
-      }, 3000);
-    })
-    .catch(e=>{
-      if(e.code==='auth/email-already-in-use') err.textContent='❌ E-mail já cadastrado. Faça login.';
-      else if(e.code==='auth/network-request-failed') err.textContent='❌ Sem internet — conecte ao Wi-Fi';
-      else if(e.code==='auth/operation-not-allowed') err.textContent='❌ Ative E-mail/senha no Firebase Console → Authentication';
-      else err.textContent='❌ '+e.code;
+        el('login-err').textContent='❌ Acesso removido. Contate o Tio Daniel.';
+      } else {
+        showWaiting('');
+      }
     });
 }
-
-function doLogout(){if(confirm('Sair?'))auth.signOut();}
-
-// ── INIT ──
-function initPaisApp(){
-  const user = window.currentUser;
-  document.getElementById('prof-email').textContent = user.email;
-
-  // Reset local state
-  statusAlunosCache = {};
-  lastMapLat = null; lastMapLng = null;
-  _lastMapLat = null; _lastMapLng = null;
-  const iframe = document.getElementById('mapa-van');
-  if(iframe) iframe.src = 'about:blank';
-  const loading = document.getElementById('mapa-loading');
-  if(loading) loading.style.display = '';
-  renderBolinhas();
-  loadConfig();
-  listenMessages();
-  listenNotifs();
-
-  // Single approval check - controls everything
-  checkApprovalStatus();
+function showWaiting(msg){
+  el('auth-screen').style.display='none';
+  el('main-app').style.display='none';
+  el('waiting-screen').style.display='flex';
+  if(msg) el('waiting-screen').querySelector('.wait-sub').textContent=msg;
+}
+function loadMainApp(){
+  el('auth-screen').style.display='none';
+  el('waiting-screen').style.display='none';
+  el('main-app').style.display='flex';
+  // Set profile data
+  setText('perfil-email', currentUser.email);
+  if(paisData){
+    paisNome = (paisData.nome||currentUser.email)+' ('+(paisData.aluno_nome||'')+(paisData.aluno_serie?' • '+paisData.aluno_serie:'')+')';
+    setText('perfil-nome', paisData.nome||'—');
+    setText('perfil-filho', paisData.aluno_nome||'—');
+    setText('perfil-serie', paisData.aluno_serie||'—');
+    setText('perfil-end', paisData.endereco||'—');
+  }
+  listenConfig();
+  listenChat();
+  listenAvisos();
+  listenStatus();
+  listenGPS();
 }
 
 // ── CONFIG ──
-function loadConfig(){
-  db.doc('config/main').get().then(snap=>{
+function listenConfig(){
+  db.doc('config/main').get().then(function(snap){
     if(!snap.exists) return;
-    const d = snap.data(); configCache = d;
-    if(d.nome){document.getElementById('topbar-name').textContent=d.nome;document.getElementById('driver-name').textContent=d.nome;document.getElementById('prof-motorista').textContent=d.nome;}
-    if(d.unidade){document.getElementById('topbar-unit').textContent=d.unidade;document.getElementById('prof-unit').textContent='📍 '+d.unidade;}
-    if(d.placa) document.getElementById('prof-placa').textContent=d.placa;
-    if(d.mens){
-      const v=parseFloat(d.mens).toFixed(2);
-      document.getElementById('fin-valor').textContent='R$ '+v;
-      document.getElementById('pix-valor').textContent='R$ '+v;
-      document.getElementById('pix-modal-sub').textContent='Mensalidade · R$ '+v;
-      document.getElementById('pix-desc').textContent=(d.nome||'Tio Daniel')+' · Transporte Escolar\nChave PIX: '+(d.pix||'Não cadastrada');
-    }
-    if(d.venc){
-      document.getElementById('fin-month-lbl').textContent='Mensalidade · '+new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
-      document.getElementById('fin-venc').textContent='Vencimento: dia '+d.venc;
-      document.getElementById('bol-venc-txt').textContent='Vence dia '+d.venc;
-    }
-    document.getElementById('fin-badge').textContent='⏳ Pendente';
-  }).catch(e=>console.log('Config:',e));
-}
-
-// ── LEAFLET MAP ──
-let paisMap = null, paisVanMarker = null;
-
-// ── MAPA SIMPLES COM OPENSTREETMAP ──
-let lastMapLat = null, lastMapLng = null;
-
-function updatePaisMap(lat, lng) {
-  lastMapLat = lat;
-  lastMapLng = lng;
-  renderMapIframe(lat, lng);
-}
-
-function initPaisMap(lat, lng) {
-  updatePaisMap(lat, lng);
-}
-
-let _lastMapLat = null, _lastMapLng = null;
-
-function renderMapIframe(lat, lng) {
-  // Only reload if moved more than ~100 meters
-  if(_lastMapLat !== null) {
-    const d = Math.abs(lat - _lastMapLat) + Math.abs(lng - _lastMapLng);
-    if(d < 0.001) return;
-  }
-  _lastMapLat = lat;
-  _lastMapLng = lng;
-
-  const iframe = document.getElementById('mapa-van');
-  const loading = document.getElementById('mapa-loading');
-  if(!iframe) return;
-  if(loading) loading.style.display = 'none';
-  const delta = 0.004;
-  const bbox = `${lng-delta},${lat-delta},${lng+delta},${lat+delta}`;
-  iframe.src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
-}
-
-// ── GPS (Realtime DB) ──
-function checkApprovalStatus() {
-  const user = window.currentUser;
-  db.collection('pais_pendentes').where('uid','==',user.uid).get().then(snap=>{
-    if(snap.empty) {
-      // No record - load app normally (old account before new flow)
-      listenAlunos();
-      listenStatusAlunos();
-      listenGPS();
-      return;
-    }
-    const data = snap.docs[0].data();
-    if(data.status === 'aprovado') {
-      // Load pai name
-      const nome = data.nome || window.currentUser.email;
-      const partes = [];
-      if(data.aluno_nome) partes.push(data.aluno_nome);
-      if(data.aluno_serie) partes.push(data.aluno_serie);
-      window.paisNome = nome + (partes.length ? ' ('+partes.join(' • ')+')' : '');
-      // Load app normally
-      listenAlunos();
-      listenStatusAlunos();
-      listenGPS();
-    } else if(data.status === 'bloqueado') {
-      // Blocked - sign out
-      auth.signOut();
-    } else {
-      // Pending - show waiting screen and keep checking
-      showWaitingApproval();
-      setTimeout(checkApprovalStatus, 10000);
-    }
+    var d=snap.data();
+    if(d.nome) setText('tb-driver','Tio '+d.nome);
+    if(d.unidade) setText('tb-school',d.unidade);
+    if(d.chegada) setText('eta-val',d.chegada);
   });
 }
 
-function showWaitingApproval() {
-  // Show waiting message on map screen
-  const loading = document.getElementById('mapa-loading');
-  if(loading) {
-    loading.innerHTML = '<div style="font-size:40px;margin-bottom:12px;">⏳</div><div style="font-size:14px;font-weight:700;color:var(--navy);">Aguardando aprovação</div><div style="font-size:12px;color:var(--gray400);margin-top:6px;">O Tio Daniel vai liberar seu acesso em breve</div>';
-    loading.style.display = '';
-  }
-  // Clear alunos cache
-  alunosCache = [];
-  renderBolinhas();
-}
-
+// ── GPS ──
 function listenGPS(){
-  rdb.ref('localizacao_atual').on('value',snap=>{
-    if(!snap.exists()) return;
-    const d = snap.val();
-    
-    // Must have viagem_ativa=true AND valid non-null coordinates
-    const hasCoords = d.lat !== null && d.lat !== undefined && 
-                      d.lng !== null && d.lng !== undefined &&
-                      typeof d.lat === 'number' && typeof d.lng === 'number';
-    const isAtivo = d.viagem_ativa === true && hasCoords;
+  rdb.ref('localizacao_atual').on('value',function(snap){
+    if(!snap.exists()){
+      setOffline(); return;
+    }
+    var d=snap.val();
+    if(!d||!d.viagem_ativa||!d.lat||!d.lng){
+      setOffline(); return;
+    }
+    // Online!
+    el('live-dot').className='live-dot active';
+    setText('live-txt','Ao vivo');
+    var speed=d.velocidade||0;
+    setText('van-status', speed===0?'Van parada':'Van em movimento · '+speed+' km/h');
+    updateMap(d.lat, d.lng);
+  });
+}
+function setOffline(){
+  el('live-dot').className='live-dot';
+  setText('live-txt','Offline');
+  setText('van-status','Aguardando van');
+  el('mapa-loading').style.display='block';
+  el('mapa-iframe').src='about:blank';
+  lastMapLat=null; lastMapLng=null;
+}
+function updateMap(lat,lng){
+  el('mapa-loading').style.display='none';
+  // Only reload if moved more than ~100m
+  if(lastMapLat!==null){
+    var d=Math.abs(lat-lastMapLat)+Math.abs(lng-lastMapLng);
+    if(d<0.001) return;
+  }
+  lastMapLat=lat; lastMapLng=lng;
+  var delta=0.004;
+  var bbox=(lng-delta)+','+(lat-delta)+','+(lng+delta)+','+(lat+delta);
+  el('mapa-iframe').src='https://www.openstreetmap.org/export/embed.html?bbox='+bbox+'&layer=mapnik&marker='+lat+','+lng;
+}
 
-    if(isAtivo){
-      document.getElementById('live-dot').className='live-dot active';
-      document.getElementById('live-txt').textContent='Ao vivo';
-      const speed = d.velocidade||0;
-      const eta = d.eta_escola || configCache.chegada || '07:45';
-      const delay = d.atraso_minutos || 0;
-      const pill = document.getElementById('status-pill');
-
-      // Update ETA display
-      document.getElementById('map-eta').textContent = eta;
-      document.getElementById('eta-main').textContent = eta;
-
-      // Status based on delay
-      if(delay > 10) {
-        pill.className='sp late';
-        document.getElementById('status-txt').textContent='Muito atrasado 🔴';
-        document.getElementById('map-eta-sub').textContent='Atrasado '+delay+' min · '+speed+' km/h';
-        document.getElementById('eta-sub').textContent='Atrasado '+delay+' min';
-        // Show warning banner
-        const banner = document.getElementById('notif-banner');
-        banner.className='nb show danger';
-        banner.textContent='🔴 Van atrasada '+delay+' min. Chegada prevista: '+eta;
-      } else if(delay > 3) {
-        pill.className='sp delay';
-        document.getElementById('status-txt').textContent='Pequeno atraso ⚠️';
-        document.getElementById('map-eta-sub').textContent='Atrasado '+delay+' min · '+speed+' km/h';
-        document.getElementById('eta-sub').textContent='Atrasado '+delay+' min';
-        const banner = document.getElementById('notif-banner');
-        banner.className='nb show warn';
-        banner.textContent='⚠️ Van com '+delay+' min de atraso. Chegada prevista: '+eta;
-      } else if(delay < -2) {
-        pill.className='sp ok';
-        document.getElementById('status-txt').textContent='Adiantado 🔵';
-        document.getElementById('map-eta-sub').textContent='Adiantado '+(Math.abs(delay))+' min · '+speed+' km/h';
-        document.getElementById('eta-sub').textContent='Adiantado '+(Math.abs(delay))+' min';
-        document.getElementById('notif-banner').className='nb';
-      } else {
-        if(speed>5){
-          pill.className='sp ok';
-          document.getElementById('status-txt').textContent='No horário ✅';
-        } else {
-          pill.className='sp delay';
-          document.getElementById('status-txt').textContent='Van parada na parada';
-        }
-        document.getElementById('map-eta-sub').textContent='Van em movimento · '+speed+' km/h';
-        document.getElementById('eta-sub').textContent='ETA escola';
-        document.getElementById('notif-banner').className='nb';
+// ── STATUS BOLINHAS ──
+function listenStatus(){
+  db.collection('status_alunos').onSnapshot(function(snap){
+    var etapas={embarcou:'🚐',na_escola:'🏫',saiu_escola:'🔄',em_casa:'🏠',faltou:'❌',aguardando:'⏳'};
+    var labels={embarcou:'Na van',na_escola:'Na escola',saiu_escola:'Saindo',em_casa:'Em casa',faltou:'Faltou',aguardando:'Aguardando'};
+    var today=new Date().toISOString().slice(0,10);
+    var chips='';
+    snap.forEach(function(d){
+      var s=d.data();
+      // Only today's data
+      if(s.timestamp){
+        var ts=s.timestamp.toDate?s.timestamp.toDate():new Date(s.timestamp);
+        if(ts.toISOString().slice(0,10)!==today) return;
       }
-
-      document.getElementById('driver-online').textContent='● Online agora · '+speed+' km/h';
-      if(d.lat && d.lng) updatePaisMap(d.lat, d.lng);
-    } else {
-      document.getElementById('live-dot').className='live-dot off';
-      document.getElementById('live-txt').textContent='Offline';
-      document.getElementById('driver-online').textContent='● Aguardando viagem';
-      document.getElementById('notif-banner').className='nb';
-      const pill=document.getElementById('status-pill');
-      pill.className='sp wait';
-      document.getElementById('status-txt').textContent='Aguardando van';
-      document.getElementById('map-eta').textContent='--:--';
-      document.getElementById('map-eta-sub').textContent='Aguardando GPS da van';
-      document.getElementById('eta-main').textContent='--:--';
-      document.getElementById('eta-sub').textContent='Van nao iniciou';
-      // Clear map - show loading screen
-      const iframe = document.getElementById('mapa-van');
-      if(iframe) iframe.src = 'about:blank';
-      const loading = document.getElementById('mapa-loading');
-      if(loading) loading.style.display = '';
-      lastMapLat = null; lastMapLng = null;
-    }
-  });
-
-  // Rota atual listener
-  rdb.ref('rota_atual').on('value',snap=>{
-    if(snap.exists()){
-      const d=snap.val();
-      const opLabels={'busca_manha':'🌅 Busca manha','leva_manha':'🔄 Leva manha','busca_tarde':'🌇 Busca tarde','leva_tarde':'🌆 Leva tarde'};
-      // Update board header with operacao info if available
-    }
-  });
-
-  // SOS listener
-  rdb.ref('emergencia').on('value',snap=>{
-    if(snap.exists()&&snap.val().ativa){
-      const b=document.getElementById('notif-banner');
-      b.className='nb show danger';
-      b.textContent='🆘 EMERGÊNCIA ATIVADA pelo motorista! Entre em contato imediatamente.';
-      showToast('🆘 EMERGÊNCIA! Verifique o app!');
-    }
+      chips+='<div class="status-chip"><div class="status-bolinha '+s.etapa+'"></div>'+(s.nome||'—')+' · '+(labels[s.etapa]||s.etapa)+'</div>';
+    });
+    el('status-chips').innerHTML=chips||'<span style="font-size:12px;color:var(--gray400)">Aguardando viagem...</span>';
   });
 }
 
 // ── CHAT ──
-function listenMessages(){
-  db.collection('mensagens').orderBy('timestamp','asc').onSnapshot(snap=>{
-    const box=document.getElementById('chat-messages');
+function listenChat(){
+  db.collection('mensagens').orderBy('timestamp','asc').onSnapshot(function(snap){
+    var box=el('chat-box'); if(!box) return;
     box.innerHTML='';
-    let unread=0;
-    if(snap.empty){box.innerHTML='<div class="sys-msg">Chat conectado ✅</div>';return;}
-    snap.forEach(d=>{
-      const m=d.data();
-      if(m.tipo==='sistema'){
-        // Sistema messages go to Avisos only, not chat
-        return;
+    snap.forEach(function(d){
+      var m=d.data();
+      var isOut=m.remetente_tipo==='pai' && currentUser && m.remetente===paisNome;
+      var isSys=m.tipo==='sistema';
+      var div=document.createElement('div');
+      if(isSys){
+        div.className='msg sys'; div.textContent=m.texto;
       } else {
-        const myMsg=m.remetente_tipo==='pai';
-        const el=document.createElement('div');el.className='msg '+(myMsg?'parent':'driver');
-        const t=m.timestamp?m.timestamp.toDate().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'--:--';
-        if(m.tipo==='audio'){
-          const id='w'+d.id;
-          const bars=Array.from({length:10},()=>`<div class="wbar" style="height:${5+Math.random()*13}px"></div>`).join('');
-          el.innerHTML=`<div class="msg-sender">${m.remetente} 🎙️</div><div class="bubble audio-bubble"><button class="audio-play-btn" onclick="playAudio(this,'${id}')">▶️</button><div class="waveform" id="${id}">${bars}</div><span style="font-size:10px;color:var(--gray400);margin-left:2px;">${m.duracao||'0:05'}</span></div><div class="msg-time">${t}</div>`;
-        } else {
-          el.innerHTML=`<div class="msg-sender">${m.remetente}</div><div class="bubble">${m.texto}</div><div class="msg-time">${t}</div>`;
-        }
-        box.appendChild(el);
-        if(!m.lida&&m.remetente_tipo==='motorista') unread++;
+        div.className='msg '+(isOut?'out':'in');
+        if(!isOut){ var s=document.createElement('div'); s.className='msg-sender'; s.textContent=m.remetente||'—'; div.appendChild(s); }
+        var t=document.createElement('div'); t.textContent=m.texto; div.appendChild(t);
       }
+      box.appendChild(div);
     });
     box.scrollTop=box.scrollHeight;
-    const badge=document.getElementById('notif-badge');
-    if(unread>0){badge.textContent=unread;badge.style.display='';}
-    else badge.style.display='none';
-  },()=>{document.getElementById('chat-messages').innerHTML='<div class="sys-msg" style="color:var(--red);">⚠️ Ative o Firestore no Firebase Console</div>';});
+  });
 }
-
 function sendMsg(){
-  const inp=document.getElementById('chat-input');
-  const txt=inp.value.trim();if(!txt)return;
+  var inp=el('chat-input'); var txt=inp.value.trim(); if(!txt) return;
   inp.value='';
-  const user=window.currentUser;
-  const nome = window.paisNome || user.email;
-  db.collection('mensagens').add({texto:txt,tipo:'texto',remetente:nome,remetente_tipo:'pai',timestamp:firebase.firestore.FieldValue.serverTimestamp(),lida:false});
-}
-
-// ── ALUNOS (chips e perfil) ──
-function listenAlunos(){
-  db.collection('alunos').orderBy('ordem_parada','asc').onSnapshot(snap=>{
-    alunosCache=[];
-    snap.forEach(d=>alunosCache.push({id:d.id,...d.data()}));
-    renderChips();
-    if(alunosCache.length>0){
-      const a=alunosCache[0];
-      document.getElementById('prof-name').textContent=a.nome||'—';
-      document.getElementById('prof-grade').textContent=(a.serie||'—')+' · Turma Manhã';
-      document.getElementById('prof-addr').textContent=a.endereco||'—';
-      document.getElementById('prof-obs').textContent=a.obs_medicas||'Nenhuma';
-      document.getElementById('ab-name').textContent=a.nome||'Seu filho';
-      document.getElementById('prof-photo').textContent=a.foto||'👦';
-      document.getElementById('ab-photo').textContent=a.foto||'👦';
-    }
-  });
-
-  // Listen embarques - sync to statusAlunosCache as fallback (today only)
-  db.collection('embarques').onSnapshot(snap=>{
-    const today=new Date().toISOString().slice(0,10);
-    snap.forEach(d=>{
-      if(d.id.endsWith(today)){
-        const alunoId = d.id.replace('_'+today,'');
-        const data = d.data();
-        if(!statusAlunosCache[alunoId]) {
-          statusAlunosCache[alunoId] = {
-            etapa: data.status==='faltou'?'faltou':'embarcou',
-            nome: data.aluno_nome||''
-          };
-        }
-      }
-    });
-    renderBolinhas();
-  });
-}
-
-// Listen to status_alunos collection in real time
-let statusAlunosCache = {};
-function listenStatusAlunos() {
-  let firstSnapshot = true;
-  db.collection('status_alunos').onSnapshot(snap=>{
-    if(firstSnapshot) {
-      // On first load, only show TODAY's data
-      statusAlunosCache = {};
-      firstSnapshot = false;
-    }
-    const today = new Date().toISOString().slice(0,10);
-    snap.forEach(d=>{
-      const data = d.data();
-      // Only use records updated today
-      if(data.atualizado_em) {
-        const ts = data.atualizado_em.toDate ? data.atualizado_em.toDate() : new Date(data.atualizado_em);
-        const tsDate = ts.toISOString().slice(0,10);
-        if(tsDate === today) {
-          statusAlunosCache[d.id] = data;
-        }
-      }
-    });
-    renderBolinhas();
-  });
-}
-
-function bolinha(etapa, alunoEtapa, ts) {
-  const etapas = ['embarcou','na_escola','saiu_escola','em_casa'];
-  const idx = etapas.indexOf(alunoEtapa);
-  const thisIdx = etapas.indexOf(etapa);
-  const isFaltou = alunoEtapa === 'faltou';
-  if(isFaltou && etapa === 'embarcou') return `<div class="bolinha vermelha">✕</div>`;
-  if(isFaltou) return `<div class="bolinha cinza"></div>`;
-  if(idx > thisIdx) return `<div class="bolinha verde">✓</div>`;
-  if(idx === thisIdx) return `<div class="bolinha amarela">●</div>`;
-  return `<div class="bolinha cinza"></div>`;
-}
-
-function etapaLabel(etapa) {
-  const labels = {
-    'embarcou': 'Embarcou 🚐',
-    'na_escola': 'Na escola 🏫',
-    'saiu_escola': 'Saiu da escola 🔄',
-    'em_casa': 'Em casa 🏠',
-    'faltou': 'Faltou hoje ❌'
-  };
-  return labels[etapa] || 'Aguardando ⏳';
-}
-
-function etapaColor(etapa) {
-  if(!etapa) return 'var(--gray400)';
-  if(etapa==='faltou') return 'var(--red)';
-  if(etapa==='em_casa') return 'var(--green)';
-  return 'var(--navy)';
-}
-
-function renderBolinhas() {
-  const tbody = document.getElementById('sb-tbody');
-  const avTbody = document.getElementById('av-tbody');
-  if(!alunosCache.length) return;
-
-  // COMPACT view for map screen — only LAST event (most recent child)
-  if(tbody) {
-    // Find most recently updated child
-    let lastAluno = null, lastEtapa = null;
-    alunosCache.forEach(a=>{
-      const st = statusAlunosCache[a.id];
-      if(st && st.etapa) {
-        // Pick last updated (simple: last one with status)
-        lastAluno = a;
-        lastEtapa = st.etapa;
-      }
-    });
-    if(!lastAluno) {
-      tbody.innerHTML = '<div style="padding:12px 14px;text-align:center;font-size:12px;color:var(--gray400);">Aguardando viagem...</div>';
-    } else {
-      const icon = lastEtapa==='embarcou'?'🚐':lastEtapa==='na_escola'?'🏫':lastEtapa==='saiu_escola'?'🔄':lastEtapa==='em_casa'?'🏠':lastEtapa==='faltou'?'❌':'⏳';
-      const label = etapaLabel(lastEtapa);
-      const color = etapaColor(lastEtapa);
-      const bg = lastEtapa==='faltou'?'#FEF2F2':lastEtapa==='em_casa'?'#F0FDF4':'#EFF6FF';
-      tbody.innerHTML = `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:${bg};">
-        <div style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--navy),var(--blue));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">${lastAluno.foto||'👤'}</div>
-        <div style="flex:1;">
-          <div style="font-size:11px;color:var(--gray400);">Último evento</div>
-          <div style="font-size:14px;font-weight:700;color:var(--gray800);">${lastAluno.nome||'—'}</div>
-        </div>
-        <div style="font-size:28px;">${icon}</div>
-        <div style="font-size:12px;font-weight:700;color:${color};text-align:right;">${label}</div>
-      </div>`;
-    }
-  }
-
-  // FULL TABLE with bolinhas for avisos screen
-  if(avTbody) {
-    const rows = alunosCache.map(a=>{
-      const st = statusAlunosCache[a.id];
-      const etapa = st ? st.etapa : null;
-      const obs = a.obs_medicas ? `<div class="sb-aluno-obs">⚠️ ${a.obs_medicas}</div>` : '';
-      return `<tr>
-        <td><div class="sb-aluno-name">${a.nome||'—'}</div>${obs}</td>
-        <td>${bolinha('embarcou', etapa)}</td>
-        <td>${bolinha('na_escola', etapa)}</td>
-        <td>${bolinha('saiu_escola', etapa)}</td>
-        <td>${bolinha('em_casa', etapa)}</td>
-      </tr>`;
-    }).join('');
-    avTbody.innerHTML = rows;
-  }
-}
-
-function renderChips(emb){
-  // Also update statusAlunosCache from emb data for backward compat
-  if(emb) {
-    Object.keys(emb).forEach(id=>{
-      if(!statusAlunosCache[id]) {
-        statusAlunosCache[id] = {
-          etapa: emb[id].status==='faltou'?'faltou':'embarcou',
-          nome: emb[id].aluno_nome||emb[id].nome||''
-        };
-      }
-    });
-  }
-  renderBolinhas();
-}
-
-// ── NOTIFICAÇÕES ──
-function listenNotifs(){
-  db.collection('mensagens').orderBy('timestamp','desc').onSnapshot(snap=>{
-    const list=document.getElementById('notif-list');
-    const items=[];let unread=0;
-    snap.forEach(d=>{
-      const m=d.data();
-      if(m.tipo==='sistema'){
-        const t=m.timestamp?m.timestamp.toDate().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'--';
-        const icon=m.texto.startsWith('✅')?'✅':m.texto.startsWith('❌')?'❌':m.texto.startsWith('🆘')?'🆘':'🔔';
-        const unr=!m.lida?' unread':'';
-        if(!m.lida)unread++;
-        items.push(`<div class="notif-item${unr}"><div class="ni-icon">${icon}</div><div class="ni-body"><div class="ni-title">${m.texto}</div></div><div class="ni-time">${t}</div></div>`);
-      }
-    });
-    list.innerHTML=items.length?items.join(''):'<div style="padding:20px;text-align:center;font-size:12px;color:var(--gray400);">Nenhum aviso ainda</div>';
-    if(unread>0){document.getElementById('notif-badge').textContent=unread;document.getElementById('notif-badge').style.display='';}
-  });
-}
-
-// ── FINANCEIRO ──
-function loadFinanceiro(){
-  db.collection('financeiro').onSnapshot(snap=>{
-    const hist=document.getElementById('hist-list');
-    const items=[];
-    snap.forEach(d=>{
-      const f=d.data();
-      const badge=f.status==='pago'?'paid':'late';
-      const btxt=f.status==='pago'?'✅ Pago':'⚠️ Atraso';
-      items.push(`<div class="hist-item"><div class="hi-month">${f.descricao||f.mes||'—'}</div><div class="hi-val">R$ ${parseFloat(f.valor||0).toFixed(2)}</div><div class="hi-badge ${badge}">${btxt}</div></div>`);
-    });
-    hist.innerHTML=items.length?items.join(''):'<div style="padding:16px;text-align:center;font-size:12px;color:var(--gray400);">Nenhum registro ainda</div>';
-  });
-}
-
-function copyPix(){
-  showToast('✅ Código PIX copiado!');
-  document.getElementById('fin-badge').className='fin-badge paid';
-  document.getElementById('fin-badge').textContent='✅ Pago';
-  setTimeout(()=>closeModal('pix-modal'),800);
-}
-
-// ── ABSENCE ──
-function selDate(btn,val){
-  document.querySelectorAll('.ab-date-btn').forEach(b=>b.classList.remove('sel'));
-  btn.classList.add('sel');selectedDate=val;
-}
-
-function sendAbsence(){
-  const reason=document.getElementById('ab-reason').value;
-  const nome=document.getElementById('ab-name').textContent;
-  const user=window.currentUser;
   db.collection('mensagens').add({
-    texto:'📅 Falta avisada: '+nome+' não virá '+selectedDate+(reason?' — '+reason:''),
-    tipo:'sistema',remetente:user.email,remetente_tipo:'pai',
-    timestamp:firebase.firestore.FieldValue.serverTimestamp(),lida:false
-  }).then(()=>{closeModal('absence-modal');showToast('📩 Aviso enviado ao motorista!');})
-    .catch(e=>showToast('❌ '+e.message));
+    texto:txt, tipo:'texto',
+    remetente:paisNome||currentUser.email,
+    remetente_tipo:'pai',
+    timestamp:firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+function sendQuick(txt){
+  db.collection('mensagens').add({
+    texto:txt, tipo:'texto',
+    remetente:paisNome||currentUser.email,
+    remetente_tipo:'pai',
+    timestamp:firebase.firestore.FieldValue.serverTimestamp()
+  });
 }
 
-// ── SOS ──
-function triggerSOS(){
-  if(confirm('🆘 Acionar emergência?\n\nIsso notificará o motorista imediatamente.')){
-    const user=window.currentUser;
-    db.collection('mensagens').add({texto:'🆘 EMERGÊNCIA acionada por pai!',tipo:'sistema',remetente:user.email,remetente_tipo:'pai',timestamp:firebase.firestore.FieldValue.serverTimestamp(),lida:false});
-    showToast('🆘 Emergência acionada! Motorista notificado.');
+// ── AVISOS ──
+function listenAvisos(){
+  db.collection('mensagens').where('tipo','==','sistema').orderBy('timestamp','desc').onSnapshot(function(snap){
+    var count=0;
+    var html='';
+    snap.forEach(function(d){
+      var m=d.data(); count++;
+      var ts=m.timestamp?m.timestamp.toDate?m.timestamp.toDate():new Date():'';
+      var timeStr=ts?ts.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+      html+='<div class="aviso-card"><div class="aviso-time">'+timeStr+'</div><div class="aviso-txt">'+m.texto+'</div></div>';
+    });
+    el('avisos-list').innerHTML=html||'<div style="padding:24px;text-align:center;color:var(--gray400);font-size:13px">Nenhum aviso</div>';
+    if(count>0) el('notif-badge').style.display='block';
+  });
+}
+
+// ── AUTH STATE ──
+auth.onAuthStateChanged(function(user){
+  if(user){
+    currentUser=user;
+    el('auth-screen').style.display='none';
+    checkApproval();
+  } else {
+    currentUser=null;
+    if(approvalListener){ approvalListener(); approvalListener=null; }
+    el('auth-screen').style.display='flex';
+    el('waiting-screen').style.display='none';
+    el('main-app').style.display='none';
+    showStep('step-login');
   }
-}
-
-// ── MARK READ ──
-function markAllRead(){
-  document.querySelectorAll('.notif-item.unread').forEach(n=>n.classList.remove('unread'));
-  document.getElementById('notif-badge').style.display='none';
-  showToast('Todos os avisos marcados como lidos');
-}
-
-// ── MIC ──
-function toggleMic(){
-  const btn=document.getElementById('btn-mic');
-  isRec=!isRec;
-  if(isRec){btn.classList.add('recording');btn.textContent='⏹️';showToast('🎙️ Gravando...');}
-  else{
-    btn.classList.remove('recording');btn.textContent='🎙️';
-    const user=window.currentUser;
-    db.collection('mensagens').add({texto:'[Áudio]',tipo:'audio',duracao:'0:05',remetente:user.email,remetente_tipo:'pai',timestamp:firebase.firestore.FieldValue.serverTimestamp(),lida:false});
-    showToast('🎙️ Áudio enviado!');
-  }
-}
-
-function playAudio(btn,id){
-  const w=document.getElementById(id);if(!w)return;
-  w.querySelectorAll('.wbar').forEach(b=>{b.style.background='var(--yellow)';});
-  btn.textContent='⏸️';
-  setTimeout(()=>{w.querySelectorAll('.wbar').forEach(b=>{b.style.background='var(--gray200)';});btn.textContent='▶️';},2500);
-}
-
-// ── UI ──
-function switchView(name,el){
-  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+name).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  if(el)el.classList.add('active');
-  if(name==='chat'){const m=document.getElementById('chat-messages');setTimeout(()=>m.scrollTop=m.scrollHeight,50);}
-  if(name==='avisos')document.getElementById('notif-badge').style.display='none';
-  if(name==='fin')loadFinanceiro();
-  if(name==='map'){
-    if(lastMapLat) renderMapIframe(lastMapLat, lastMapLng);
-  }
-
-}
-
-function showModal(id){document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-
-function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2800);
-}
+});
 </script>
 </body>
 </html>
