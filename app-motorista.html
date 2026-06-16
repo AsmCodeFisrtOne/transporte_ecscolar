@@ -852,7 +852,7 @@ function listenAlunos() {
     alunosData = [];
     snap.forEach(d => alunosData.push({id:d.id,...d.data()}));
     renderAlunosView();
-    renderAlunosAdmin();
+    if(!openAlunoId) renderAlunosAdmin();
     renderRoute();
     setText('alunos-count', alunosData.length + ' alunos');
     setText('stop-count', '0/' + alunosData.length + ' paradas');
