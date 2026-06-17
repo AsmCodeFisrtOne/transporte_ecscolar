@@ -174,7 +174,6 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
       <div id="mapa-status-bar">
         <div class="mapa-card">
           <div><div style="font-size:11px;color:var(--gray400);font-weight:600">VAN</div><div style="font-size:13px;font-weight:700;color:#1E293B" id="van-status">Aguardando</div></div>
-          <div style="text-align:right"><div style="font-size:11px;color:var(--gray400)">ETA escola</div><div style="font-size:16px;font-weight:800;color:#1E293B" id="eta-val">--:--</div></div>
         </div>
       </div>
       <div id="mapa-loading"><div id="mapa-loading-icon">🗺️</div><div id="mapa-loading-txt">Aguardando GPS da van...</div></div>
@@ -305,7 +304,6 @@ function loadConfig(){
     var d=snap.data();
     if(d.nome) setText('tb-driver','Tio '+d.nome);
     if(d.unidade) setText('tb-school',d.unidade);
-    if(d.chegada) setText('eta-val',d.chegada);
   });
 }
 
@@ -339,8 +337,7 @@ function listenGPS(){
     el('live-dot').className='live-dot on';
     setText('live-txt','Ao vivo');
     var spd=d.velocidade||0;
-    setText('van-status',spd===0?'Van parada':'Van em movimento · '+spd+' km/h');
-    if(d.eta_escola) setText('eta-val',d.eta_escola);
+    setText('van-status',spd<10?'Van parada':'Van em movimento · '+spd+' km/h');
     updateMap(d.lat,d.lng);
     // Schedule a check in case no new update arrives before timeout
     gpsHeartbeatTimer = setTimeout(function(){ setOfflineState(); }, GPS_TIMEOUT_MS - age);

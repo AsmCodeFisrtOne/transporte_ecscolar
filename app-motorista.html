@@ -263,7 +263,6 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
           <div class="cfg-col"><div class="cfg-lbl">Escola</div><input class="cfg-inp" id="cfg-unidade" placeholder="Paulista IE"></div>
         </div>
         <div class="cfg-row">
-          <div class="cfg-col"><div class="cfg-lbl">ETA escola</div><input class="cfg-inp" id="cfg-chegada" type="time" value="07:45"></div>
           <div class="cfg-col"><div class="cfg-lbl">Mensalidade R$</div><input class="cfg-inp" id="cfg-mens" type="number" placeholder="380"></div>
         </div>
         <div class="cfg-row" style="border:none">
@@ -400,7 +399,7 @@ function toggleGPS(){
       setText('gps-btn','⏹ Parar');
       setText('spd-val',spd);
       var badge=el('spd-badge');
-      if(badge){ badge.textContent=spd===0?'● PARADO':'▶ '+spd+' km/h'; badge.className='tb-badge '+(spd===0?'stopped':'moving'); }
+      if(badge){ badge.textContent=spd<10?'● PARADO':'▶ '+spd+' km/h'; badge.className='tb-badge '+(spd<10?'stopped':'moving'); }
       publishGps(lat,lng,spd);
     },
     function(err){ showToast('❌ GPS: '+err.message); },
@@ -410,7 +409,7 @@ function toggleGPS(){
   // so pais/auxiliar apps don't think the trip went offline due to stale timestamp
   gpsHeartbeatInterval = setInterval(function(){
     if(lastGpsPosition){ publishGps(lastGpsPosition.lat,lastGpsPosition.lng,lastGpsPosition.spd); }
-  }, 10000);
+  }, 5000);
 }
 function stopGPS(){
   if(gpsWatchId){ navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId=null; }
@@ -596,14 +595,13 @@ function loadConfig(){
     var d=snap.data(); configData=d;
     if(d.nome){ el('cfg-nome').value=d.nome; setText('tb-name','Motorista — '+d.nome); }
     if(d.unidade){ el('cfg-unidade').value=d.unidade; setText('tb-sub',d.unidade); }
-    if(d.chegada) el('cfg-chegada').value=d.chegada;
     if(d.mens) el('cfg-mens').value=d.mens;
     if(d.pix) el('cfg-pix').value=d.pix;
     if(d.venc) el('cfg-venc').value=d.venc;
   });
 }
 function saveConfig(){
-  var data={nome:val('cfg-nome'),unidade:val('cfg-unidade'),chegada:val('cfg-chegada'),mens:parseFloat(val('cfg-mens'))||380,pix:val('cfg-pix'),venc:parseInt(val('cfg-venc'))||10};
+  var data={nome:val('cfg-nome'),unidade:val('cfg-unidade'),mens:parseFloat(val('cfg-mens'))||380,pix:val('cfg-pix'),venc:parseInt(val('cfg-venc'))||10};
   db.doc('config/main').set(data,{merge:true}).then(function(){
     configData=data;
     setText('tb-name','Motorista — '+(data.nome||'Daniel'));
