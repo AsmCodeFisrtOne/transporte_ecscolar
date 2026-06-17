@@ -302,7 +302,7 @@ function loadConfig(){
   db.doc('config/main').get().then(function(snap){
     if(!snap.exists) return;
     var d=snap.data();
-    if(d.nome) setText('tb-driver','Tio '+d.nome);
+    if(d.nome) setText('tb-driver',d.nome);
     if(d.unidade) setText('tb-school',d.unidade);
   });
 }

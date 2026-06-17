@@ -247,6 +247,10 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
   <!-- FINANCEIRO -->
   <div id="view-fin" class="view">
     <div class="scroll">
+      <div style="padding:14px 14px 0;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:13px;font-weight:700;color:var(--navy)" id="fin-mes-label">Mês atual</div>
+        <button onclick="gerarCobrancasMes()" style="padding:8px 14px;border-radius:8px;border:none;background:var(--navy);color:var(--yellow);font-size:12px;font-weight:700;cursor:pointer">🔄 Gerar cobranças do mês</button>
+      </div>
       <div class="fin-cards" id="fin-cards"></div>
       <div id="fin-list"></div>
     </div>
@@ -568,6 +572,8 @@ function sendMsg(){
 // FINANCEIRO
 function loadFin(){
   var mes=new Date().toISOString().slice(0,7);
+  var mesLabel=new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'});
+  setText('fin-mes-label',mesLabel.charAt(0).toUpperCase()+mesLabel.slice(1));
   db.collection('financeiro').where('mes','==',mes).get().then(function(snap){
     var rec=0,pend=0,atras=0,items=[];
     snap.forEach(function(d){ var f=d.data(); items.push({id:d.id,...f});
@@ -582,10 +588,45 @@ function loadFin(){
       +'<div class="fin-card"><div class="fin-card-lbl">Total</div><div class="fin-card-val">R$ '+(rec+pend+atras).toFixed(0)+'</div></div>';
     el('fin-list').innerHTML=items.map(function(f){
       var st=f.status||'pendente';
-      return '<div class="fin-item '+st+'"><div><div class="fin-item-name">'+(f.aluno_nome||'—')+'</div><div class="fin-badge">'+st+'</div></div>'
+      var nextSt = st==='pago' ? 'pendente' : 'pago';
+      var hint = st==='pago' ? 'Toque para desfazer' : 'Toque para marcar como pago';
+      return '<div class="fin-item '+st+'" onclick="toggleFinStatus(\''+f.id+'\',\''+nextSt+'\')" style="cursor:pointer">'
+        +'<div><div class="fin-item-name">'+(f.aluno_nome||'—')+'</div><div class="fin-badge">'+st+'</div><div style="font-size:10px;color:var(--gray400);margin-top:2px">'+hint+'</div></div>'
         +'<div class="fin-val">R$ '+(f.valor||0).toFixed(0)+'</div></div>';
     }).join('')||'<div style="padding:20px;text-align:center;color:var(--gray400);font-size:13px">Sem registros</div>';
   });
+}
+
+function gerarCobrancasMes(){
+  var mes=new Date().toISOString().slice(0,7);
+  if(!alunosData.length){ showToast('⚠️ Nenhum aluno cadastrado'); return; }
+  // Check which alunos already have a charge this month - avoid duplicates
+  db.collection('financeiro').where('mes','==',mes).get().then(function(snap){
+    var existentes={};
+    snap.forEach(function(d){ existentes[d.data().aluno_id]=true; });
+    var faltantes=alunosData.filter(function(a){ return !existentes[a.id]; });
+    if(!faltantes.length){ showToast('✅ Todos os alunos já têm cobrança neste mês'); return; }
+    var batch=[];
+    faltantes.forEach(function(a){
+      batch.push(db.collection('financeiro').add({
+        aluno_id:a.id,aluno_nome:a.nome,valor:configData.mens||380,mes:mes,
+        status:'pendente',vencimento:configData.venc||10
+      }));
+    });
+    Promise.all(batch).then(function(){
+      showToast('✅ '+faltantes.length+' cobrança(s) gerada(s)!');
+      loadFin();
+    });
+  });
+}
+
+function toggleFinStatus(id,novoStatus){
+  db.doc('financeiro/'+id).update({status:novoStatus,atualizado_em:firebase.firestore.FieldValue.serverTimestamp()})
+    .then(function(){
+      showToast(novoStatus==='pago' ? '✅ Marcado como pago!' : '↩️ Marcado como pendente');
+      loadFin();
+    })
+    .catch(function(e){ showToast('❌ '+e.message); });
 }
 
 // ADMIN CONFIG
