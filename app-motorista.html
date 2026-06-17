@@ -636,13 +636,17 @@ function saveAluno(id){
     .catch(function(e){ showToast('❌ '+e.message); });
 }
 function deleteAluno(id,nome){
-  if(!window.confirm('Remover '+nome+'?')) return;
+  if(!window.confirm('Remover '+nome+' e o acesso do pai permanentemente?\n\nIsso libera o e-mail do pai para um novo cadastro.')) return;
   db.doc('alunos/'+id).delete();
   db.doc('status_alunos/'+id).delete();
   db.collection('financeiro').where('aluno_id','==',id).get().then(function(snap){ snap.forEach(function(d){ d.ref.delete(); }); });
-  // Block pai
+  // Delete pai record completely (not just block) so email can be reused
   db.collection('pais').where('aluno_id','==',id).get().then(function(snap){
-    snap.forEach(function(d){ d.ref.update({bloqueado:true}); });
+    snap.forEach(function(d){
+      var paiData=d.data();
+      d.ref.delete();
+      showToast('⚠️ Lembre-se: exclua manualmente o login "'+(paiData.email||'')+'" no Firebase Authentication para liberar o e-mail.');
+    });
   });
   openAlunoId=null;
   showToast('🗑️ '+nome+' removido');
