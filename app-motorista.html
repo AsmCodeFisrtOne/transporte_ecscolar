@@ -54,7 +54,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 .tb-badge.stopped{background:#312e81;color:#a5b4fc}
 .tb-badge.moving{background:#14532d;color:#86efac}
 /* GPS BAR */
-#gps-bar{background:var(--navy2);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#gps-bar{background:var(--navy2);padding:8px 78px 8px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .gps-dot{width:8px;height:8px;border-radius:50%;background:var(--gray400);display:inline-block;margin-right:6px;transition:background .3s}
 .gps-dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
 #gps-txt{font-size:12px;color:var(--gray400)}
@@ -213,9 +213,9 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
   <div id="view-painel" class="view active">
     <div class="scroll">
       <div class="painel-trip">
-        <div class="trip-row">
-          <button class="trip-btn start" id="btn-start" onclick="startTrip()">▶ Iniciar viagem</button>
-          <button class="trip-btn finish" id="btn-finish" onclick="finishTrip()" disabled>🏁 Finalizar</button>
+        <div class="trip-row" style="padding-right:64px">
+          <button class="trip-btn start" id="btn-start" onclick="startTrip()" style="flex:2">▶ Iniciar viagem</button>
+          <button class="trip-btn finish" id="btn-finish" onclick="finishTrip()" disabled style="flex:1">🏁 Fim</button>
         </div>
         <div class="trip-status" id="trip-status">Nenhuma viagem ativa</div>
       </div>
