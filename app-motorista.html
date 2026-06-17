@@ -595,6 +595,7 @@ function loadFin(){
         +'<div><div class="fin-item-name">'+(f.aluno_nome||'—')+'</div><div class="fin-badge">'+st+'</div><div style="font-size:10px;color:var(--gray400);margin-top:2px">'+hint+'</div></div>'
         +'<div class="fin-val">R$ '+(f.valor||0).toFixed(0)+'</div>'
         +'</div>'
+        +'<button onclick="editarValorCobranca(\''+f.id+'\',\''+(f.aluno_nome||'')+'\','+(f.valor||0)+')" style="background:#EFF6FF;color:var(--blue);border:none;border-radius:8px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0">✏️</button>'
         +'<button onclick="deleteCobranca(\''+f.id+'\',\''+(f.aluno_nome||'')+'\')" style="background:#FEF2F2;color:var(--red);border:none;border-radius:8px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0">🗑️</button>'
         +'</div>';
     }).join('')||'<div style="padding:20px;text-align:center;color:var(--gray400);font-size:13px">Sem registros</div>';
@@ -630,6 +631,17 @@ function gerarCobrancasMes(){
       loadFin();
     });
   });
+}
+
+function editarValorCobranca(id,nome,valorAtual){
+  var novoValor = window.prompt('Novo valor da mensalidade de '+nome+':', valorAtual);
+  if(novoValor===null) return;
+  novoValor = parseFloat(novoValor.replace(',','.'));
+  if(isNaN(novoValor) || novoValor<0){ showToast('⚠️ Valor inválido'); return; }
+  db.doc('financeiro/'+id).update({valor:novoValor}).then(function(){
+    showToast('✅ Valor atualizado para R$ '+novoValor.toFixed(0));
+    loadFin();
+  }).catch(function(e){ showToast('❌ '+e.message); });
 }
 
 function deleteCobranca(id,nome){
