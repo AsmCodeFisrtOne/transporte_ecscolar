@@ -268,9 +268,8 @@ function doLogin(){
 function checkBloqueado(uid){
   if(blockListener){ blockListener(); blockListener=null; }
   blockListener = db.collection('pais').where('uid','==',uid).onSnapshot(function(snap){
-    if(snap.empty) return;
-    var data=snap.docs[0].data();
-    if(data.bloqueado){
+    // Document deleted (aluno removed) OR explicitly marked bloqueado -> kick to blocked screen
+    if(snap.empty || snap.docs[0].data().bloqueado){
       el('main-app').style.display='none';
       el('login-screen').style.display='none';
       el('blocked-screen').style.display='flex';
