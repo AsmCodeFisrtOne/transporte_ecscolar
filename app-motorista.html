@@ -362,10 +362,16 @@ function stopGPS(){
 
 // TRIP
 function startTrip(){
+  if(!gpsWatchId){
+    showToast('⚠️ Ative o GPS antes de iniciar a viagem');
+    return;
+  }
   tripStarted=true;
   el('btn-start').disabled=true;
   el('btn-finish').disabled=false;
   setText('trip-status','✅ Viagem em andamento');
+  // Update GPS to reflect trip started
+  window.gpsRef.update({viagem_ativa:true});
   db.collection('mensagens').add({texto:'🚐 Viagem iniciada!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   rdb.ref('viagem_ativa').set(true);
   showToast('✅ Viagem iniciada!');
