@@ -677,11 +677,11 @@ function openModalPai(){
 function closeModalPai(){ el('modal-pai').classList.remove('open'); ['m-pai-nome','m-pai-pass','m-aluno-nome','m-aluno-serie','m-aluno-end'].forEach(function(id){ el(id).value=''; }); setText('m-err',''); }
 
 function gerarProximoCodigo(){
-  db.collection('pais').orderBy('codigo_num','desc').limit(1).get().then(function(snap){
+  // Use a dedicated persistent counter doc - never decreases even if pais docs are deleted
+  db.doc('config/contador_codigo').get().then(function(snap){
     var next=1;
-    if(!snap.empty){
-      var last=snap.docs[0].data();
-      next=(last.codigo_num||0)+1;
+    if(snap.exists && snap.data().ultimo_codigo){
+      next=snap.data().ultimo_codigo+1;
     }
     var codigo='PIE-'+String(next).padStart(4,'0');
     el('m-pai-codigo').textContent=codigo;
@@ -721,6 +721,9 @@ function criarPaiAluno(){
       // Create pai record
       return db.collection('pais').add({uid:uid,email:internalEmail,codigo:codigo,codigo_num:codigoNum,nome:paiNome,aluno_id:alunoRef.id,aluno_nome:alunoNome,bloqueado:false,criado_em:firebase.firestore.FieldValue.serverTimestamp()});
     });
+  }).then(function(){
+    // Persist the counter so it never reuses this number, even if this pai record is deleted later
+    return db.doc('config/contador_codigo').set({ultimo_codigo:codigoNum},{merge:true});
   }).then(function(){
     showToast('✅ Criado! Código: '+codigo+' — Senha: '+pass);
     closeModalPai();
