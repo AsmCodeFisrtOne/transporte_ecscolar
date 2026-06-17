@@ -139,14 +139,14 @@ function showToast(msg){
   setTimeout(function(){ t.classList.remove('show'); },2500);
 }
 
-// Listen viagem_ativa + GPS heartbeat freshness
+// GPS heartbeat freshness - same source of truth as app-pais.html (localizacao_atual)
 var GPS_TIMEOUT_MS = 20000;
 var lastGpsTimestamp = 0;
-var viagemFlagAtiva = false;
+var lastGpsViagemAtiva = false;
 
 function updateTripUIState(){
   var fresh = (Date.now() - lastGpsTimestamp) < GPS_TIMEOUT_MS;
-  tripAtiva = viagemFlagAtiva && fresh;
+  tripAtiva = lastGpsViagemAtiva && fresh;
   if(tripAtiva){
     el('blocked-screen').style.display='none';
     el('main').style.display='flex';
@@ -156,13 +156,9 @@ function updateTripUIState(){
   }
 }
 
-rdb.ref('viagem_ativa').on('value', function(snap){
-  viagemFlagAtiva = snap.val()===true;
-  updateTripUIState();
-});
-
 rdb.ref('localizacao_atual').on('value', function(snap){
   var d = snap.val();
+  lastGpsViagemAtiva = !!(d && d.viagem_ativa);
   lastGpsTimestamp = (d && d.timestamp) || 0;
   updateTripUIState();
 });
