@@ -152,9 +152,11 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:22px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 /* FLOATING BUTTONS */
-#floating-btns{position:fixed;bottom:74px;right:14px;display:flex;flex-direction:column;gap:10px;z-index:100}
+#floating-btns{position:fixed;top:64px;right:14px;display:flex;flex-direction:column;gap:10px;z-index:100}
 .fab{width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .fab-sos{background:var(--red);color:#fff}
+.fab-sos.active{background:#7F1D1D;box-shadow:0 0 0 4px rgba(239,68,68,.4);animation:sosBlink 1s infinite}
+@keyframes sosBlink{0%,100%{opacity:1}50%{opacity:.6}}
 .fab-traffic{background:var(--orange);color:#fff}
 .fab-traffic.active{background:#92400E;box-shadow:0 0 0 4px rgba(249,115,22,.3)}
 /* MODAL TRAFFIC */
@@ -316,7 +318,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 <!-- FLOATING BUTTONS -->
 <div id="floating-btns">
   <button class="fab fab-traffic" id="fab-traffic" onclick="openModalTraffic()">🚦</button>
-  <button class="fab fab-sos" onclick="enviarSOS()">🆘</button>
+  <button class="fab fab-sos" id="fab-sos" onclick="enviarSOS()">🆘</button>
 </div>
 
 <!-- MODAL TRÂNSITO -->
@@ -689,13 +691,15 @@ function enviarSOS(){
   if(!sosActive){
     if(!window.confirm('🆘 Enviar SOS para todos os pais?')) return;
     db.collection('mensagens').add({texto:'🆘 EMERGÊNCIA — Motorista precisa de ajuda!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
-    rdb.ref('emergencia').set({ativa:true,timestamp:Date.now()});
-    showToast('🆘 SOS enviado!');
+    rdb.ref('emergencia').set({ativa:true,timestamp:Date.now()}).then(function(){
+      showToast('🆘 SOS enviado! Toque novamente para encerrar.');
+    }).catch(function(e){ showToast('❌ Erro: '+e.message); });
   } else {
-    if(!window.confirm('✅ Encerrar a emergência?')) return;
-    rdb.ref('emergencia').set({ativa:false});
-    db.collection('mensagens').add({texto:'✅ Emergência encerrada.',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
-    showToast('✅ Emergência encerrada');
+    if(!window.confirm('✅ Encerrar a emergência ativa?')) return;
+    rdb.ref('emergencia').set({ativa:false}).then(function(){
+      db.collection('mensagens').add({texto:'✅ Emergência encerrada.',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+      showToast('✅ Emergência encerrada');
+    }).catch(function(e){ showToast('❌ Erro: '+e.message); });
   }
 }
 
@@ -745,6 +749,8 @@ function initApp(){
   rdb.ref('emergencia').on('value',function(snap){
     var d=snap.val();
     sosActive = !!(d&&d.ativa);
+    var btn=el('fab-sos');
+    if(btn){ if(sosActive) btn.classList.add('active'); else btn.classList.remove('active'); }
   });
 }
 
