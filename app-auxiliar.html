@@ -139,9 +139,14 @@ function showToast(msg){
   setTimeout(function(){ t.classList.remove('show'); },2500);
 }
 
-// Listen viagem_ativa
-rdb.ref('viagem_ativa').on('value', function(snap){
-  tripAtiva = snap.val()===true;
+// Listen viagem_ativa + GPS heartbeat freshness
+var GPS_TIMEOUT_MS = 20000;
+var lastGpsTimestamp = 0;
+var viagemFlagAtiva = false;
+
+function updateTripUIState(){
+  var fresh = (Date.now() - lastGpsTimestamp) < GPS_TIMEOUT_MS;
+  tripAtiva = viagemFlagAtiva && fresh;
   if(tripAtiva){
     el('blocked-screen').style.display='none';
     el('main').style.display='flex';
@@ -149,7 +154,21 @@ rdb.ref('viagem_ativa').on('value', function(snap){
     el('blocked-screen').style.display='flex';
     el('main').style.display='none';
   }
+}
+
+rdb.ref('viagem_ativa').on('value', function(snap){
+  viagemFlagAtiva = snap.val()===true;
+  updateTripUIState();
 });
+
+rdb.ref('localizacao_atual').on('value', function(snap){
+  var d = snap.val();
+  lastGpsTimestamp = (d && d.timestamp) || 0;
+  updateTripUIState();
+});
+
+// Re-check periodically in case GPS stops sending without a new Firebase event
+setInterval(updateTripUIState, 5000);
 
 // Listen alunos
 db.collection('alunos').orderBy('ordem_parada','asc').onSnapshot(function(snap){

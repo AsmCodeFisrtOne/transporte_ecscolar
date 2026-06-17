@@ -379,6 +379,13 @@ function doLogin(){
 }
 
 // GPS
+var lastGpsPosition = null;
+var gpsHeartbeatInterval = null;
+
+function publishGps(lat,lng,spd){
+  window.gpsRef.set({lat:lat,lng:lng,velocidade:spd,timestamp:Date.now(),viagem_ativa:tripStarted});
+}
+
 function toggleGPS(){
   if(gpsWatchId){ stopGPS(); return; }
   if(!navigator.geolocation){ showToast('GPS não disponível'); return; }
@@ -387,20 +394,28 @@ function toggleGPS(){
     function(pos){
       var lat=pos.coords.latitude, lng=pos.coords.longitude;
       var spd=pos.coords.speed?Math.round(pos.coords.speed*3.6):0;
+      lastGpsPosition={lat:lat,lng:lng,spd:spd};
       var dot=el('gps-dot'); if(dot) dot.className='gps-dot on';
       setText('gps-txt','GPS · '+lat.toFixed(5)+', '+lng.toFixed(5));
       setText('gps-btn','⏹ Parar');
       setText('spd-val',spd);
       var badge=el('spd-badge');
       if(badge){ badge.textContent=spd===0?'● PARADO':'▶ '+spd+' km/h'; badge.className='tb-badge '+(spd===0?'stopped':'moving'); }
-      window.gpsRef.set({lat:lat,lng:lng,velocidade:spd,timestamp:Date.now(),viagem_ativa:tripStarted});
+      publishGps(lat,lng,spd);
     },
     function(err){ showToast('❌ GPS: '+err.message); },
     {enableHighAccuracy:true,maximumAge:5000}
   );
+  // Heartbeat: re-publish last known position every 10s even if van is stationary,
+  // so pais/auxiliar apps don't think the trip went offline due to stale timestamp
+  gpsHeartbeatInterval = setInterval(function(){
+    if(lastGpsPosition){ publishGps(lastGpsPosition.lat,lastGpsPosition.lng,lastGpsPosition.spd); }
+  }, 10000);
 }
 function stopGPS(){
   if(gpsWatchId){ navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId=null; }
+  if(gpsHeartbeatInterval){ clearInterval(gpsHeartbeatInterval); gpsHeartbeatInterval=null; }
+  lastGpsPosition=null;
   var dot=el('gps-dot'); if(dot) dot.className='gps-dot';
   setText('gps-txt','GPS desativado');
   setText('gps-btn','Ativar ▶');
@@ -768,6 +783,13 @@ function initApp(){
   listenAlunos();
   listenStatus();
   listenChat();
+  // Safety: clear orphaned trip state from previous session if GPS isn't actually running
+  rdb.ref('viagem_ativa').once('value').then(function(snap){
+    if(snap.val()===true && !gpsWatchId){
+      rdb.ref('viagem_ativa').set(false);
+      window.gpsRef.remove();
+    }
+  });
   rdb.ref('atraso_transito').on('value',function(snap){
     var d=snap.val();
     var btn=el('fab-traffic');

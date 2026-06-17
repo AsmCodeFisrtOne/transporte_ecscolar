@@ -311,25 +311,40 @@ function loadConfig(){
 }
 
 // GPS
+var gpsHeartbeatTimer = null;
+var GPS_TIMEOUT_MS = 20000; // consider offline if no update in 20s
+
+function setOfflineState(){
+  el('live-dot').className='live-dot';
+  setText('live-txt','Offline');
+  setText('van-status','Aguardando van');
+  el('mapa-loading').style.display='block';
+  el('mapa-iframe').src='about:blank';
+  lastLat=null; lastLng=null;
+}
+
 function listenGPS(){
   rdb.ref('localizacao_atual').on('value',function(snap){
+    if(gpsHeartbeatTimer){ clearTimeout(gpsHeartbeatTimer); gpsHeartbeatTimer=null; }
     if(!snap.exists()||!snap.val()||!snap.val().viagem_ativa||!snap.val().lat){
-      // Offline
-      el('live-dot').className='live-dot';
-      setText('live-txt','Offline');
-      setText('van-status','Aguardando van');
-      el('mapa-loading').style.display='block';
-      el('mapa-iframe').src='about:blank';
-      lastLat=null; lastLng=null;
+      setOfflineState();
       return;
     }
     var d=snap.val();
+    // Check heartbeat freshness - if last update is too old, treat as offline
+    var age = Date.now() - (d.timestamp||0);
+    if(age > GPS_TIMEOUT_MS){
+      setOfflineState();
+      return;
+    }
     el('live-dot').className='live-dot on';
     setText('live-txt','Ao vivo');
     var spd=d.velocidade||0;
     setText('van-status',spd===0?'Van parada':'Van em movimento · '+spd+' km/h');
     if(d.eta_escola) setText('eta-val',d.eta_escola);
     updateMap(d.lat,d.lng);
+    // Schedule a check in case no new update arrives before timeout
+    gpsHeartbeatTimer = setTimeout(function(){ setOfflineState(); }, GPS_TIMEOUT_MS - age);
   });
 }
 
