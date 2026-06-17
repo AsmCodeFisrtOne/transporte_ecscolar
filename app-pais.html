@@ -253,6 +253,14 @@ function switchView(name,btn){
   if(btn) btn.classList.add('active');
   if(name==='chat'){ setTimeout(function(){ var b=el('chat-msgs'); if(b) b.scrollTop=b.scrollHeight; },50); }
   if(name==='avisos') el('notif-dot').style.display='none';
+  if(name==='mapa'){
+    // Force reflow to fix map sizing if it was rendered while view was inactive
+    setTimeout(function(){
+      var wrap=el('mapa-wrap');
+      if(wrap){ wrap.style.display='none'; wrap.offsetHeight; wrap.style.display=''; }
+      if(lastLat!==null && lastLng!==null){ updateMap(lastLat,lastLng); }
+    },50);
+  }
 }
 
 // AUTH
