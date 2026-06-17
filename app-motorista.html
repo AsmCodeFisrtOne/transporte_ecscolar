@@ -590,9 +590,13 @@ function loadFin(){
       var st=f.status||'pendente';
       var nextSt = st==='pago' ? 'pendente' : 'pago';
       var hint = st==='pago' ? 'Toque para desfazer' : 'Toque para marcar como pago';
-      return '<div class="fin-item '+st+'" onclick="toggleFinStatus(\''+f.id+'\',\''+nextSt+'\')" style="cursor:pointer">'
+      return '<div class="fin-item '+st+'" style="display:flex;align-items:center;gap:8px">'
+        +'<div onclick="toggleFinStatus(\''+f.id+'\',\''+nextSt+'\')" style="cursor:pointer;flex:1;display:flex;justify-content:space-between;align-items:center">'
         +'<div><div class="fin-item-name">'+(f.aluno_nome||'—')+'</div><div class="fin-badge">'+st+'</div><div style="font-size:10px;color:var(--gray400);margin-top:2px">'+hint+'</div></div>'
-        +'<div class="fin-val">R$ '+(f.valor||0).toFixed(0)+'</div></div>';
+        +'<div class="fin-val">R$ '+(f.valor||0).toFixed(0)+'</div>'
+        +'</div>'
+        +'<button onclick="deleteCobranca(\''+f.id+'\',\''+(f.aluno_nome||'')+'\')" style="background:#FEF2F2;color:var(--red);border:none;border-radius:8px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0">🗑️</button>'
+        +'</div>';
     }).join('')||'<div style="padding:20px;text-align:center;color:var(--gray400);font-size:13px">Sem registros</div>';
   });
 }
@@ -607,17 +611,33 @@ function gerarCobrancasMes(){
     var faltantes=alunosData.filter(function(a){ return !existentes[a.id]; });
     if(!faltantes.length){ showToast('✅ Todos os alunos já têm cobrança neste mês'); return; }
     var batch=[];
+    var valorMens = configData.mens||380;
+    var vencDia = configData.venc||10;
     faltantes.forEach(function(a){
       batch.push(db.collection('financeiro').add({
-        aluno_id:a.id,aluno_nome:a.nome,valor:configData.mens||380,mes:mes,
-        status:'pendente',vencimento:configData.venc||10
+        aluno_id:a.id,aluno_nome:a.nome,valor:valorMens,mes:mes,
+        status:'pendente',vencimento:vencDia
       }));
     });
     Promise.all(batch).then(function(){
       showToast('✅ '+faltantes.length+' cobrança(s) gerada(s)!');
+      // Notify parents via Avisos (system message), each parent only sees their own child mentioned in their own banner, but message is shared
+      db.collection('mensagens').add({
+        texto:'💰 Mensalidade de '+new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+' gerada: R$ '+valorMens.toFixed(0)+' — vencimento dia '+vencDia,
+        tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',
+        timestamp:firebase.firestore.FieldValue.serverTimestamp()
+      });
       loadFin();
     });
   });
+}
+
+function deleteCobranca(id,nome){
+  if(!window.confirm('Remover a cobrança de '+nome+'?')) return;
+  db.doc('financeiro/'+id).delete().then(function(){
+    showToast('🗑️ Cobrança removida');
+    loadFin();
+  }).catch(function(e){ showToast('❌ '+e.message); });
 }
 
 function toggleFinStatus(id,novoStatus){

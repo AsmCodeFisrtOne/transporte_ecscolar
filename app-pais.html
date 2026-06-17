@@ -402,16 +402,19 @@ function sendQuick(txt){
 
 // AVISOS
 function listenAvisos(){
-  db.collection('mensagens').where('tipo','==','sistema').orderBy('timestamp','desc').onSnapshot(function(snap){
+  // Avoid composite index requirement: order by timestamp only, filter tipo client-side
+  db.collection('mensagens').orderBy('timestamp','desc').onSnapshot(function(snap){
     var html='';
+    var count=0;
     snap.forEach(function(d){
       var m=d.data();
+      if(m.tipo!=='sistema') return;
+      count++;
       var ts=m.timestamp&&m.timestamp.toDate?m.timestamp.toDate():new Date();
       html+='<div class="aviso-item"><div class="aviso-time">'+ts.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div><div class="aviso-txt">'+m.texto+'</div></div>';
     });
     el('avisos-list').innerHTML=html||'<div style="padding:24px;text-align:center;color:var(--gray400);font-size:13px">Nenhum aviso</div>';
-    if(!html) return;
-    el('notif-dot').style.display='block';
+    if(count>0) el('notif-dot').style.display='block';
   });
 }
 
