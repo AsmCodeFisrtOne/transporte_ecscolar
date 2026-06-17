@@ -202,6 +202,9 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 
   <!-- AVISOS -->
   <div id="view-avisos" class="view">
+    <div style="padding:10px 14px;display:flex;justify-content:flex-end;border-bottom:1px solid var(--gray200);background:var(--white)">
+      <button onclick="limparAvisos()" style="padding:6px 12px;border-radius:8px;border:none;background:#FEF2F2;color:var(--red);font-size:12px;font-weight:700;cursor:pointer">🗑️ Limpar avisos</button>
+    </div>
     <div class="scroll" id="avisos-list">
       <div style="padding:24px;text-align:center;color:var(--gray400);font-size:13px">Nenhum aviso</div>
     </div>
@@ -401,16 +404,30 @@ function sendQuick(txt){
 }
 
 // AVISOS
+var AVISOS_CLEAR_KEY = 'avisos_clear_timestamp';
+function getAvisosClearTimestamp(){
+  var v = localStorage.getItem(AVISOS_CLEAR_KEY);
+  return v ? parseInt(v) : 0;
+}
+function limparAvisos(){
+  if(!window.confirm('Limpar todos os avisos da sua tela?\n\n(Isso afeta apenas a sua visualização)')) return;
+  localStorage.setItem(AVISOS_CLEAR_KEY, Date.now().toString());
+  showToast('🗑️ Avisos limpos');
+  listenAvisos();
+}
+
 function listenAvisos(){
   // Avoid composite index requirement: order by timestamp only, filter tipo client-side
   db.collection('mensagens').orderBy('timestamp','desc').onSnapshot(function(snap){
     var html='';
     var count=0;
+    var clearTs = getAvisosClearTimestamp();
     snap.forEach(function(d){
       var m=d.data();
       if(m.tipo!=='sistema') return;
-      count++;
       var ts=m.timestamp&&m.timestamp.toDate?m.timestamp.toDate():new Date();
+      if(ts.getTime() <= clearTs) return; // hidden by local clear
+      count++;
       html+='<div class="aviso-item"><div class="aviso-time">'+ts.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})+'</div><div class="aviso-txt">'+m.texto+'</div></div>';
     });
     el('avisos-list').innerHTML=html||'<div style="padding:24px;text-align:center;color:var(--gray400);font-size:13px">Nenhum aviso</div>';
