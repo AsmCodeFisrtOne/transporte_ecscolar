@@ -684,11 +684,19 @@ function criarPaiAluno(){
 }
 
 // SOS
+var sosActive = false;
 function enviarSOS(){
-  if(!window.confirm('🆘 Enviar SOS para todos os pais?')) return;
-  db.collection('mensagens').add({texto:'🆘 EMERGÊNCIA — Motorista precisa de ajuda!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
-  rdb.ref('emergencia').set({ativa:true,timestamp:Date.now()});
-  showToast('🆘 SOS enviado!');
+  if(!sosActive){
+    if(!window.confirm('🆘 Enviar SOS para todos os pais?')) return;
+    db.collection('mensagens').add({texto:'🆘 EMERGÊNCIA — Motorista precisa de ajuda!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+    rdb.ref('emergencia').set({ativa:true,timestamp:Date.now()});
+    showToast('🆘 SOS enviado!');
+  } else {
+    if(!window.confirm('✅ Encerrar a emergência?')) return;
+    rdb.ref('emergencia').set({ativa:false});
+    db.collection('mensagens').add({texto:'✅ Emergência encerrada.',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+    showToast('✅ Emergência encerrada');
+  }
 }
 
 // TRÂNSITO INTENSO
@@ -733,6 +741,10 @@ function initApp(){
     var d=snap.val();
     var btn=el('fab-traffic');
     if(btn){ if(d&&d.ativo) btn.classList.add('active'); else btn.classList.remove('active'); }
+  });
+  rdb.ref('emergencia').on('value',function(snap){
+    var d=snap.val();
+    sosActive = !!(d&&d.ativa);
   });
 }
 
