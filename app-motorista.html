@@ -54,7 +54,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 .tb-badge.stopped{background:#312e81;color:#a5b4fc}
 .tb-badge.moving{background:#14532d;color:#86efac}
 /* GPS BAR */
-#gps-bar{background:var(--navy2);padding:8px 78px 8px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+#gps-bar{background:var(--navy2);padding:8px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .gps-dot{width:8px;height:8px;border-radius:50%;background:var(--gray400);display:inline-block;margin-right:6px;transition:background .3s}
 .gps-dot.on{background:var(--green);box-shadow:0 0 6px var(--green)}
 #gps-txt{font-size:12px;color:var(--gray400)}
@@ -151,14 +151,14 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 /* TOAST */
 #toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--navy);color:#fff;padding:10px 20px;border-radius:22px;font-size:13px;font-weight:600;opacity:0;transition:all .3s;pointer-events:none;z-index:999;white-space:nowrap}
 #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-/* FLOATING BUTTONS */
-#floating-btns{position:fixed;top:64px;right:14px;display:flex;flex-direction:column;gap:10px;z-index:100}
-.fab{width:54px;height:54px;border-radius:50%;border:none;cursor:pointer;font-size:22px;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,.3)}
-.fab-sos{background:var(--red);color:#fff}
-.fab-sos.active{background:#7F1D1D;box-shadow:0 0 0 4px rgba(239,68,68,.4);animation:sosBlink 1s infinite}
-@keyframes sosBlink{0%,100%{opacity:1}50%{opacity:.6}}
-.fab-traffic{background:var(--orange);color:#fff}
-.fab-traffic.active{background:#92400E;box-shadow:0 0 0 4px rgba(249,115,22,.3)}
+/* ACTION BAR (Trânsito + SOS) */
+#action-bar{display:flex;gap:8px;padding:8px 14px;background:var(--navy);border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
+.ab-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px;border-radius:10px;border:none;cursor:pointer;font-size:13px;font-weight:700;font-family:'Inter',sans-serif}
+.ab-sos{background:var(--red);color:#fff}
+.ab-sos.active{background:#7F1D1D;box-shadow:0 0 0 3px rgba(239,68,68,.4);animation:sosBlink 1s infinite}
+@keyframes sosBlink{0%,100%{opacity:1}50%{opacity:.7}}
+.ab-traffic{background:var(--orange);color:#fff}
+.ab-traffic.active{background:#92400E;box-shadow:0 0 0 3px rgba(249,115,22,.3)}
 /* MODAL TRAFFIC */
 #modal-traffic{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
 #modal-traffic.open{display:flex}
@@ -209,13 +209,19 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     <button id="gps-btn" onclick="toggleGPS()">Ativar ▶</button>
   </div>
 
+  <!-- ACTION BAR -->
+  <div id="action-bar">
+    <button class="ab-btn ab-traffic" id="fab-traffic" onclick="openModalTraffic()">🚦 Trânsito</button>
+    <button class="ab-btn ab-sos" id="fab-sos" onclick="enviarSOS()">🆘 Emergência</button>
+  </div>
+
   <!-- PAINEL -->
   <div id="view-painel" class="view active">
     <div class="scroll">
       <div class="painel-trip">
-        <div class="trip-row" style="padding-right:64px">
-          <button class="trip-btn start" id="btn-start" onclick="startTrip()" style="flex:2">▶ Iniciar viagem</button>
-          <button class="trip-btn finish" id="btn-finish" onclick="finishTrip()" disabled style="flex:1">🏁 Fim</button>
+        <div class="trip-row">
+          <button class="trip-btn start" id="btn-start" onclick="startTrip()">▶ Iniciar viagem</button>
+          <button class="trip-btn finish" id="btn-finish" onclick="finishTrip()" disabled>🏁 Finalizar</button>
         </div>
         <div class="trip-status" id="trip-status">Nenhuma viagem ativa</div>
       </div>
@@ -313,12 +319,6 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
       <button id="mac-ok" onclick="confirmRegAcao()" style="flex:1;padding:13px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;color:#fff">Confirmar</button>
     </div>
   </div>
-</div>
-
-<!-- FLOATING BUTTONS -->
-<div id="floating-btns">
-  <button class="fab fab-traffic" id="fab-traffic" onclick="openModalTraffic()">🚦</button>
-  <button class="fab fab-sos" id="fab-sos" onclick="enviarSOS()">🆘</button>
 </div>
 
 <!-- MODAL TRÂNSITO -->
