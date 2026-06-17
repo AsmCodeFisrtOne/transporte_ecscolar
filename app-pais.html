@@ -135,7 +135,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
   <div class="l-logo">🚐</div>
   <div class="l-title">Van Escolar</div>
   <div class="l-sub">Tio Daniel & Tia Irene</div>
-  <input class="l-inp" id="l-email" type="email" placeholder="Seu e-mail">
+  <input class="l-inp" id="l-codigo" type="text" placeholder="Código de acesso (ex: PIE-0001)" style="text-transform:uppercase">
   <input class="l-inp" id="l-pass" type="password" placeholder="Sua senha">
   <div class="l-err" id="l-err"></div>
   <button class="l-btn" onclick="doLogin()">Entrar</button>
@@ -255,11 +255,13 @@ function switchView(name,btn){
 
 // AUTH
 function doLogin(){
-  var email=el('l-email').value.trim(), pass=el('l-pass').value;
-  if(!email||!pass){ el('l-err').textContent='⚠️ Preencha todos os campos'; return; }
+  var codigo=el('l-codigo').value.trim().toUpperCase(), pass=el('l-pass').value;
+  if(!codigo||!pass){ el('l-err').textContent='⚠️ Preencha todos os campos'; return; }
   el('l-err').textContent='🔄 Entrando...';
-  auth.signInWithEmailAndPassword(email,pass)
-    .catch(function(e){ el('l-err').textContent='❌ Email ou senha incorretos'; });
+  // Convert code to internal email format (PIE-0001 -> pie0001@vanescolar.app)
+  var internalEmail = codigo.toLowerCase().replace('-','')+'@vanescolar.app';
+  auth.signInWithEmailAndPassword(internalEmail,pass)
+    .catch(function(e){ el('l-err').textContent='❌ Código ou senha incorretos'; });
 }
 
 // CHECK BLOQUEADO

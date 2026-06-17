@@ -294,7 +294,9 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     <div class="modal-title">➕ Novo pai/aluno</div>
     <div style="font-size:12px;color:var(--gray400)">Dados do pai</div>
     <input class="modal-inp" id="m-pai-nome" placeholder="Nome do pai/mãe">
-    <input class="modal-inp" id="m-pai-email" type="email" placeholder="E-mail (login)">
+    <div style="background:#F1F5F9;border-radius:10px;padding:12px 14px;display:flex;justify-content:space-between;align-items:center">
+      <div><div style="font-size:11px;color:var(--gray400)">Código de acesso (gerado automaticamente)</div><div id="m-pai-codigo" style="font-size:18px;font-weight:800;color:var(--navy)">PIE-0001</div></div>
+    </div>
     <input class="modal-inp" id="m-pai-pass" type="text" placeholder="Senha (repasse ao pai)">
     <div style="font-size:12px;color:var(--gray400);margin-top:4px">Dados do aluno</div>
     <input class="modal-inp" id="m-aluno-nome" placeholder="Nome do aluno">
@@ -653,21 +655,42 @@ function deleteAluno(id,nome){
 }
 
 // CRIAR PAI/ALUNO
-function openModalPai(){ el('modal-pai').classList.add('open'); }
-function closeModalPai(){ el('modal-pai').classList.remove('open'); ['m-pai-nome','m-pai-email','m-pai-pass','m-aluno-nome','m-aluno-serie','m-aluno-end'].forEach(function(id){ el(id).value=''; }); setText('m-err',''); }
+function openModalPai(){
+  gerarProximoCodigo();
+  el('modal-pai').classList.add('open');
+}
+function closeModalPai(){ el('modal-pai').classList.remove('open'); ['m-pai-nome','m-pai-pass','m-aluno-nome','m-aluno-serie','m-aluno-end'].forEach(function(id){ el(id).value=''; }); setText('m-err',''); }
+
+function gerarProximoCodigo(){
+  db.collection('pais').orderBy('codigo_num','desc').limit(1).get().then(function(snap){
+    var next=1;
+    if(!snap.empty){
+      var last=snap.docs[0].data();
+      next=(last.codigo_num||0)+1;
+    }
+    var codigo='PIE-'+String(next).padStart(4,'0');
+    el('m-pai-codigo').textContent=codigo;
+    el('m-pai-codigo').dataset.num=next;
+  }).catch(function(){
+    el('m-pai-codigo').textContent='PIE-0001';
+    el('m-pai-codigo').dataset.num=1;
+  });
+}
 function criarPaiAluno(){
-  var paiNome=val('m-pai-nome'), email=val('m-pai-email'), pass=val('m-pai-pass');
+  var paiNome=val('m-pai-nome'), pass=val('m-pai-pass');
+  var codigo=el('m-pai-codigo').textContent;
+  var codigoNum=parseInt(el('m-pai-codigo').dataset.num)||1;
   var alunoNome=val('m-aluno-nome'), serie=val('m-aluno-serie'), endereco=val('m-aluno-end');
-  if(!paiNome||!email||!pass){ setText('m-err','⚠️ Preencha nome, email e senha do pai'); return; }
+  if(!paiNome||!pass){ setText('m-err','⚠️ Preencha nome e senha do pai'); return; }
   if(pass.length<6){ setText('m-err','⚠️ Senha deve ter mínimo 6 caracteres'); return; }
   if(!alunoNome){ setText('m-err','⚠️ Informe o nome do aluno'); return; }
   setText('m-err','🔄 Criando...');
-  // Save current user
-  var motorista = auth.currentUser;
+  // Internal email derived from code - never shown to the parent
+  var internalEmail = codigo.toLowerCase().replace('-','')+'@vanescolar.app';
   // Create pai account using secondary app instance
   var secondaryApp;
   try{ secondaryApp = firebase.app('secondary'); }catch(e){ secondaryApp = firebase.initializeApp(firebase.app().options,'secondary'); }
-  secondaryApp.auth().createUserWithEmailAndPassword(email,pass).then(function(cred){
+  secondaryApp.auth().createUserWithEmailAndPassword(internalEmail,pass).then(function(cred){
     var uid=cred.user.uid;
     // Sign out secondary
     secondaryApp.auth().signOut();
@@ -681,10 +704,10 @@ function criarPaiAluno(){
       var mes=new Date().toISOString().slice(0,7);
       db.collection('financeiro').add({aluno_id:alunoRef.id,aluno_nome:alunoNome,valor:configData.mens||380,mes:mes,status:'pendente',vencimento:configData.venc||10});
       // Create pai record
-      return db.collection('pais').add({uid:uid,email:email,nome:paiNome,aluno_id:alunoRef.id,aluno_nome:alunoNome,bloqueado:false,criado_em:firebase.firestore.FieldValue.serverTimestamp()});
+      return db.collection('pais').add({uid:uid,email:internalEmail,codigo:codigo,codigo_num:codigoNum,nome:paiNome,aluno_id:alunoRef.id,aluno_nome:alunoNome,bloqueado:false,criado_em:firebase.firestore.FieldValue.serverTimestamp()});
     });
   }).then(function(){
-    showToast('✅ Pai e aluno criados!');
+    showToast('✅ Criado! Código: '+codigo+' — Senha: '+pass);
     closeModalPai();
   }).catch(function(e){ setText('m-err','❌ '+e.message); });
 }
