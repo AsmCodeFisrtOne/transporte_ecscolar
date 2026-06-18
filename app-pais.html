@@ -48,6 +48,11 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 .bl-title{font-size:18px;font-weight:700;color:var(--red)}
 .bl-sub{font-size:14px;color:var(--gray400);line-height:1.6}
 .bl-btn{padding:12px 24px;border-radius:12px;border:none;background:rgba(255,255,255,.08);color:var(--gray400);font-size:14px;cursor:pointer;font-family:'Inter',sans-serif}
+/* SEM VIAGEM */
+#notrip-screen{display:none;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:var(--navy);padding:24px;text-align:center;gap:16px}
+.nt-icon{font-size:64px}
+.nt-title{font-size:20px;font-weight:700;color:var(--yellow)}
+.nt-sub{font-size:14px;color:var(--gray400);line-height:1.6}
 /* MAIN */
 #main-app{display:none;flex-direction:column;height:100vh;height:100dvh;min-height:0}
 /* TOPBAR */
@@ -153,6 +158,13 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
   <div class="bl-title">Acesso removido</div>
   <div class="bl-sub">Seu acesso foi removido.<br>Entre em contato com o Tio Daniel.</div>
   <button class="bl-btn" onclick="auth.signOut()">Sair</button>
+</div>
+
+<!-- SEM VIAGEM -->
+<div id="notrip-screen">
+  <div class="nt-icon">🔒</div>
+  <div class="nt-title">Viagem não iniciada</div>
+  <div class="nt-sub">Aguarde o motorista iniciar a viagem para acompanhar em tempo real.</div>
 </div>
 
 <!-- MAIN APP -->
@@ -332,6 +344,14 @@ function setOfflineState(){
   el('mapa-loading').style.display='block';
   el('mapa-iframe').src='about:blank';
   lastLat=null; lastLng=null;
+  // Mostrar tela de viagem não iniciada e esconder o app principal
+  el('notrip-screen').style.display='flex';
+  el('main-app').style.display='none';
+}
+
+function setOnlineState(){
+  el('notrip-screen').style.display='none';
+  el('main-app').style.display='flex';
 }
 
 function listenGPS(){
@@ -352,6 +372,7 @@ function listenGPS(){
     setText('live-txt','Ao vivo');
     var spd=d.velocidade||0;
     setText('van-status',spd<10?'Van parada':'Van em movimento · '+spd+' km/h');
+    setOnlineState();
     updateMap(d.lat,d.lng);
     // Schedule a check in case no new update arrives before timeout
     gpsHeartbeatTimer = setTimeout(function(){ setOfflineState(); }, GPS_TIMEOUT_MS - age);
@@ -532,7 +553,8 @@ auth.onAuthStateChanged(function(user){
     currentUser=user;
     el('login-screen').style.display='none';
     el('blocked-screen').style.display='none';
-    el('main-app').style.display='flex';
+    el('notrip-screen').style.display='flex';
+    el('main-app').style.display='none';
     initApp();
   } else {
     currentUser=null;
