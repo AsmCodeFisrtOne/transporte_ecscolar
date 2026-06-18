@@ -543,8 +543,8 @@ function confirmRegAcao(){
 }
 function regAcao(id, nome, etapa){
   db.doc('status_alunos/'+id).set({nome:nome,etapa:etapa,atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-  // Clear "próximo a embarcar" alert once the aluno actually boards
-  if(etapa==='embarcou'){
+  // Clear "próximo a embarcar" alert once the aluno actually boards or is marked absent
+  if(etapa==='embarcou' || etapa==='faltou'){
     rdb.ref('proximo_embarque').once('value').then(function(snap){
       var d=snap.val();
       if(d && d.aluno_id===id){ rdb.ref('proximo_embarque').remove(); }
