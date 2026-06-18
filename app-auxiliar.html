@@ -208,6 +208,7 @@ function selectAluno(id){
   ['btn-embarcar','btn-desembarcar','btn-emcasa','btn-faltou'].forEach(function(bid){ el(bid).disabled=false; });
 }
 
+
 function confirmarAcao(acao){
   if(!selectedAlunoId){ showToast('⚠️ Selecione um aluno'); return; }
   var aluno=alunosData.find(function(a){ return a.id===selectedAlunoId; });

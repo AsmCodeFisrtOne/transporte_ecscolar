@@ -91,6 +91,10 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 .eb-icon{font-size:24px}
 .eb-text{flex:1;font-size:14px;font-weight:700;color:#991B1B}
 @keyframes emergencyPulse{0%,100%{background:#FEF2F2}50%{background:#FECACA}}
+#proximo-banner{display:none;background:#FEFCE8;border-bottom:2px solid var(--yellow);padding:12px 14px;align-items:center;gap:10px;flex-shrink:0}
+#proximo-banner.show{display:flex}
+.pb-icon{font-size:24px}
+.pb-text{flex:1;font-size:14px;font-weight:700;color:#854D0E}
 #status-bar{background:var(--white);border-top:1px solid var(--gray200);padding:10px 14px;flex-shrink:0}
 .status-lbl{font-size:11px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 #status-chips{display:flex;gap:8px;flex-wrap:wrap}
@@ -166,6 +170,10 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     <div id="emergency-banner">
       <span class="eb-icon">🆘</span>
       <span class="eb-text" id="emergency-text">ATENÇÃO - Veículo fora de operação!</span>
+    </div>
+    <div id="proximo-banner">
+      <span class="pb-icon">📍</span>
+      <span class="pb-text" id="proximo-text">Motorista no caminho!</span>
     </div>
     <div id="traffic-banner">
       <span class="tb-icon">🚦</span>
@@ -463,9 +471,27 @@ function initApp(){
   listenAvisos();
   listenTraffic();
   listenEmergency();
-  // Load pai data FIRST, then start status listener (depends on paisData.aluno_id)
+  // Load pai data FIRST, then start status listener and proximo listener (both depend on paisData.aluno_id)
   loadPaiData(currentUser.uid).then(function(){
     listenStatus();
+    listenProximoEmbarque();
+  });
+}
+
+var proximoHideTimer = null;
+function listenProximoEmbarque(){
+  rdb.ref('proximo_embarque').on('value',function(snap){
+    var d=snap.val();
+    var myAlunoId = paisData && paisData.aluno_id;
+    var banner=el('proximo-banner');
+    if(proximoHideTimer){ clearTimeout(proximoHideTimer); proximoHideTimer=null; }
+    if(d && d.aluno_id===myAlunoId && (Date.now()-d.timestamp) < 300000){ // valid for 5 minutes
+      setText('proximo-text',d.mensagem||'Motorista no caminho!');
+      banner.classList.add('show');
+      proximoHideTimer = setTimeout(function(){ banner.classList.remove('show'); }, 300000-(Date.now()-d.timestamp));
+    } else {
+      banner.classList.remove('show');
+    }
   });
 }
 
