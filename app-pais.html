@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Van Escolar — Pais</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -85,6 +87,20 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 #mapa-div{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
 #btn-centralizar{transition:transform .1s,filter .1s}
 #btn-centralizar:active{transform:scale(0.93);filter:brightness(0.8)}
+/* FINANCEIRO */
+.fin-card{background:var(--white);border-radius:16px;padding:18px;margin:14px;box-shadow:0 2px 10px rgba(0,0,0,.06);text-align:center}
+.fin-status{display:inline-block;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:8px}
+.fin-status.pendente{background:#FEF3C7;color:#92400E}
+.fin-status.pago{background:#DCFCE7;color:#166534}
+.fin-aluno{font-size:14px;color:var(--gray400);margin-bottom:2px}
+.fin-valor{font-size:32px;font-weight:800;color:var(--navy);margin-bottom:4px}
+.fin-venc{font-size:13px;color:var(--gray400);margin-bottom:14px}
+#fin-qr{display:flex;justify-content:center;margin:10px auto;padding:12px;background:#fff;border-radius:12px;width:fit-content;border:1px solid var(--gray200)}
+.fin-btn{width:100%;padding:13px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;margin-top:8px;transition:transform .1s,filter .1s}
+.fin-btn:active{transform:scale(.97);filter:brightness(.92)}
+.fin-btn-pix{background:var(--navy);color:var(--yellow)}
+.fin-btn-pdf{background:var(--gray100);color:var(--navy)}
+.fin-empty{padding:40px 24px;text-align:center;color:var(--gray400);font-size:13px}
 #mapa-status-bar{position:absolute;top:10px;left:10px;right:10px;z-index:10;pointer-events:none}
 .mapa-card{background:rgba(255,255,255,.96);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.15);pointer-events:auto}
 #mapa-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:5;pointer-events:none}
@@ -255,9 +271,17 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     </div>
   </div>
 
+  <!-- FINANCEIRO -->
+  <div id="view-financeiro" class="view">
+    <div class="scroll" id="fin-content">
+      <div class="fin-empty">Carregando…</div>
+    </div>
+  </div>
+
   <div id="navbar">
     <button class="nav-btn active" onclick="switchView('mapa',this)"><span class="nav-icon">🗺️</span>Mapa<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="switchView('chat',this)"><span class="nav-icon">💬</span>Chat<div class="nav-dot"></div></button>
+    <button class="nav-btn" onclick="switchView('financeiro',this)"><span class="nav-icon">💰</span>Financeiro<div class="nav-dot"></div></button>
     <button class="nav-btn" onclick="switchView('avisos',this)"><span class="nav-icon">🔔</span>Avisos<div class="nav-dot"></div><div id="notif-dot"></div></button>
     <button class="nav-btn" onclick="switchView('perfil',this)"><span class="nav-icon">👤</span>Perfil<div class="nav-dot"></div></button>
   </div>
@@ -332,12 +356,15 @@ function loadPaiData(uid){
 }
 
 // CONFIG
+var configData = {};
 function loadConfig(){
   db.doc('config/main').get().then(function(snap){
     if(!snap.exists) return;
     var d=snap.data();
+    configData = d;
     if(d.nome) setText('tb-driver',d.nome);
     if(d.unidade) setText('tb-school',d.unidade);
+    renderFinanceiro();
   });
 }
 
@@ -523,6 +550,7 @@ function initApp(){
   loadPaiData(currentUser.uid).then(function(){
     listenStatus();
     listenProximoEmbarque();
+    listenFinanceiro();
   });
 }
 
@@ -584,6 +612,178 @@ auth.onAuthStateChanged(function(user){
     el('main-app').style.display='none';
   }
 });
+
+// ===== FINANCEIRO / PIX =====
+var finData = null; // cobrança em destaque (pendente mais recente, ou paga mais recente)
+var finPixPayload = '';
+
+function listenFinanceiro(){
+  if(!paisData || !paisData.aluno_id) return;
+  db.collection('financeiro').where('aluno_id','==',paisData.aluno_id).onSnapshot(function(snap){
+    var docs=[];
+    snap.forEach(function(d){ docs.push(Object.assign({id:d.id},d.data())); });
+    docs.sort(function(a,b){ return (b.mes||'').localeCompare(a.mes||''); });
+    var pendente = docs.find(function(f){ return f.status==='pendente'; });
+    finData = pendente || docs[0] || null;
+    renderFinanceiro();
+  });
+}
+
+function mesLabel(mes){
+  if(!mes) return '—';
+  var partes=mes.split('-');
+  var meses=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+  var idx=parseInt(partes[1],10)-1;
+  return (meses[idx]||mes)+'/'+partes[0];
+}
+
+function sanitizePix(str){
+  return (str||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^A-Za-z0-9 ]/g,'').toUpperCase();
+}
+
+function crc16(str){
+  var crc=0xFFFF;
+  for(var c=0;c<str.length;c++){
+    crc ^= str.charCodeAt(c) << 8;
+    for(var i=0;i<8;i++){
+      crc = (crc & 0x8000) ? ((crc<<1)^0x1021) : (crc<<1);
+      crc &= 0xFFFF;
+    }
+  }
+  return crc.toString(16).toUpperCase().padStart(4,'0');
+}
+
+function emv(id,value){
+  var len=String(value.length).padStart(2,'0');
+  return id+len+value;
+}
+
+function gerarPixPayload(pixKey, merchantName, merchantCity, amount, txid){
+  var mName = sanitizePix(merchantName).substring(0,25) || 'VAN ESCOLAR';
+  var mCity = sanitizePix(merchantCity).substring(0,15) || 'SAO PAULO';
+  var tx = (txid||'***').substring(0,25);
+  var payload =
+    emv('00','01') +
+    emv('26', emv('00','br.gov.bcb.pix') + emv('01', pixKey)) +
+    emv('52','0000') +
+    emv('53','986') +
+    emv('54', Number(amount).toFixed(2)) +
+    emv('58','BR') +
+    emv('59', mName) +
+    emv('60', mCity) +
+    emv('62', emv('05', tx)) +
+    '6304';
+  return payload + crc16(payload);
+}
+
+function renderFinanceiro(){
+  var box=el('fin-content'); if(!box) return;
+  if(!finData){
+    box.innerHTML='<div class="fin-empty">💰<br><br>Nenhuma cobrança encontrada ainda.</div>';
+    return;
+  }
+  var f=finData;
+  var pago = f.status==='pago';
+  var html='<div class="fin-card">'
+    +'<div class="fin-status '+(pago?'pago':'pendente')+'">'+(pago?'✅ PAGO':'⏳ PENDENTE')+'</div>'
+    +'<div class="fin-aluno">Mensalidade de '+mesLabel(f.mes)+' — '+(f.aluno_nome||'')+'</div>'
+    +'<div class="fin-valor">R$ '+Number(f.valor||0).toFixed(2).replace('.',',')+'</div>'
+    +'<div class="fin-venc">Vencimento dia '+(f.vencimento||10)+'</div>';
+  if(!pago){
+    html+='<div id="fin-qr"></div>'
+      +'<button class="fin-btn fin-btn-pix" onclick="copiarPix()">📋 Copiar código Pix</button>'
+      +'<button class="fin-btn fin-btn-pdf" onclick="baixarComprovantePDF()">📄 Baixar comprovante (PDF)</button>';
+  }
+  html+='</div>';
+  box.innerHTML=html;
+
+  if(!pago){
+    var pixKey = configData.pix;
+    if(!pixKey){
+      el('fin-content').insertAdjacentHTML('beforeend','<div class="fin-empty">⚠️ Chave Pix ainda não configurada pelo motorista.</div>');
+      return;
+    }
+    var merchantName = configData.nome || 'Van Escolar';
+    var merchantCity = 'SAO PAULO';
+    finPixPayload = gerarPixPayload(pixKey, merchantName, merchantCity, f.valor||0, f.id);
+    var qrEl = el('fin-qr');
+    if(qrEl && window.QRCode){
+      qrEl.innerHTML='';
+      new QRCode(qrEl, {text:finPixPayload, width:180, height:180, correctLevel:QRCode.CorrectLevel.M});
+    }
+  }
+}
+
+function copiarPix(){
+  if(!finPixPayload){ showToast('⚠️ Código Pix indisponível'); return; }
+  navigator.clipboard.writeText(finPixPayload).then(function(){
+    showToast('✅ Código Pix copiado!');
+  }).catch(function(){
+    var ta=document.createElement('textarea');
+    ta.value=finPixPayload; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    showToast('✅ Código Pix copiado!');
+  });
+}
+
+function baixarComprovantePDF(){
+  if(!finData){ return; }
+  if(!window.jspdf){ showToast('⚠️ Gerador de PDF não carregou'); return; }
+  var f=finData;
+  var doc=new window.jspdf.jsPDF({unit:'mm',format:'a4'});
+  var pageW=210;
+  doc.setFillColor(15,23,42);
+  doc.rect(0,0,pageW,30,'F');
+  doc.setTextColor(255,210,63);
+  doc.setFontSize(18);
+  doc.setFont(undefined,'bold');
+  doc.text('🚐 Van Escolar', 14, 18);
+  doc.setTextColor(30,41,59);
+  doc.setFontSize(14);
+  doc.setFont(undefined,'bold');
+  doc.text('Fatura de mensalidade', 14, 42);
+  doc.setFontSize(11);
+  doc.setFont(undefined,'normal');
+  var y=54;
+  function linha(lbl,val){
+    doc.setTextColor(100,116,139);
+    doc.text(lbl, 14, y);
+    doc.setTextColor(30,41,59);
+    doc.setFont(undefined,'bold');
+    doc.text(String(val), 70, y);
+    doc.setFont(undefined,'normal');
+    y+=8;
+  }
+  linha('Responsável:', paisNome||'—');
+  linha('Aluno(a):', f.aluno_nome||'—');
+  linha('Mês de referência:', mesLabel(f.mes));
+  linha('Valor:', 'R$ '+Number(f.valor||0).toFixed(2).replace('.',','));
+  linha('Vencimento:', 'Dia '+(f.vencimento||10));
+  linha('Status:', f.status==='pago'?'Pago':'Pendente');
+  if(configData.pix){
+    linha('Chave Pix:', configData.pix);
+  }
+  y+=4;
+  if(finPixPayload && f.status!=='pago'){
+    var qrCanvas = document.querySelector('#fin-qr img, #fin-qr canvas');
+    if(qrCanvas){
+      try{
+        var qrDataUrl = qrCanvas.tagName==='CANVAS' ? qrCanvas.toDataURL('image/png') : qrCanvas.src;
+        doc.addImage(qrDataUrl,'PNG', 14, y, 45, 45);
+        doc.setFontSize(9);
+        doc.setTextColor(100,116,139);
+        doc.text('Escaneie para pagar via Pix', 64, y+10);
+        doc.text('ou copie o código no app.', 64, y+16);
+        y+=52;
+      }catch(e){}
+    }
+  }
+  doc.setFontSize(8);
+  doc.setTextColor(150,150,150);
+  doc.text('Documento gerado automaticamente pelo app Van Escolar em '+new Date().toLocaleString('pt-BR'), 14, 285);
+  doc.save('fatura-'+(f.mes||'')+'-'+(f.aluno_nome||'aluno').replace(/\s+/g,'-')+'.pdf');
+}
+
 </script>
 </body>
 </html>
