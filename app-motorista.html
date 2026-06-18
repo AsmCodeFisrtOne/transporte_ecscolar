@@ -68,7 +68,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 .scroll::-webkit-scrollbar{width:6px;display:block}
 .scroll::-webkit-scrollbar-track{background:rgba(255,255,255,.08);border-radius:3px}
 .scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,.35);border-radius:3px}
-#custom-scrollbar{position:fixed;right:2px;width:5px;border-radius:3px;background:rgba(100,116,139,.65);pointer-events:none;z-index:50;opacity:0;transition:opacity .2s}
+#custom-scrollbar{position:fixed;right:2px;width:10px;border-radius:5px;background:rgba(100,116,139,.65);pointer-events:none;z-index:50;opacity:0;transition:opacity .2s}
 /* NAVBAR */
 #navbar{display:flex;background:var(--white);border-top:1px solid var(--gray200);flex-shrink:0}
 .nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;cursor:pointer;color:var(--gray400);font-size:10px;gap:2px;border:none;background:none;font-family:'Inter',sans-serif}
@@ -983,7 +983,7 @@ auth.onAuthStateChanged(function(user){
 (function(){
   var bar = document.getElementById('custom-scrollbar');
   var hideTimer = null;
-  function updateBar(el){
+  function updateBar(el, permanent){
     if(!el || el.scrollHeight <= el.clientHeight){ bar.style.opacity='0'; return; }
     var ratio = el.clientHeight / el.scrollHeight;
     var barH = Math.max(36, el.clientHeight * ratio);
@@ -993,17 +993,30 @@ auth.onAuthStateChanged(function(user){
     bar.style.top = (rect.top + scrollRatio * maxTop) + 'px';
     bar.style.height = barH + 'px';
     bar.style.opacity = '1';
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(function(){ bar.style.opacity='0'; }, 1200);
+    if(!permanent){
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(function(){
+        var active = document.getElementById('painel-scroll');
+        if(active && active.scrollHeight > active.clientHeight) return; // nao esconde se conteudo maior q tela
+        bar.style.opacity='0';
+      }, 1200);
+    }
+  }
+  function refreshPermanent(){
+    var el = document.getElementById('painel-scroll');
+    if(el) updateBar(el, true);
   }
   document.addEventListener('scroll', function(e){
     var el = e.target;
-    if(el && el.classList && el.classList.contains('scroll')) updateBar(el);
+    if(el && el.classList && el.classList.contains('scroll')) updateBar(el, true);
   }, true);
-  // show on page load if content overflows
-  window.addEventListener('load', function(){
-    var el = document.getElementById('painel-scroll');
-    if(el) updateBar(el);
+  window.addEventListener('load', refreshPermanent);
+  // Re-checar quando alunos são carregados (conteúdo pode crescer após load)
+  var _orig = window.renderPainel;
+  document.addEventListener('DOMContentLoaded', function(){
+    var obs = new MutationObserver(refreshPermanent);
+    var acoes = document.getElementById('alunos-acoes');
+    if(acoes) obs.observe(acoes, {childList:true, subtree:true, characterData:true});
   });
 })();
 </script>
