@@ -277,7 +277,10 @@ function switchView(name,btn){
   if(name==='chat'){ setTimeout(function(){ var b=el('chat-msgs'); if(b) b.scrollTop=b.scrollHeight; },50); }
   if(name==='avisos') el('notif-dot').style.display='none';
   if(name==='mapa' && lastLat!==null){
-    setTimeout(function(){ setMapSrc(lastLat,lastLng); }, 80);
+    var iframe=el('mapa-iframe');
+    if(!iframe.src||iframe.src==='about:blank'||iframe.src===window.location.href){
+      setTimeout(function(){ setMapSrc(lastLat,lastLng); }, 80);
+    }
   }
 }
 
@@ -355,10 +358,6 @@ function setOfflineState(){
 function setOnlineState(){
   el('notrip-screen').style.display='none';
   el('main-app').style.display='flex';
-  // Recarrega o mapa após o container ficar visível novamente
-  if(lastLat!==null){
-    setTimeout(function(){ setMapSrc(lastLat,lastLng); }, 150);
-  }
 }
 
 function listenGPS(){
