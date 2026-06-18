@@ -396,6 +396,10 @@ function updateMap(lat,lng){
   _initMap();
   if(_lmarker){
     _lmarker.setLatLng([lat,lng]);
+    // Se o marcador saiu da área visível, move o mapa suavemente
+    if(!_lmap.getBounds().contains([lat,lng])){
+      _lmap.panTo([lat,lng],{animate:true,duration:0.8});
+    }
   } else {
     _lmarker = L.marker([lat,lng]).addTo(_lmap);
     _lmap.setView([lat,lng],16);
