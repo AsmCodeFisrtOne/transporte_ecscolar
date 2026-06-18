@@ -423,6 +423,17 @@ function stopGPS(){
   setText('gps-txt','GPS desativado');
   setText('gps-btn','Ativar ▶');
   window.gpsRef.remove();
+  // If a trip is in progress, GPS being turned off means the trip must end too
+  if(tripStarted){
+    tripStarted=false;
+    el('btn-start').disabled=false;
+    el('btn-finish').disabled=true;
+    setText('trip-status','Nenhuma viagem ativa');
+    rdb.ref('viagem_ativa').set(false);
+    db.collection('status_alunos').get().then(function(snap){ snap.forEach(function(d){ d.ref.delete(); }); });
+    db.collection('mensagens').add({texto:'🏁 Viagem finalizada (GPS desativado)!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+    showToast('🏁 Viagem encerrada — GPS foi desativado');
+  }
 }
 
 // TRIP
@@ -806,7 +817,7 @@ var sosActive = false;
 function enviarSOS(){
   if(!sosActive){
     if(!window.confirm('🆘 Enviar SOS para todos os pais?')) return;
-    db.collection('mensagens').add({texto:'🆘 EMERGÊNCIA — Motorista precisa de ajuda!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+    db.collection('mensagens').add({texto:'🆘 ATENÇÃO - Veículo fora de operação!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
     rdb.ref('emergencia').set({ativa:true,timestamp:Date.now()}).then(function(){
       showToast('🆘 SOS enviado! Toque novamente para encerrar.');
     }).catch(function(e){ showToast('❌ Erro: '+e.message); });
