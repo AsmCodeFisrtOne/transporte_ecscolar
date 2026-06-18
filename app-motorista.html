@@ -507,7 +507,7 @@ function confirmRegAcao(){
 function regAcao(id, nome, etapa){
   db.doc('status_alunos/'+id).set({nome:nome,etapa:etapa,atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
   var msgs={embarcou:'✅ '+nome+' embarcou na van',na_escola:'🏫 '+nome+' chegou na escola',em_casa:'🏠 '+nome+' chegou em casa',faltou:'❌ '+nome+' faltou'};
-  if(msgs[etapa]) db.collection('mensagens').add({texto:msgs[etapa],tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  if(msgs[etapa]) db.collection('mensagens').add({texto:msgs[etapa],tipo:'sistema',aluno_id:id,remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   showToast(msgs[etapa]||'✅ Atualizado');
 }
 

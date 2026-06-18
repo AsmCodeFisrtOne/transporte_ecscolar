@@ -237,7 +237,7 @@ function executarAcao(){
     atualizado_em:firebase.firestore.FieldValue.serverTimestamp()
   },{merge:true});
   var msgs={embarcou:'✅ '+aluno.nome+' embarcou na van',na_escola:'🏫 '+aluno.nome+' chegou na escola',em_casa:'🏠 '+aluno.nome+' chegou em casa',faltou:'❌ '+aluno.nome+' faltou'};
-  db.collection('mensagens').add({texto:msgs[acao],tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  db.collection('mensagens').add({texto:msgs[acao],tipo:'sistema',aluno_id:aluno.id,remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   showToast(msgs[acao]);
   closeConfirm();
   // Deselect aluno only - buttons stay enabled for next selection

@@ -433,9 +433,12 @@ function listenAvisos(){
     var html='';
     var count=0;
     var clearTs = getAvisosClearTimestamp();
+    var myAlunoId = paisData && paisData.aluno_id;
     snap.forEach(function(d){
       var m=d.data();
       if(m.tipo!=='sistema') return;
+      // If this message is tied to a specific aluno (occurrence), only show if it's our own child
+      if(m.aluno_id && m.aluno_id!==myAlunoId) return;
       var ts=m.timestamp&&m.timestamp.toDate?m.timestamp.toDate():new Date();
       if(ts.getTime() <= clearTs) return; // hidden by local clear
       count++;
