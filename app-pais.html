@@ -276,6 +276,9 @@ function switchView(name,btn){
   if(btn) btn.classList.add('active');
   if(name==='chat'){ setTimeout(function(){ var b=el('chat-msgs'); if(b) b.scrollTop=b.scrollHeight; },50); }
   if(name==='avisos') el('notif-dot').style.display='none';
+  if(name==='mapa' && lastLat!==null){
+    setTimeout(function(){ setMapSrc(lastLat,lastLng); }, 100);
+  }
 }
 
 // AUTH
