@@ -391,13 +391,31 @@ function updateMap(lat,lng){
     if(Math.abs(lat-lastLat)+Math.abs(lng-lastLng)<0.001) return;
   }
   lastLat=lat; lastLng=lng;
-  // Delay slightly to ensure container has finished layout/sizing before the iframe captures its dimensions
   requestAnimationFrame(function(){
     requestAnimationFrame(function(){
       setMapSrc(lat,lng);
     });
   });
 }
+
+// Recarrega o mapa se o container mudar de tamanho (evita renderização cortada)
+(function(){
+  var lastW=0, lastH=0;
+  function checkMapSize(){
+    var wrap=el('mapa-wrap');
+    if(!wrap||!lastLat) return;
+    var w=wrap.offsetWidth, h=wrap.offsetHeight;
+    if((w!==lastW||h!==lastH)&&w>0&&h>0){
+      lastW=w; lastH=h;
+      setMapSrc(lastLat,lastLng);
+    }
+  }
+  if(window.ResizeObserver){
+    new ResizeObserver(checkMapSize).observe(document.getElementById('mapa-wrap')||document.body);
+  } else {
+    window.addEventListener('resize', checkMapSize);
+  }
+})();
 
 // STATUS BOLINHAS
 function listenStatus(){
