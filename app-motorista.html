@@ -450,8 +450,8 @@ function stopGPS(){
     selectedAlunoId=null;
     el('btn-start').disabled=false;
     el('btn-finish').disabled=true;
-    el('fab-traffic').disabled=true;
     el('fab-sos').disabled=true;
+    updateTrafficBtn();
     setText('trip-status','Nenhuma viagem ativa');
     rdb.ref('viagem_ativa').set(false);
     rdb.ref('proximo_embarque').remove();
@@ -471,8 +471,8 @@ function startTrip(){
   tripStarted=true;
   el('btn-start').disabled=true;
   el('btn-finish').disabled=false;
-  el('fab-traffic').disabled=false;
   el('fab-sos').disabled=false;
+  updateTrafficBtn();
   setText('trip-status','✅ Viagem em andamento');
   // Update GPS to reflect trip started
   window.gpsRef.update({viagem_ativa:true});
@@ -487,8 +487,8 @@ function finishTrip(){
   selectedAlunoId=null;
   el('btn-start').disabled=false;
   el('btn-finish').disabled=true;
-  el('fab-traffic').disabled=true;
   el('fab-sos').disabled=true;
+  updateTrafficBtn();
   setText('trip-status','Nenhuma viagem ativa');
   window.gpsRef.remove();
   rdb.ref('viagem_ativa').set(false);
@@ -578,6 +578,11 @@ function renderPainel(){
 function selectAlunoPainel(id){
   selectedAlunoId=id;
   renderPainel();
+  updateTrafficBtn();
+}
+function updateTrafficBtn(){
+  var btn=el('fab-traffic'); if(!btn) return;
+  btn.disabled = !(tripStarted && selectedAlunoId);
 }
 
 function renderAcoesPainel(){
