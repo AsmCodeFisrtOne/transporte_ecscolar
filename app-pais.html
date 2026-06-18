@@ -198,7 +198,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
       <div id="mapa-status-bar">
         <div class="mapa-card">
           <div><div style="font-size:11px;color:var(--gray400);font-weight:600">VAN</div><div style="font-size:13px;font-weight:700;color:#1E293B" id="van-status">Aguardando</div></div>
-          <button onclick="centralizarMapa()" style="background:#0F172A;color:#FFD23F;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">📍 Centralizar</button>
+          <button onclick="centralizarMapa()" style="background:#0F172A;color:#FFD23F;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;transition:transform .1s,filter .1s;-webkit-tap-highlight-color:transparent" ontouchstart="this.style.transform='scale(0.93)';this.style.filter='brightness(0.8)'" ontouchend="this.style.transform='';this.style.filter=''">📍 Centralizar</button>
         </div>
       </div>
       <div id="mapa-loading"><div id="mapa-loading-icon">🗺️</div><div id="mapa-loading-txt">Aguardando GPS da van...</div></div>
@@ -383,8 +383,8 @@ function listenGPS(){
 }
 
 function centralizarMapa(){
-  if(_lmap && lastLat!==null){
-    _lmap.panTo([lastLat,lastLng],{animate:true,duration:0.6});
+  if(_lmap && _lmarker){
+    _lmap.panTo(_lmarker.getLatLng(),{animate:true,duration:0.6});
   }
 }
 
