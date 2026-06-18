@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Van Escolar — Pais</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -80,7 +82,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 #notif-dot{display:none;position:absolute;top:6px;right:calc(50% - 14px);width:8px;height:8px;border-radius:50%;background:var(--red)}
 /* MAPA */
 #mapa-wrap{position:relative;flex:1;min-height:0;width:100%}
-#mapa-iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+#mapa-div{position:absolute;top:0;left:0;width:100%;height:100%;z-index:1}
 #mapa-status-bar{position:absolute;top:10px;left:10px;right:10px;z-index:10;pointer-events:none}
 .mapa-card{background:rgba(255,255,255,.96);border-radius:12px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.15)}
 #mapa-loading{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center;z-index:5;pointer-events:none}
@@ -192,7 +194,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
       <span class="tb-text" id="traffic-text">Trânsito intenso</span>
     </div>
     <div id="mapa-wrap">
-      <iframe id="mapa-iframe" src="about:blank"></iframe>
+      <div id="mapa-div"></div>
       <div id="mapa-status-bar">
         <div class="mapa-card">
           <div><div style="font-size:11px;color:var(--gray400);font-weight:600">VAN</div><div style="font-size:13px;font-weight:700;color:#1E293B" id="van-status">Aguardando</div></div>
@@ -276,8 +278,8 @@ function switchView(name,btn){
   if(btn) btn.classList.add('active');
   if(name==='chat'){ setTimeout(function(){ var b=el('chat-msgs'); if(b) b.scrollTop=b.scrollHeight; },50); }
   if(name==='avisos') el('notif-dot').style.display='none';
-  if(name==='mapa' && lastLat!==null){
-    setTimeout(function(){ setMapSrc(lastLat,lastLng); }, 80);
+  if(name==='mapa'){
+    setTimeout(function(){ if(leafletMap) leafletMap.invalidateSize(); }, 80);
   }
 }
 
@@ -345,7 +347,7 @@ function setOfflineState(){
   setText('live-txt','Offline');
   setText('van-status','Aguardando van');
   el('mapa-loading').style.display='block';
-  el('mapa-iframe').src='about:blank';
+  if(leafletMap){ leafletMap.invalidateSize(); }
   lastLat=null; lastLng=null;
   // Mostrar tela de viagem não iniciada e esconder o app principal
   el('notrip-screen').style.display='flex';
@@ -355,10 +357,7 @@ function setOfflineState(){
 function setOnlineState(){
   el('notrip-screen').style.display='none';
   el('main-app').style.display='flex';
-  // Recarrega o mapa após o container ficar visível novamente
-  if(lastLat!==null){
-    setTimeout(function(){ setMapSrc(lastLat,lastLng); }, 150);
-  }
+  setTimeout(function(){ if(leafletMap) leafletMap.invalidateSize(); }, 150);
 }
 
 function listenGPS(){
@@ -386,10 +385,16 @@ function listenGPS(){
   });
 }
 
-function setMapSrc(lat,lng){
-  var delta=0.004;
-  var bbox=(lng-delta)+','+(lat-delta)+','+(lng+delta)+','+(lat+delta);
-  el('mapa-iframe').src='https://www.openstreetmap.org/export/embed.html?bbox='+bbox+'&layer=mapnik&marker='+lat+','+lng;
+var leafletMap = null;
+var leafletMarker = null;
+
+function initLeaflet(){
+  if(leafletMap) return;
+  leafletMap = L.map('mapa-div', {zoomControl:true, attributionControl:true});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap',
+    maxZoom:19
+  }).addTo(leafletMap);
 }
 
 function updateMap(lat,lng){
@@ -398,31 +403,22 @@ function updateMap(lat,lng){
     if(Math.abs(lat-lastLat)+Math.abs(lng-lastLng)<0.001) return;
   }
   lastLat=lat; lastLng=lng;
-  requestAnimationFrame(function(){
-    requestAnimationFrame(function(){
-      setMapSrc(lat,lng);
-    });
-  });
-}
-
-// Recarrega o mapa se o container mudar de tamanho (evita renderização cortada)
-(function(){
-  var lastW=0, lastH=0;
-  function checkMapSize(){
-    var wrap=el('mapa-wrap');
-    if(!wrap||!lastLat) return;
-    var w=wrap.offsetWidth, h=wrap.offsetHeight;
-    if((w!==lastW||h!==lastH)&&w>0&&h>0){
-      lastW=w; lastH=h;
-      setMapSrc(lastLat,lastLng);
-    }
-  }
-  if(window.ResizeObserver){
-    new ResizeObserver(checkMapSize).observe(document.getElementById('mapa-wrap')||document.body);
+  initLeaflet();
+  if(leafletMarker){
+    leafletMarker.setLatLng([lat,lng]);
   } else {
-    window.addEventListener('resize', checkMapSize);
+    var icon = L.icon({
+      iconUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+      iconRetinaUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+      shadowUrl:'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      iconSize:[25,41], iconAnchor:[12,41], popupAnchor:[1,-34]
+    });
+    leafletMarker = L.marker([lat,lng],{icon:icon}).addTo(leafletMap);
   }
-})();
+  leafletMap.setView([lat,lng], leafletMap.getZoom()||16);
+  // Corrige tamanho caso container estava oculto
+  setTimeout(function(){ if(leafletMap) leafletMap.invalidateSize(); }, 100);
+}
 
 // STATUS BOLINHAS
 function listenStatus(){
