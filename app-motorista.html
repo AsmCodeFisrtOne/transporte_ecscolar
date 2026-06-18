@@ -431,10 +431,13 @@ function stopGPS(){
   // If a trip is in progress, GPS being turned off means the trip must end too
   if(tripStarted){
     tripStarted=false;
+    selectedAlunoId=null;
     el('btn-start').disabled=false;
     el('btn-finish').disabled=true;
     setText('trip-status','Nenhuma viagem ativa');
     rdb.ref('viagem_ativa').set(false);
+    rdb.ref('proximo_embarque').remove();
+    renderPainel();
     db.collection('status_alunos').get().then(function(snap){ snap.forEach(function(d){ d.ref.delete(); }); });
     db.collection('mensagens').add({texto:'🏁 Viagem finalizada (GPS desativado)!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
     showToast('🏁 Viagem encerrada — GPS foi desativado');
@@ -453,6 +456,7 @@ function startTrip(){
   setText('trip-status','✅ Viagem em andamento');
   // Update GPS to reflect trip started
   window.gpsRef.update({viagem_ativa:true});
+  renderAcoesPainel();
   db.collection('mensagens').add({texto:'🚐 Viagem iniciada!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   rdb.ref('viagem_ativa').set(true);
   showToast('✅ Viagem iniciada!');
@@ -460,15 +464,18 @@ function startTrip(){
 function finishTrip(){
   if(!window.confirm('Finalizar viagem?')) return;
   tripStarted=false;
+  selectedAlunoId=null;
   el('btn-start').disabled=false;
   el('btn-finish').disabled=true;
   setText('trip-status','Nenhuma viagem ativa');
   window.gpsRef.remove();
   rdb.ref('viagem_ativa').set(false);
+  rdb.ref('proximo_embarque').remove();
   // Clear status
   db.collection('status_alunos').get().then(function(snap){ snap.forEach(function(d){ d.ref.delete(); }); });
   db.collection('mensagens').add({texto:'🏁 Viagem finalizada!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   showToast('🏁 Viagem finalizada!');
+  renderPainel();
 }
 
 // PAINEL ALUNOS
@@ -509,6 +516,13 @@ function confirmRegAcao(){
 }
 function regAcao(id, nome, etapa){
   db.doc('status_alunos/'+id).set({nome:nome,etapa:etapa,atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  // Clear "próximo a embarcar" alert once the aluno actually boards
+  if(etapa==='embarcou'){
+    rdb.ref('proximo_embarque').once('value').then(function(snap){
+      var d=snap.val();
+      if(d && d.aluno_id===id){ rdb.ref('proximo_embarque').remove(); }
+    });
+  }
   var msgs={embarcou:'✅ '+nome+' embarcou na van',na_escola:'🏫 '+nome+' chegou na escola',em_casa:'🏠 '+nome+' chegou em casa',faltou:'❌ '+nome+' faltou'};
   if(msgs[etapa]) db.collection('mensagens').add({texto:msgs[etapa],tipo:'sistema',aluno_id:id,remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   showToast(msgs[etapa]||'✅ Atualizado');
@@ -545,6 +559,10 @@ function selectAlunoPainel(id){
 
 function renderAcoesPainel(){
   var acoes=el('alunos-acoes'); if(!acoes) return;
+  if(!tripStarted){
+    acoes.innerHTML='<div style="text-align:center;color:#94A3B8;font-size:13px;padding:20px">Inicie a viagem para registrar ações</div>';
+    return;
+  }
   if(!selectedAlunoId){
     acoes.innerHTML='<div style="text-align:center;color:#94A3B8;font-size:13px;padding:20px">Selecione um aluno acima</div>';
     return;
