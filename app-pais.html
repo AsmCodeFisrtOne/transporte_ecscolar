@@ -429,7 +429,7 @@ function listenStatus(){
       // Only show pai's own child
       if(paisData && paisData.aluno_id && d.id !== paisData.aluno_id) return;
       meuFilhoEtapa = s.etapa;
-      if(s.etapa==='embarcou'){
+      if(s.etapa==='embarcou' || s.etapa==='faltou'){
         var pb=el('proximo-banner');
         if(pb) pb.classList.remove('show');
         if(proximoHideTimer){ clearTimeout(proximoHideTimer); proximoHideTimer=null; }
@@ -533,7 +533,7 @@ function listenProximoEmbarque(){
     var myAlunoId = paisData && paisData.aluno_id;
     var banner=el('proximo-banner');
     if(proximoHideTimer){ clearTimeout(proximoHideTimer); proximoHideTimer=null; }
-    if(d && d.aluno_id===myAlunoId && meuFilhoEtapa!=='embarcou' && (Date.now()-d.timestamp) < 300000){ // valid for 5 minutes
+    if(d && d.aluno_id===myAlunoId && meuFilhoEtapa!=='embarcou' && meuFilhoEtapa!=='faltou' && (Date.now()-d.timestamp) < 300000){ // valid for 5 minutes
       setText('proximo-text',d.mensagem||'Motorista no caminho!');
       banner.classList.add('show');
       proximoHideTimer = setTimeout(function(){ banner.classList.remove('show'); }, 300000-(Date.now()-d.timestamp));

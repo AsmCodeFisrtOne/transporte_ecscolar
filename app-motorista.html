@@ -599,7 +599,7 @@ function renderAcoesPainel(){
   var id = a ? a.id : '';
   var nome = a ? a.nome : '';
   var etapa = a ? ((statusCache[a.id]||{}).etapa||'') : '';
-  var naVan = etapa === 'embarcou';
+  var naVan = etapa === 'embarcou' || etapa === 'faltou';
   var disProx = (enabled && !naVan) ? '' : 'disabled';
   var fadeProx = (enabled && !naVan) ? '' : 'opacity:.35;cursor:not-allowed;';
 
