@@ -160,6 +160,7 @@ var lastGpsViagemAtiva = false;
 
 function updateTripUIState(){
   var fresh = (Date.now() - lastGpsTimestamp) < GPS_TIMEOUT_MS;
+  var was = tripAtiva;
   tripAtiva = lastGpsViagemAtiva && fresh;
   if(tripAtiva){
     el('blocked-screen').style.display='none';
@@ -168,6 +169,7 @@ function updateTripUIState(){
     el('blocked-screen').style.display='flex';
     el('main').style.display='none';
   }
+  if(was!==tripAtiva) renderAlunos();
 }
 
 rdb.ref('localizacao_atual').on('value', function(snap){
@@ -199,11 +201,12 @@ function renderAlunos(){
   var scroll=el('alunos-scroll'); if(!scroll) return;
   if(!alunosData.length){ scroll.innerHTML='<div style="padding:8px;font-size:13px;color:var(--gray400)">Nenhum aluno</div>'; return; }
   var etapaLabel={embarcou:'Na van',faltou:'Faltou',em_casa:'Em casa',na_escola:'Na escola'};
+  var chipFade = tripAtiva ? '' : 'opacity:.35;cursor:not-allowed;pointer-events:none;';
   scroll.innerHTML=alunosData.map(function(a){
     var s=statusCache[a.id]||{};
     var etapa=s.etapa;
     var selected=selectedAlunoId===a.id;
-    return '<div class="aluno-chip'+(selected?' selected':'')+'" onclick="selectAluno(\''+a.id+'\')">'
+    return '<div class="aluno-chip'+(selected?' selected':'')+'" onclick="selectAluno(\''+a.id+'\')" style="'+chipFade+'">'
       +'<div class="chip-foto">'+avatarHtml(a,32)+'</div>'
       +'<div class="chip-nome">'+a.nome+'</div>'
       +(a.serie?'<div style="font-size:9px;color:var(--gray400)">'+a.serie+'</div>':'')

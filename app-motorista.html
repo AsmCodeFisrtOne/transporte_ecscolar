@@ -471,7 +471,7 @@ function startTrip(){
   setText('trip-status','✅ Viagem em andamento');
   // Update GPS to reflect trip started
   window.gpsRef.update({viagem_ativa:true});
-  renderAcoesPainel();
+  renderPainel();
   db.collection('mensagens').add({texto:'🚐 Viagem iniciada!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   rdb.ref('viagem_ativa').set(true);
   showToast('✅ Viagem iniciada!');
@@ -552,12 +552,13 @@ function renderPainel(){
     return;
   }
   var etapaLabel={embarcou:'Na van',faltou:'Faltou',em_casa:'Em casa',na_escola:'Na escola'};
+  var chipFade = tripStarted ? '' : 'opacity:.35;cursor:not-allowed;pointer-events:none;';
   chips.innerHTML=alunosData.map(function(a){
     var s=statusCache[a.id]||{};
     var etapa=s.etapa;
     var sel=selectedAlunoId===a.id;
     var border=sel?'#0F172A':'#E2E8F0', bg=sel?'#0F172A':'#fff', nameColor=sel?'#FFD23F':'#1E293B';
-    return '<div class="chip-clickable" data-aluno-id="'+a.id+'" onclick="selectAlunoPainel(this.dataset.alunoId)" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;border:2px solid '+border+';background:'+bg+';cursor:pointer;flex-shrink:0;min-width:70px">'
+    return '<div class="chip-clickable" data-aluno-id="'+a.id+'" onclick="selectAlunoPainel(this.dataset.alunoId)" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;border:2px solid '+border+';background:'+bg+';cursor:pointer;flex-shrink:0;min-width:70px;'+chipFade+'">'
       +avatarHtml(a,36)
       +'<div style="font-size:11px;font-weight:600;color:'+nameColor+';text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nome+'</div>'
       +(a.serie?'<div style="font-size:9px;color:#94A3B8">'+a.serie+'</div>':'')
@@ -574,23 +575,21 @@ function selectAlunoPainel(id){
 
 function renderAcoesPainel(){
   var acoes=el('alunos-acoes'); if(!acoes) return;
-  if(!tripStarted){
-    acoes.innerHTML='<div style="text-align:center;color:#94A3B8;font-size:13px;padding:20px">Inicie a viagem para registrar ações</div>';
-    return;
-  }
-  if(!selectedAlunoId){
-    acoes.innerHTML='<div style="text-align:center;color:#94A3B8;font-size:13px;padding:20px">Selecione um aluno acima</div>';
-    return;
-  }
-  var a=alunosData.find(function(x){ return x.id===selectedAlunoId; });
-  if(!a){ acoes.innerHTML=''; return; }
-  acoes.innerHTML=
-    '<div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:4px">'+a.nome+'</div>'
-    +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="embarcou" onclick="regAcaoEl(this)" style="width:100%;padding:14px;border-radius:14px;border:none;background:#22C55E;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:0">✅ Embarcou na van</button>'
-    +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="na_escola" onclick="regAcaoEl(this)" style="width:100%;padding:14px;border-radius:14px;border:none;background:#3B82F6;color:#fff;font-size:15px;font-weight:700;cursor:pointer">🏫 Chegou na escola</button>'
-    +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="em_casa" onclick="regAcaoEl(this)" style="width:100%;padding:14px;border-radius:14px;border:none;background:#8B5CF6;color:#fff;font-size:15px;font-weight:700;cursor:pointer">🏠 Chegou em casa</button>'
-    +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" data-etapa="faltou" onclick="regAcaoEl(this)" style="width:100%;padding:14px;border-radius:14px;border:none;background:#EF4444;color:#fff;font-size:15px;font-weight:700;cursor:pointer">❌ Faltou</button>'
-    +'<button data-id="'+a.id+'" data-nome="'+a.nome+'" onclick="avisarProximo(this)" style="width:100%;padding:14px;border-radius:14px;border:none;background:#FFD23F;color:#0F172A;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px">📍 Avisar: próximo a embarcar</button>';
+  var a = selectedAlunoId ? alunosData.find(function(x){ return x.id===selectedAlunoId; }) : null;
+  var enabled = tripStarted && !!a;
+  var dis = enabled ? '' : 'disabled';
+  var fade = enabled ? '' : 'opacity:.35;cursor:not-allowed;';
+  var id = a ? a.id : '';
+  var nome = a ? a.nome : '';
+  var titleHtml = a
+    ? '<div style="font-size:14px;font-weight:700;color:#1E293B;margin-bottom:4px">'+a.nome+'</div>'
+    : '<div style="font-size:13px;color:#94A3B8;margin-bottom:4px;text-align:center">'+(tripStarted?'Selecione um aluno acima':'Inicie a viagem para registrar ações')+'</div>';
+  acoes.innerHTML=titleHtml
+    +'<button '+dis+' data-id="'+id+'" data-nome="'+nome+'" data-etapa="embarcou" onclick="regAcaoEl(this)" style="width:100%;padding:14px;border-radius:14px;border:none;background:#22C55E;color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-bottom:0;'+fade+'">✅ Embarcou na van</button>'
+    +'<button '+dis+' data-id="'+id+'" data-nome="'+nome+'" data-etapa="na_escola" onclick="regAcaoEl(this)" style="width:100%;padding:14px;border-radius:14px;border:none;background:#3B82F6;color:#fff;font-size:15px;font-weight:700;cursor:pointer;'+fade+'">🏫 Chegou na escola</button>'
+    +'<button '+dis+' data-id="'+id+'" data-nome="'+nome+'" data-etapa="em_casa" onclick="regAcaoEl(this)" style="width:100%;padding:14px;border-radius:14px;border:none;background:#8B5CF6;color:#fff;font-size:15px;font-weight:700;cursor:pointer;'+fade+'">🏠 Chegou em casa</button>'
+    +'<button '+dis+' data-id="'+id+'" data-nome="'+nome+'" data-etapa="faltou" onclick="regAcaoEl(this)" style="width:100%;padding:14px;border-radius:14px;border:none;background:#EF4444;color:#fff;font-size:15px;font-weight:700;cursor:pointer;'+fade+'">❌ Faltou</button>'
+    +'<button '+dis+' data-id="'+id+'" data-nome="'+nome+'" onclick="avisarProximo(this)" style="width:100%;padding:14px;border-radius:14px;border:none;background:#FFD23F;color:#0F172A;font-size:15px;font-weight:700;cursor:pointer;margin-top:4px;'+fade+'">📍 Avisar: próximo a embarcar</button>';
 }
 
 function avisarProximo(btn){
