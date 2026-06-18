@@ -23,6 +23,8 @@ const rdb = firebase.database();
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button{transition:transform .1s ease,filter .1s ease}
+button:active{transform:scale(0.95);filter:brightness(0.85)}
 html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0F172A;overflow:hidden}
 :root{--navy:#0F172A;--yellow:#FFD23F;--green:#22C55E;--red:#EF4444;--orange:#F97316;--blue:#3B82F6;--white:#fff;--gray50:#F8FAFC;--gray100:#F1F5F9;--gray200:#E2E8F0;--gray400:#94A3B8;}
 
@@ -47,6 +49,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 .aluno-selector-title{font-size:11px;font-weight:700;color:var(--gray400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 #alunos-scroll{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px}
 .aluno-chip{display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;border:2px solid var(--gray200);background:var(--white);cursor:pointer;flex-shrink:0;min-width:70px;transition:all .15s}
+.aluno-chip:active{transform:scale(0.95)}
 .aluno-chip.selected{border-color:var(--navy);background:var(--navy)}
 .aluno-chip.selected .chip-nome{color:var(--yellow)}
 .aluno-chip.selected .chip-foto{filter:none}

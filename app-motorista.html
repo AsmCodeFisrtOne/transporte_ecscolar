@@ -26,6 +26,8 @@ window.gpsRef = rdb.ref('localizacao_atual');
 </script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+button{transition:transform .1s ease,filter .1s ease}
+button:active{transform:scale(0.95);filter:brightness(0.85)}
 html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0F172A;overflow:hidden}
 :root{
   --navy:#0F172A;--navy2:#1E293B;--yellow:#FFD23F;
@@ -523,7 +525,7 @@ function renderPainel(){
     var etapa=s.etapa;
     var sel=selectedAlunoId===a.id;
     var border=sel?'#0F172A':'#E2E8F0', bg=sel?'#0F172A':'#fff', nameColor=sel?'#FFD23F':'#1E293B';
-    return '<div data-aluno-id="'+a.id+'" onclick="selectAlunoPainel(this.dataset.alunoId)" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;border:2px solid '+border+';background:'+bg+';cursor:pointer;flex-shrink:0;min-width:70px">'
+    return '<div class="chip-clickable" data-aluno-id="'+a.id+'" onclick="selectAlunoPainel(this.dataset.alunoId)" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;border:2px solid '+border+';background:'+bg+';cursor:pointer;flex-shrink:0;min-width:70px">'
       +'<div style="font-size:22px">'+(a.foto||'👤')+'</div>'
       +'<div style="font-size:11px;font-weight:600;color:'+nameColor+';text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nome+'</div>'
       +(a.serie?'<div style="font-size:9px;color:#94A3B8">'+a.serie+'</div>':'')
