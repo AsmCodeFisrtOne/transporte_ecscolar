@@ -139,10 +139,10 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 #modal-pai.open{display:flex}
 #modal-escola{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
 #modal-escola.open{display:flex}
+#modal-rota{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
+#modal-rota.open{display:flex}
 #modal-geo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:250;align-items:flex-end;justify-content:center}
 #modal-geo.open{display:flex}
-#modal-prioridade{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:260;align-items:flex-end;justify-content:center}
-#modal-prioridade.open{display:flex}
 .modal-box{background:var(--white);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px}
 .modal-title{font-size:16px;font-weight:700;color:var(--navy)}
 .modal-inp{padding:12px 14px;border-radius:10px;border:1.5px solid var(--gray200);font-size:14px;font-family:'Inter',sans-serif;outline:none;width:100%}
@@ -241,29 +241,25 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
         </div>
         <div class="trip-status" id="trip-status">Nenhuma viagem ativa</div>
         <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
-          <select id="auto-turno" onchange="salvarEstadoAutomatico()" style="flex:1;padding:9px;border-radius:8px;border:1px solid #E2E8F0;font-size:13px;font-family:'Inter',sans-serif">
-            <option value="manha">Manhã</option>
-            <option value="tarde">Tarde</option>
-            <option value="noite">Noite</option>
+          <select id="rota-selecionada" onchange="aoTrocarRotaSelecionada()" style="flex:1;padding:9px;border-radius:8px;border:1px solid #E2E8F0;font-size:13px;font-family:'Inter',sans-serif">
+            <option value="">— Selecione uma rota —</option>
           </select>
-          <select id="auto-sentido" onchange="salvarEstadoAutomatico()" style="flex:1;padding:9px;border-radius:8px;border:1px solid #E2E8F0;font-size:13px;font-family:'Inter',sans-serif">
-            <option value="ida">Ida (casa→escola)</option>
-            <option value="volta">Volta (escola→casa)</option>
-          </select>
+          <button onclick="iniciarRotaSelecionada()" style="background:#0F172A;color:#FFD23F;border:none;border-radius:8px;padding:9px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">▶ Iniciar rota</button>
         </div>
+        <div id="rota-progresso" style="display:none;margin-top:8px;font-size:12px;color:#64748B;text-align:center;font-weight:600"></div>
         <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
           <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#1E293B;cursor:pointer;white-space:nowrap;background:#F1F5F9;padding:9px 12px;border-radius:8px;flex:1">
             <input type="checkbox" id="modo-auto-toggle" onchange="toggleModoAutomatico()" style="width:16px;height:16px">
             🤖 Modo automático
           </label>
-          <button onclick="confirmarResetTurno()" style="background:#FEF3C7;color:#92400E;border:none;border-radius:8px;padding:9px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap">🔄 Novo trajeto</button>
         </div>
         <div id="auto-suggestion" style="display:none;margin-top:10px;background:#0F172A;border-radius:14px;padding:14px">
           <div id="auto-suggestion-text" style="color:#FFD23F;font-weight:700;font-size:14px;margin-bottom:10px"></div>
           <div id="auto-suggestion-buttons" style="display:flex;gap:8px"></div>
           <div style="display:flex;gap:8px;margin-top:8px">
             <button onclick="avisarChegadaSugestao()" style="flex:1;background:rgba(255,210,63,.15);color:#FFD23F;border:1px solid rgba(255,210,63,.3);border-radius:10px;padding:9px;font-weight:700;font-size:12px;cursor:pointer">📍 Avisar pais</button>
-            <button onclick="pularSugestaoAtual()" style="flex:1;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:9px;font-weight:700;font-size:12px;cursor:pointer">⏭ Pular (resolver manualmente)</button>
+            <button onclick="voltarParadaAnterior()" style="background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:9px 12px;font-weight:700;font-size:12px;cursor:pointer">◀</button>
+            <button onclick="pularSugestaoAtual()" style="flex:1;background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.2);border-radius:10px;padding:9px;font-weight:700;font-size:12px;cursor:pointer">⏭ Pular</button>
           </div>
         </div>
       </div>
@@ -335,8 +331,12 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
       <!-- ALUNOS -->
       <div class="adm-section">
         <div class="adm-title">👦 Alunos <span id="alunos-count" style="font-weight:400;color:var(--gray400);font-size:12px"></span><button class="adm-btn" onclick="openModalPai()">+ Novo pai/aluno</button></div>
-        <div style="padding:10px 14px;border-bottom:1px solid var(--gray200)"><button onclick="verificarTodosConflitosTexto()" style="width:100%;background:#FEF3C7;color:#92400E;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">🔍 Verificar conflitos de endereço em todos os alunos</button></div>
         <div id="alunos-admin"></div>
+      </div>
+      <!-- ROTAS -->
+      <div class="adm-section">
+        <div class="adm-title">🗺️ Rotas <span id="rotas-count" style="font-weight:400;color:var(--gray400);font-size:12px"></span><button class="adm-btn" onclick="openModalRota()">+ Nova rota</button></div>
+        <div id="rotas-admin"></div>
       </div>
     </div>
   </div>
@@ -355,6 +355,27 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     </div>
   </div>
 
+  <!-- MODAL ROTA -->
+  <div id="modal-rota">
+    <div class="modal-box" style="max-height:90vh">
+      <div class="modal-title" id="rota-modal-title">🗺️ Nova rota</div>
+      <input class="modal-inp" id="m-rota-nome" placeholder="Nome da rota (ex: Manhã Completa)">
+      <div style="font-size:12px;color:var(--gray400);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Paradas, na ordem que a van percorre</div>
+      <div id="rota-paradas-list" style="max-height:35vh;overflow-y:auto"></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        <button onclick="adicionarParadaRota('embarque_casa')" style="flex:1;min-width:45%;background:#DCFCE7;color:#166534;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">🏠➡️ Embarcar (casa)</button>
+        <button onclick="adicionarParadaRota('desembarque_escola')" style="flex:1;min-width:45%;background:#DBEAFE;color:#1D4ED8;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">🏫⬅️ Desembarcar (escola)</button>
+        <button onclick="adicionarParadaRota('embarque_escola')" style="flex:1;min-width:45%;background:#DBEAFE;color:#1D4ED8;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">🏫➡️ Embarcar (escola)</button>
+        <button onclick="adicionarParadaRota('desembarque_casa')" style="flex:1;min-width:45%;background:#F3E8FF;color:#7C3AED;border:none;border-radius:8px;padding:9px;font-size:12px;font-weight:700;cursor:pointer">🏠⬅️ Desembarcar (casa)</button>
+      </div>
+      <div class="modal-err" id="m-rota-err"></div>
+      <div class="modal-actions">
+        <button class="modal-cancel" onclick="closeModalRota()">Cancelar</button>
+        <button class="modal-ok" onclick="salvarRota()">💾 Salvar rota</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL MAPA / GEOLOCALIZAÇÃO -->
   <div id="modal-geo">
     <div class="modal-box" style="max-height:90vh">
@@ -366,18 +387,6 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
       <div class="modal-actions">
         <button class="modal-cancel" onclick="closeModalGeo()">Cancelar</button>
         <button class="modal-ok" onclick="confirmarLocalizacao()">✅ Confirmar localização</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL PRIORIDADE DE DESEMPATE (conflito de proximidade) -->
-  <div id="modal-prioridade">
-    <div class="modal-box">
-      <div class="modal-title">⚠️ Conflito de proximidade</div>
-      <div style="font-size:13px;color:var(--gray400)">Esses alunos têm endereços a menos de 80 metros entre si. Defina quem tem prioridade quando os dois estiverem pendentes ao mesmo tempo na rota:</div>
-      <div id="prioridade-list"></div>
-      <div class="modal-actions">
-        <button class="modal-ok" onclick="confirmarOrdemPrioridade()" style="width:100%">✅ Confirmar ordem</button>
       </div>
     </div>
   </div>
@@ -497,9 +506,9 @@ function switchView(name,btn){
   if(name==='fin') loadFin();
   if(name==='mapaauto'){
     setTimeout(function(){
-      initMapaAuto();
-      if(mapaAutoMap) mapaAutoMap.invalidateSize();
-      atualizarMapaAuto();
+      initMapaRota();
+      if(mapaRotaMap) mapaRotaMap.invalidateSize();
+      atualizarMapaRota();
     }, 80);
   }
 }
@@ -536,8 +545,8 @@ function toggleGPS(){
       var badge=el('spd-badge');
       if(badge){ badge.textContent=spd<10?'● PARADO':'▶ '+spd+' km/h'; badge.className='tb-badge '+(spd<10?'stopped':'moving'); }
       publishGps(lat,lng,spd);
-      if(modoAutomaticoAtivo && tripStarted) processarDeteccaoAutomatica(lat,lng);
-      atualizarMapaAuto();
+      if(modoAutomaticoAtivo && tripStarted) processarParadaAtual(lat,lng);
+      atualizarMapaRota();
     },
     function(err){ showToast('❌ GPS: '+err.message); },
     {enableHighAccuracy:true,maximumAge:5000}
@@ -547,7 +556,7 @@ function toggleGPS(){
   gpsHeartbeatInterval = setInterval(function(){
     if(lastGpsPosition){
       publishGps(lastGpsPosition.lat,lastGpsPosition.lng,lastGpsPosition.spd);
-      if(modoAutomaticoAtivo && tripStarted) processarDeteccaoAutomatica(lastGpsPosition.lat,lastGpsPosition.lng);
+      if(modoAutomaticoAtivo && tripStarted) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
     }
   }, 5000);
 }
@@ -737,14 +746,9 @@ function confirmarLocalizacao(){
   if(!geoMarker){ showToast('⚠️ Posicione o pino no mapa primeiro'); return; }
   var p=geoMarker.getLatLng();
   var colecao = geoTipo==='aluno' ? 'alunos' : 'escolas';
-  var tipoSalvo=geoTipo, idSalvo=geoId;
-  db.doc(colecao+'/'+idSalvo).update({lat:p.lat, lng:p.lng}).then(function(){
+  db.doc(colecao+'/'+geoId).update({lat:p.lat, lng:p.lng}).then(function(){
     closeModalGeo();
-    if(tipoSalvo==='aluno'){
-      recalcularConflitos(idSalvo, p.lat, p.lng);
-    } else {
-      showToast('✅ Localização salva!');
-    }
+    showToast('✅ Localização salva!');
   });
 }
 
@@ -753,215 +757,12 @@ function closeModalGeo(){
   if(geoMap){ geoMap.remove(); geoMap=null; geoMarker=null; geoCircle=null; }
 }
 
-// ===== CONFLITO DE PROXIMIDADE (prioridade de desempate) =====
-var RAIO_CONFLITO_M = 80;
+// Fórmula de distância entre coordenadas (Haversine), usada pelo motor de rotas
 function distanciaMetros(lat1,lng1,lat2,lng2){
   var R=6371000;
   var dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
   var a=Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-
-var filaPrioridade = []; // fila de grupos pendentes de confirmação
-var grupoAtualPrioridade = []; // grupo (array de alunos) sendo editado no modal agora
-
-function recalcularConflitos(alunoEditadoId, latNovo, lngNovo){
-  // Busca fresca do servidor (mesmo princípio da checagem por texto: não confia no
-  // cache local alunosData, que pode estar momentaneamente desatualizado)
-  db.collection('alunos').get().then(function(snap){
-    var todos=[];
-    snap.forEach(function(d){ todos.push(Object.assign({id:d.id},d.data())); });
-
-    var geocoded = todos
-      .filter(function(a){ return (a.lat!=null && a.lng!=null) || a.id===alunoEditadoId; })
-      .map(function(a){
-        return a.id===alunoEditadoId ? Object.assign({},a,{lat:latNovo,lng:lngNovo}) : a;
-      });
-
-    var parent={};
-    geocoded.forEach(function(a){ parent[a.id]=a.id; });
-    function find(x){ while(parent[x]!==x){ x=parent[x]; } return x; }
-    function union(x,y){ var rx=find(x),ry=find(y); if(rx!==ry) parent[rx]=ry; }
-    for(var i=0;i<geocoded.length;i++){
-      for(var j=i+1;j<geocoded.length;j++){
-        if(distanciaMetros(geocoded[i].lat,geocoded[i].lng,geocoded[j].lat,geocoded[j].lng) <= RAIO_CONFLITO_M){
-          union(geocoded[i].id, geocoded[j].id);
-        }
-      }
-    }
-    var groups={};
-    geocoded.forEach(function(a){ var r=find(a.id); (groups[r]=groups[r]||[]).push(a); });
-
-    // Alunos que precisam ser reavaliados: o editado + quem estava no grupo antigo dele
-    var alunoEditado = todos.find(function(a){ return a.id===alunoEditadoId; });
-    var oldGrupoId = alunoEditado ? alunoEditado.grupo_conflito_id : null;
-    var idsParaReavaliar = {}; idsParaReavaliar[alunoEditadoId]=true;
-    if(oldGrupoId){
-      todos.forEach(function(a){ if(a.grupo_conflito_id===oldGrupoId) idsParaReavaliar[a.id]=true; });
-    }
-
-    var rootsToProcess={};
-    Object.keys(idsParaReavaliar).forEach(function(id){
-      if(parent[id]!==undefined) rootsToProcess[find(id)]=true;
-    });
-
-    var clearUpdates=[];
-    var gruposParaPerguntar=[];
-
-    Object.keys(rootsToProcess).forEach(function(r){
-      var membros=groups[r]||[];
-      if(membros.length<2){
-        membros.forEach(function(m){
-          if(m.grupo_conflito_id) clearUpdates.push(m.id);
-        });
-        return;
-      }
-      gruposParaPerguntar.push(membros);
-    });
-
-    var promessa = Promise.resolve();
-    if(clearUpdates.length){
-      var batch=db.batch();
-      clearUpdates.forEach(function(id){ batch.update(db.doc('alunos/'+id),{grupo_conflito_id:null,prioridade_grupo:null}); });
-      promessa = batch.commit();
-    }
-
-    promessa.then(function(){
-      if(gruposParaPerguntar.length){
-        filaPrioridade = gruposParaPerguntar;
-        abrirProximoModalPrioridade();
-      } else {
-        showToast('✅ Localização salva!');
-      }
-    });
-  });
-}
-
-function verificarTodosConflitosTexto(){
-  var grupos={};
-  alunosData.forEach(function(a){
-    var norm=normalizarEndereco(a.endereco);
-    if(!norm) return;
-    (grupos[norm]=grupos[norm]||[]).push(a);
-  });
-  var encontrados=0;
-  Object.keys(grupos).forEach(function(k){
-    if(grupos[k].length<2) return;
-    filaPrioridade.push(grupos[k]);
-    encontrados++;
-  });
-  // Também verifica conflitos por distância (80m) entre todos que já têm coordenada
-  var geocoded=alunosData.filter(function(a){ return a.lat!=null && a.lng!=null; });
-  var parent={};
-  geocoded.forEach(function(a){ parent[a.id]=a.id; });
-  function find(x){ while(parent[x]!==x){ x=parent[x]; } return x; }
-  function union(x,y){ var rx=find(x),ry=find(y); if(rx!==ry) parent[rx]=ry; }
-  for(var i=0;i<geocoded.length;i++){
-    for(var j=i+1;j<geocoded.length;j++){
-      if(distanciaMetros(geocoded[i].lat,geocoded[i].lng,geocoded[j].lat,geocoded[j].lng)<=RAIO_CONFLITO_M){
-        union(geocoded[i].id,geocoded[j].id);
-      }
-    }
-  }
-  var gruposGeo={};
-  geocoded.forEach(function(a){ var r=find(a.id); (gruposGeo[r]=gruposGeo[r]||[]).push(a); });
-  Object.keys(gruposGeo).forEach(function(r){
-    if(gruposGeo[r].length<2) return;
-    // Evita duplicar grupo já enfileirado pelo texto (mesmo conjunto de ids)
-    var idsGeo=gruposGeo[r].map(function(a){return a.id;}).sort().join(',');
-    var jaTinha=filaPrioridade.some(function(g){ return g.map(function(a){return a.id;}).sort().join(',')===idsGeo; });
-    if(!jaTinha){ filaPrioridade.push(gruposGeo[r]); encontrados++; }
-  });
-  if(encontrados){
-    showToast('⚠️ '+encontrados+' conflito(s) encontrado(s)');
-    abrirProximoModalPrioridade();
-  } else {
-    showToast('✅ Nenhum conflito encontrado entre os alunos cadastrados');
-  }
-}
-
-function normalizarEndereco(s){
-  return (s||'').trim().toLowerCase().replace(/\s+/g,' ');
-}
-function verificarEnderecoDuplicado(alunoId, enderecoTexto, nomeAtual){
-  var norm = normalizarEndereco(enderecoTexto);
-  if(!norm) return;
-  // Busca direto do servidor (não confia no cache local alunosData, que pode estar
-  // momentaneamente desatualizado se dois alunos forem criados em sequência rápida)
-  db.collection('alunos').get().then(function(snap){
-    var duplicados=[];
-    snap.forEach(function(d){
-      if(d.id===alunoId) return;
-      var data=d.data();
-      if(normalizarEndereco(data.endereco)===norm){
-        duplicados.push(Object.assign({id:d.id},data));
-      }
-    });
-    if(!duplicados.length) return;
-    var alunoAtualObj = alunosData.find(function(a){ return a.id===alunoId; })
-      || {id:alunoId, nome:nomeAtual, prioridade_grupo:null, grupo_conflito_id:null};
-    var grupo=[alunoAtualObj].concat(duplicados);
-    filaPrioridade.push(grupo);
-    if(!el('modal-prioridade').classList.contains('open')){
-      abrirProximoModalPrioridade();
-    }
-  });
-}
-
-function abrirProximoModalPrioridade(){
-  if(!filaPrioridade.length) return;
-  grupoAtualPrioridade = filaPrioridade.shift();
-  // Ordena por prioridade já existente (se houver), senão por nome, novos entram no fim
-  grupoAtualPrioridade.sort(function(a,b){
-    var pa = (a.prioridade_grupo!=null) ? a.prioridade_grupo : 999;
-    var pb = (b.prioridade_grupo!=null) ? b.prioridade_grupo : 999;
-    if(pa!==pb) return pa-pb;
-    return (a.nome||'').localeCompare(b.nome||'');
-  });
-  renderPrioridadeList();
-  el('modal-prioridade').classList.add('open');
-}
-
-function renderPrioridadeList(){
-  var box=el('prioridade-list'); if(!box) return;
-  var total=grupoAtualPrioridade.length;
-  box.innerHTML=grupoAtualPrioridade.map(function(a,idx){
-    var btnUp = idx>0 ? '<button onclick="moverPrioridade('+idx+',-1)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px">▲</button>' : '<span style="display:inline-block;width:34px"></span>';
-    var btnDown = idx<total-1 ? '<button onclick="moverPrioridade('+idx+',1)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px">▼</button>' : '<span style="display:inline-block;width:34px"></span>';
-    return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--gray200)">'
-      +'<div style="width:24px;text-align:center;font-weight:800;color:var(--navy)">'+(idx+1)+'º</div>'
-      +'<div style="flex:1;font-size:14px;font-weight:600">'+(a.nome||'')+'</div>'
-      +btnUp+btnDown
-      +'</div>';
-  }).join('');
-}
-function moverPrioridade(idx,dir){
-  var novo=idx+dir;
-  if(novo<0||novo>=grupoAtualPrioridade.length) return;
-  var tmp=grupoAtualPrioridade[idx]; grupoAtualPrioridade[idx]=grupoAtualPrioridade[novo]; grupoAtualPrioridade[novo]=tmp;
-  renderPrioridadeList();
-}
-function confirmarOrdemPrioridade(){
-  var grupoId = 'grp_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
-  var batch=db.batch();
-  grupoAtualPrioridade.forEach(function(a,idx){
-    batch.update(db.doc('alunos/'+a.id),{grupo_conflito_id:grupoId, prioridade_grupo:idx});
-  });
-  batch.commit().then(function(){
-    el('modal-prioridade').classList.remove('open');
-    // Atualiza o cache local imediatamente (o listener do Firestore pode demorar a refletir),
-    // garantindo que o label "Prioridade de desempate" mostre o valor certo na hora
-    grupoAtualPrioridade.forEach(function(a,idx){
-      var cached = alunosData.find(function(x){ return x.id===a.id; });
-      if(cached){ cached.grupo_conflito_id=grupoId; cached.prioridade_grupo=idx; }
-    });
-    renderAlunosAdmin();
-    if(filaPrioridade.length){
-      abrirProximoModalPrioridade();
-    } else {
-      showToast('✅ Prioridade definida!');
-    }
-  });
 }
 
 function listenStatus(){
@@ -1004,391 +805,379 @@ function regAcao(id, nome, etapa){
   showToast(msgs[etapa]||'✅ Atualizado');
 }
 
-// ===== MODO AUTOMÁTICO (detecção de chegada por GPS) =====
+// ===== ROTAS: cadastro (CRUD) =====
+var rotasData = [];
+var rotaParadasEditando = [];
+var rotaEditandoId = null;
+var rotasCarregadasUmaVez = false;
+
+function listenRotas(){
+  db.collection('rotas').orderBy('nome','asc').onSnapshot(function(snap){
+    rotasData=[];
+    snap.forEach(function(d){ rotasData.push({id:d.id,...d.data()}); });
+    setText('rotas-count', rotasData.length+' rota(s)');
+    renderRotasAdmin();
+    popularSelectRotas();
+    if(!rotasCarregadasUmaVez){
+      rotasCarregadasUmaVez=true;
+      restaurarProgressoRota();
+    }
+  });
+}
+
+function nomeParada(p){
+  if(p.tipo==='embarque_casa' || p.tipo==='desembarque_casa'){
+    var a=alunosData.find(function(x){ return x.id===p.aluno_id; });
+    return a ? a.nome : '(aluno removido)';
+  } else {
+    var e=escolasData.find(function(x){ return x.id===p.escola_id; });
+    return e ? e.nome : '(escola removida)';
+  }
+}
+function iconeParada(tipo){
+  return {embarque_casa:'🏠➡️', desembarque_escola:'🏫⬅️', embarque_escola:'🏫➡️', desembarque_casa:'🏠⬅️'}[tipo] || '•';
+}
+
+function renderRotasAdmin(){
+  var box=el('rotas-admin'); if(!box) return;
+  if(!rotasData.length){
+    box.innerHTML='<div style="padding:16px;text-align:center;color:var(--gray400);font-size:13px">Nenhuma rota cadastrada ainda</div>';
+    return;
+  }
+  box.innerHTML=rotasData.map(function(r){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--gray200);gap:8px">'
+      +'<div style="flex:1;min-width:0" onclick="openModalRota(\''+r.id+'\')"><div style="font-weight:700;font-size:14px;color:#1E293B">'+r.nome+'</div><div style="font-size:12px;color:var(--gray400)">'+(r.paradas||[]).length+' parada(s)</div></div>'
+      +'<button onclick="openModalRota(\''+r.id+'\')" style="background:#F1F5F9;border:none;border-radius:8px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0">✏️</button>'
+      +'<button onclick="deleteRota(\''+r.id+'\',\''+r.nome.replace(/'/g,"\\'")+'\')" style="background:#FEF2F2;color:var(--red);border:none;border-radius:8px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0">🗑️</button>'
+      +'</div>';
+  }).join('');
+}
+
+function openModalRota(rotaId){
+  rotaEditandoId = rotaId || null;
+  var rota = rotaId ? rotasData.find(function(r){ return r.id===rotaId; }) : null;
+  setText('rota-modal-title', rota ? '🗺️ Editar rota' : '🗺️ Nova rota');
+  el('m-rota-nome').value = rota ? rota.nome : '';
+  rotaParadasEditando = rota ? JSON.parse(JSON.stringify(rota.paradas||[])) : [];
+  setText('m-rota-err','');
+  renderRotaParadasEditando();
+  el('modal-rota').classList.add('open');
+}
+function closeModalRota(){ el('modal-rota').classList.remove('open'); }
+
+function renderRotaParadasEditando(){
+  var box=el('rota-paradas-list'); if(!box) return;
+  if(!rotaParadasEditando.length){
+    box.innerHTML='<div style="padding:12px;text-align:center;color:var(--gray400);font-size:13px">Use os botões abaixo para adicionar paradas</div>';
+    return;
+  }
+  var total=rotaParadasEditando.length;
+  box.innerHTML=rotaParadasEditando.map(function(p,idx){
+    var btnUp = idx>0 ? '<button onclick="moverParadaRota('+idx+',-1)" style="background:none;border:none;font-size:16px;cursor:pointer;padding:2px 6px">▲</button>' : '<span style="display:inline-block;width:26px"></span>';
+    var btnDown = idx<total-1 ? '<button onclick="moverParadaRota('+idx+',1)" style="background:none;border:none;font-size:16px;cursor:pointer;padding:2px 6px">▼</button>' : '<span style="display:inline-block;width:26px"></span>';
+    return '<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-bottom:1px solid var(--gray200)">'
+      +'<div style="width:20px;text-align:center;color:var(--gray400);font-size:11px;font-weight:700">'+(idx+1)+'</div>'
+      +'<div style="flex:1;font-size:13px">'+iconeParada(p.tipo)+' '+nomeParada(p)+'</div>'
+      +btnUp+btnDown
+      +'<button onclick="removerParadaRota('+idx+')" style="background:none;border:none;font-size:15px;cursor:pointer;padding:2px 6px;color:var(--red)">✕</button>'
+      +'</div>';
+  }).join('');
+}
+function moverParadaRota(idx,dir){
+  var novo=idx+dir;
+  if(novo<0||novo>=rotaParadasEditando.length) return;
+  var tmp=rotaParadasEditando[idx]; rotaParadasEditando[idx]=rotaParadasEditando[novo]; rotaParadasEditando[novo]=tmp;
+  renderRotaParadasEditando();
+}
+function removerParadaRota(idx){ rotaParadasEditando.splice(idx,1); renderRotaParadasEditando(); }
+
+function adicionarParadaRota(tipo){
+  if(tipo==='embarque_casa' || tipo==='desembarque_casa'){
+    if(!alunosData.length){ showToast('⚠️ Nenhum aluno cadastrado'); return; }
+    var opcoes=alunosData.map(function(a,i){ return (i+1)+'. '+a.nome; }).join('\n');
+    var escolha=window.prompt('Digite o número do aluno:\n'+opcoes);
+    if(escolha===null) return;
+    var idx=parseInt(escolha,10)-1;
+    if(isNaN(idx)||!alunosData[idx]){ showToast('⚠️ Número inválido'); return; }
+    rotaParadasEditando.push({tipo:tipo, aluno_id:alunosData[idx].id});
+  } else {
+    if(!escolasData.length){ showToast('⚠️ Nenhuma escola cadastrada'); return; }
+    var opcoesE=escolasData.map(function(e,i){ return (i+1)+'. '+e.nome; }).join('\n');
+    var escolhaE=window.prompt('Digite o número da escola:\n'+opcoesE);
+    if(escolhaE===null) return;
+    var idxE=parseInt(escolhaE,10)-1;
+    if(isNaN(idxE)||!escolasData[idxE]){ showToast('⚠️ Número inválido'); return; }
+    rotaParadasEditando.push({tipo:tipo, escola_id:escolasData[idxE].id});
+  }
+  renderRotaParadasEditando();
+}
+
+function salvarRota(){
+  var nome=val('m-rota-nome');
+  if(!nome){ setText('m-rota-err','⚠️ Dê um nome para a rota'); return; }
+  if(!rotaParadasEditando.length){ setText('m-rota-err','⚠️ Adicione ao menos uma parada'); return; }
+  var dados={nome:nome, paradas:rotaParadasEditando};
+  var promessa = rotaEditandoId ? db.doc('rotas/'+rotaEditandoId).set(dados) : db.collection('rotas').add(dados);
+  promessa.then(function(){
+    closeModalRota();
+    showToast('✅ Rota salva!');
+  });
+}
+function deleteRota(id,nome){
+  if(!window.confirm('Excluir a rota "'+nome+'"?')) return;
+  db.doc('rotas/'+id).delete().then(function(){ showToast('🗑️ Rota excluída'); });
+}
+
+// ===== ROTAS: motor de execução (modo automático) =====
+var RAIO_PARADA_M = 80;
+var rotaEmExecucao = null;
+var indiceParadaAtual = -1;
 var modoAutomaticoAtivo = false;
 var sugestaoAtual = null;
-var idsIgnoradosAuto = {}; // id (ou 'escola_'+id) -> true enquanto ignorado via botão "Pular"
+
+function popularSelectRotas(){
+  var sel=el('rota-selecionada'); if(!sel) return;
+  var atual=sel.value;
+  sel.innerHTML='<option value="">— Selecione uma rota —</option>'
+    + rotasData.map(function(r){ return '<option value="'+r.id+'"'+(r.id===atual?' selected':'')+'>'+r.nome+' ('+(r.paradas||[]).length+' paradas)</option>'; }).join('');
+}
+function aoTrocarRotaSelecionada(){ /* só guarda a escolha; precisa clicar em Iniciar pra valer */ }
+
+function iniciarRotaSelecionada(){
+  var rotaId=val('rota-selecionada');
+  var rota=rotasData.find(function(r){ return r.id===rotaId; });
+  if(!rota){ showToast('⚠️ Selecione uma rota primeiro'); return; }
+  rotaEmExecucao=rota;
+  indiceParadaAtual=0;
+  salvarProgressoRota();
+  atualizarUIProgresso();
+  showToast('▶ Rota "'+rota.nome+'" iniciada!');
+  if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
+}
+
+function salvarProgressoRota(){
+  rdb.ref('rota_progresso').set({
+    rotaId: rotaEmExecucao ? rotaEmExecucao.id : null,
+    indice: indiceParadaAtual
+  });
+}
+function restaurarProgressoRota(){
+  rdb.ref('rota_progresso').once('value').then(function(snap){
+    var d=snap.val();
+    if(!d || !d.rotaId) return;
+    var rota=rotasData.find(function(r){ return r.id===d.rotaId; });
+    if(!rota) return;
+    rotaEmExecucao=rota;
+    indiceParadaAtual=d.indice||0;
+    el('rota-selecionada').value=rota.id;
+    atualizarUIProgresso();
+  });
+}
+
+function paradaAtualObj(){
+  if(!rotaEmExecucao) return null;
+  var paradas=rotaEmExecucao.paradas||[];
+  if(indiceParadaAtual<0 || indiceParadaAtual>=paradas.length) return null;
+  return paradas[indiceParadaAtual];
+}
+function coordenadaParada(p){
+  if(!p) return null;
+  if(p.tipo==='embarque_casa' || p.tipo==='desembarque_casa'){
+    var a=alunosData.find(function(x){ return x.id===p.aluno_id; });
+    return a && a.lat!=null ? {lat:a.lat,lng:a.lng,nome:a.nome,alunoId:a.id} : null;
+  } else {
+    var e=escolasData.find(function(x){ return x.id===p.escola_id; });
+    return e && e.lat!=null ? {lat:e.lat,lng:e.lng,nome:e.nome,escolaId:e.id} : null;
+  }
+}
+
+function atualizarUIProgresso(){
+  var box=el('rota-progresso'); if(!box) return;
+  if(!rotaEmExecucao){ box.style.display='none'; return; }
+  var total=(rotaEmExecucao.paradas||[]).length;
+  if(indiceParadaAtual>=total){
+    box.style.display='block';
+    box.textContent='✅ Rota "'+rotaEmExecucao.nome+'" concluída!';
+    return;
+  }
+  var p=paradaAtualObj();
+  box.style.display='block';
+  box.textContent='Parada '+(indiceParadaAtual+1)+' de '+total+' — '+rotaEmExecucao.nome+': '+iconeParada(p.tipo)+' '+nomeParada(p);
+}
 
 function toggleModoAutomatico(){
   modoAutomaticoAtivo = el('modo-auto-toggle').checked;
-  salvarEstadoAutomatico();
   if(!modoAutomaticoAtivo){
     sugestaoAtual=null;
     el('auto-suggestion').style.display='none';
   } else if(lastGpsPosition){
-    processarDeteccaoAutomatica(lastGpsPosition.lat, lastGpsPosition.lng);
+    processarParadaAtual(lastGpsPosition.lat, lastGpsPosition.lng);
   }
 }
 
-// Persistência do estado (item 11): salva turno/sentido/ativo no Realtime Database,
-// assim sobrevive a um recarregamento de página ou troca de celular no meio da viagem
-function salvarEstadoAutomatico(){
-  rdb.ref('modo_automatico_estado').set({
-    turno: val('auto-turno'),
-    sentido: val('auto-sentido'),
-    ativo: modoAutomaticoAtivo
-  });
-}
-function restaurarEstadoAutomatico(){
-  rdb.ref('modo_automatico_estado').once('value').then(function(snap){
-    var d=snap.val();
-    if(!d) return;
-    if(d.turno) el('auto-turno').value=d.turno;
-    if(d.sentido) el('auto-sentido').value=d.sentido;
-    if(d.ativo){
-      el('modo-auto-toggle').checked=true;
-      modoAutomaticoAtivo=true;
-    }
-  });
-}
-
-// Reset de status por turno (item 13): limpa o status dos alunos do turno selecionado,
-// usado ao iniciar um trajeto de IDA novo (ex: novo dia). Ação manual e explícita —
-// nunca acontece sozinho, evitando apagar progresso por engano.
-function confirmarResetTurno(){
-  var turno=val('auto-turno'), sentido=val('auto-sentido');
-  var alunosDoTurno = alunosData.filter(function(a){ return a.turno===turno; });
-  if(!alunosDoTurno.length){ showToast('⚠️ Nenhum aluno cadastrado nesse turno'); return; }
-  if(sentido==='volta'){
-    if(!window.confirm('Atenção: resetar na VOLTA vai apagar quem já chegou na escola hoje (necessário pro embarque de volta funcionar). Só faça isso se for um trajeto totalmente novo. Confirma o reset dos '+alunosDoTurno.length+' aluno(s) do turno?')) return;
-  } else {
-    if(!window.confirm('Isso vai zerar o status de embarque dos '+alunosDoTurno.length+' aluno(s) do turno selecionado (uso normal: começo de um novo dia). Confirma?')) return;
-  }
-  var batch=db.batch();
-  alunosDoTurno.forEach(function(a){
-    batch.set(db.doc('status_alunos/'+a.id),{nome:a.nome,etapa:null,atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
-  });
-  batch.commit().then(function(){
-    idsIgnoradosAuto={};
-    showToast('✅ Status resetado para o novo trajeto');
-  });
-}
-
-function processarDeteccaoAutomatica(lat,lng){
-  if(!modoAutomaticoAtivo || !tripStarted) return;
-  var turno = val('auto-turno');
-  var sentido = val('auto-sentido');
-
-  // Limpa do "ignorados" quem já saiu do raio (pode voltar a ser sugerido depois)
-  Object.keys(idsIgnoradosAuto).forEach(function(key){
-    var isEscola = key.indexOf('escola_')===0;
-    var ponto = isEscola ? escolasData.find(function(e){ return e.id===key.replace('escola_',''); })
-                         : alunosData.find(function(a){ return a.id===key; });
-    if(!ponto || ponto.lat==null) return;
-    if(distanciaMetros(lat,lng,ponto.lat,ponto.lng) > RAIO_CONFLITO_M){ delete idsIgnoradosAuto[key]; }
-  });
-
-  var candidatos=[];
-
-  if(sentido==='ida'){
-    // IDA: embarque em casa (pendente = ainda não embarcou/faltou), desembarque na escola (em lote)
-    var pendentesEmbarque = alunosData.filter(function(a){
-      var etapa=(statusCache[a.id]||{}).etapa;
-      return a.turno===turno && a.lat!=null && a.lng!=null && etapa!=='embarcou' && etapa!=='faltou' && !idsIgnoradosAuto[a.id];
-    });
-    pendentesEmbarque.forEach(function(a){
-      var d=distanciaMetros(lat,lng,a.lat,a.lng);
-      if(d<=RAIO_CONFLITO_M) candidatos.push({tipo:'embarque', aluno:a, dist:d, etapaEmbarque:'embarcou'});
-    });
-
-    var escolasComAlunosABordo={};
-    alunosData.forEach(function(a){
-      var etapa=(statusCache[a.id]||{}).etapa;
-      if(a.turno===turno && etapa==='embarcou' && a.escola_id){
-        (escolasComAlunosABordo[a.escola_id]=escolasComAlunosABordo[a.escola_id]||[]).push(a);
-      }
-    });
-    Object.keys(escolasComAlunosABordo).forEach(function(escId){
-      if(idsIgnoradosAuto['escola_'+escId]) return;
-      var esc=escolasData.find(function(e){ return e.id===escId; });
-      if(!esc || esc.lat==null) return;
-      var d=distanciaMetros(lat,lng,esc.lat,esc.lng);
-      if(d<=RAIO_CONFLITO_M) candidatos.push({tipo:'escola', escola:esc, alunos:escolasComAlunosABordo[escId], dist:d, etapaDesembarque:'na_escola'});
-    });
-  } else {
-    // VOLTA: embarque na escola (em lote, pendente = quem está com etapa 'na_escola'),
-    // desembarque em casa (individual, pendente = quem está com etapa 'embarcou')
-    var pendentesNaEscola={};
-    alunosData.forEach(function(a){
-      var etapa=(statusCache[a.id]||{}).etapa;
-      if(a.turno===turno && etapa==='na_escola' && a.escola_id){
-        (pendentesNaEscola[a.escola_id]=pendentesNaEscola[a.escola_id]||[]).push(a);
-      }
-    });
-    Object.keys(pendentesNaEscola).forEach(function(escId){
-      if(idsIgnoradosAuto['escola_'+escId]) return;
-      var esc=escolasData.find(function(e){ return e.id===escId; });
-      if(!esc || esc.lat==null) return;
-      var d=distanciaMetros(lat,lng,esc.lat,esc.lng);
-      if(d<=RAIO_CONFLITO_M) candidatos.push({tipo:'escola_embarque', escola:esc, alunos:pendentesNaEscola[escId], dist:d});
-    });
-
-    var pendentesDesembarqueCasa = alunosData.filter(function(a){
-      var etapa=(statusCache[a.id]||{}).etapa;
-      return a.turno===turno && a.lat!=null && a.lng!=null && etapa==='embarcou' && !idsIgnoradosAuto[a.id];
-    });
-    pendentesDesembarqueCasa.forEach(function(a){
-      var d=distanciaMetros(lat,lng,a.lat,a.lng);
-      if(d<=RAIO_CONFLITO_M) candidatos.push({tipo:'casa_desembarque', aluno:a, dist:d});
-    });
-  }
-
-  if(!candidatos.length){
-    sugestaoAtual=null;
+// Vigia SOMENTE a parada atual da sequência — é isso que elimina o problema da
+// "bolha fantasma" (passar perto da casa de um aluno que não é a vez dele ainda)
+function processarParadaAtual(lat,lng){
+  if(!modoAutomaticoAtivo || !tripStarted || !rotaEmExecucao) return;
+  var p=paradaAtualObj();
+  if(!p){
     el('auto-suggestion').style.display='none';
+    sugestaoAtual=null;
     return;
   }
-
-  candidatos.sort(function(x,y){
-    if(x.tipo==='embarque' && y.tipo==='embarque' && x.aluno.grupo_conflito_id && x.aluno.grupo_conflito_id===y.aluno.grupo_conflito_id){
-      return (x.aluno.prioridade_grupo||0)-(y.aluno.prioridade_grupo||0);
-    }
-    if(x.tipo==='casa_desembarque' && y.tipo==='casa_desembarque' && x.aluno.grupo_conflito_id && x.aluno.grupo_conflito_id===y.aluno.grupo_conflito_id){
-      return (x.aluno.prioridade_grupo||0)-(y.aluno.prioridade_grupo||0);
-    }
-    return x.dist-y.dist;
-  });
-
-  var top=candidatos[0];
-  if((top.tipo==='embarque'||top.tipo==='casa_desembarque') && top.aluno.grupo_conflito_id){
-    var grupo=candidatos.filter(function(c){
-      return c.tipo===top.tipo && c.aluno.grupo_conflito_id===top.aluno.grupo_conflito_id;
-    });
-    if(grupo.length>1){ exibirSugestaoGrupo(grupo); return; }
+  var coord=coordenadaParada(p);
+  if(!coord){
+    // parada sem coordenada cadastrada — não tem como vigiar, avisa e segue esperando ação manual
+    return;
   }
-  exibirSugestao(top);
+  var d=distanciaMetros(lat,lng,coord.lat,coord.lng);
+  if(d>RAIO_PARADA_M){
+    el('auto-suggestion').style.display='none';
+    sugestaoAtual=null;
+    return;
+  }
+  exibirSugestaoParada(p,coord,d);
 }
 
-function exibirSugestao(c){
+function exibirSugestaoParada(p,coord,dist){
   var box=el('auto-suggestion'), textEl=el('auto-suggestion-text'), btnsEl=el('auto-suggestion-buttons');
   if(!box) return;
-  btnsEl.style.flexDirection='row';
-  if(c.tipo==='embarque'){
-    var a=c.aluno;
-    sugestaoAtual={tipo:'embarque', id:a.id, nome:a.nome};
-    textEl.textContent='📍 Perto de '+a.nome+' ('+Math.round(c.dist)+'m)';
+  sugestaoAtual={tipo:p.tipo, alunoId:coord.alunoId, escolaId:coord.escolaId, nome:coord.nome};
+  if(p.tipo==='embarque_casa'){
+    textEl.textContent='📍 Perto de '+coord.nome+' ('+Math.round(dist)+'m)';
     btnsEl.innerHTML =
-      '<button onclick="confirmarSugestaoEmbarque(\''+a.id+'\',\''+a.nome.replace(/'/g,"\\'")+'\',\'embarcou\')" style="flex:1;background:#22C55E;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">✅ Embarcou</button>'
-      +'<button onclick="confirmarSugestaoEmbarque(\''+a.id+'\',\''+a.nome.replace(/'/g,"\\'")+'\',\'faltou\')" style="flex:1;background:#EF4444;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">❌ Faltou</button>';
-  } else if(c.tipo==='casa_desembarque'){
-    var a2=c.aluno;
-    sugestaoAtual={tipo:'casa_desembarque', id:a2.id, nome:a2.nome};
-    textEl.textContent='🏠 Perto da casa de '+a2.nome+' ('+Math.round(c.dist)+'m)';
-    btnsEl.innerHTML =
-      '<button onclick="confirmarSugestaoCasaDesembarque(\''+a2.id+'\',\''+a2.nome.replace(/'/g,"\\'")+'\')" style="flex:1;background:#8B5CF6;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">✅ Chegou em casa</button>';
-  } else if(c.tipo==='escola_embarque'){
-    var e2=c.escola;
-    sugestaoAtual={tipo:'escola_embarque', id:e2.id, nome:e2.nome};
-    textEl.textContent='🏫 Na '+e2.nome+' — embarcar '+c.alunos.length+' aluno(s) de volta';
-    btnsEl.innerHTML =
-      '<button onclick="confirmarSugestaoEscolaEmbarque(\''+e2.id+'\')" style="flex:1;background:#22C55E;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">✅ Confirmar embarque</button>';
-  } else {
-    var e=c.escola;
-    sugestaoAtual={tipo:'escola', id:e.id, nome:e.nome};
-    textEl.textContent='🏫 Chegou em '+e.nome+' — desembarcar '+c.alunos.length+' aluno(s)';
-    btnsEl.innerHTML =
-      '<button onclick="confirmarSugestaoEscola(\''+e.id+'\')" style="flex:1;background:#3B82F6;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">✅ Confirmar desembarque</button>';
+      '<button onclick="confirmarParadaEmbarqueCasa(\'embarcou\')" style="flex:1;background:#22C55E;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">✅ Embarcou</button>'
+      +'<button onclick="confirmarParadaEmbarqueCasa(\'faltou\')" style="flex:1;background:#EF4444;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">❌ Faltou</button>';
+  } else if(p.tipo==='desembarque_casa'){
+    textEl.textContent='🏠 Perto da casa de '+coord.nome+' ('+Math.round(dist)+'m)';
+    btnsEl.innerHTML='<button onclick="confirmarParadaDesembarqueCasa()" style="flex:1;background:#8B5CF6;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">✅ Chegou em casa</button>';
+  } else if(p.tipo==='desembarque_escola'){
+    textEl.textContent='🏫 Chegou em '+coord.nome+' — desembarcar alunos';
+    btnsEl.innerHTML='<button onclick="confirmarParadaDesembarqueEscola()" style="flex:1;background:#3B82F6;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">✅ Confirmar desembarque</button>';
+  } else if(p.tipo==='embarque_escola'){
+    textEl.textContent='🏫 Na '+coord.nome+' — embarcar alunos de volta';
+    btnsEl.innerHTML='<button onclick="confirmarParadaEmbarqueEscola()" style="flex:1;background:#22C55E;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">✅ Confirmar embarque</button>';
   }
   box.style.display='block';
 }
 
-function exibirSugestaoGrupo(grupo){
-  var box=el('auto-suggestion'), textEl=el('auto-suggestion-text'), btnsEl=el('auto-suggestion-buttons');
-  if(!box) return;
-  grupo.sort(function(x,y){ return (x.aluno.prioridade_grupo||0)-(y.aluno.prioridade_grupo||0); });
-  var tipo=grupo[0].tipo; // 'embarque' (ida) ou 'casa_desembarque' (volta)
-  sugestaoAtual={tipo:'grupo', subtipo:tipo, ids:grupo.map(function(c){ return c.aluno.id; })};
-  textEl.textContent=(tipo==='casa_desembarque'?'🏠 Mesma área — ':'📍 Mesma área — ')+grupo.length+' aluno(s) por aqui';
-  btnsEl.style.flexDirection='column';
-  btnsEl.innerHTML=grupo.map(function(c){
-    var a=c.aluno;
-    if(tipo==='casa_desembarque'){
-      return '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border-radius:10px;padding:8px">'
-        +'<div style="flex:1;color:#fff;font-size:13px;font-weight:700">'+a.nome+'</div>'
-        +'<button onclick="confirmarSugestaoCasaDesembarque(\''+a.id+'\',\''+a.nome.replace(/'/g,"\\'")+'\')" style="background:#8B5CF6;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer">✅ Chegou</button>'
-        +'</div>';
-    }
-    return '<div style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.06);border-radius:10px;padding:8px">'
-      +'<div style="flex:1;color:#fff;font-size:13px;font-weight:700">'+a.nome+'</div>'
-      +'<button onclick="confirmarSugestaoEmbarque(\''+a.id+'\',\''+a.nome.replace(/'/g,"\\'")+'\',\'embarcou\')" style="background:#22C55E;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer">✅</button>'
-      +'<button onclick="confirmarSugestaoEmbarque(\''+a.id+'\',\''+a.nome.replace(/'/g,"\\'")+'\',\'faltou\')" style="background:#EF4444;color:#fff;border:none;border-radius:8px;padding:8px 12px;font-weight:700;font-size:13px;cursor:pointer">❌</button>'
-      +'</div>';
-  }).join('');
-  box.style.display='block';
-}
-
-function confirmarSugestaoEmbarque(id,nome,etapa){
-  regAcao(id,nome,etapa);
-  avancarGrupoOuFechar(id);
-}
-function confirmarSugestaoCasaDesembarque(id,nome){
-  regAcao(id,nome,'em_casa');
-  avancarGrupoOuFechar(id);
-}
-function avancarGrupoOuFechar(idResolvido){
-  if(sugestaoAtual && sugestaoAtual.tipo==='grupo'){
-    var restantes=sugestaoAtual.ids.filter(function(x){ return x!==idResolvido; });
-    var subtipo=sugestaoAtual.subtipo;
-    if(restantes.length>1){
-      var grupoRestante=restantes.map(function(aid){
-        return {tipo:subtipo, aluno:alunosData.find(function(a){ return a.id===aid; })};
-      }).filter(function(g){ return g.aluno; });
-      exibirSugestaoGrupo(grupoRestante);
-      return;
-    } else if(restantes.length===1){
-      var ultimoAluno=alunosData.find(function(a){ return a.id===restantes[0]; });
-      if(ultimoAluno){
-        el('auto-suggestion-buttons').style.flexDirection='row';
-        exibirSugestao({tipo:subtipo, aluno:ultimoAluno, dist:0});
-        return;
-      }
-    }
-  }
+function avancarParada(){
+  indiceParadaAtual++;
+  salvarProgressoRota();
+  atualizarUIProgresso();
   el('auto-suggestion').style.display='none';
-  el('auto-suggestion-buttons').style.flexDirection='row';
   sugestaoAtual=null;
+  // Reavalia imediatamente: se a próxima parada também já estiver no raio
+  // (ex: irmãos no mesmo endereço, paradas consecutivas), a sugestão já aparece de novo
+  if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
 }
 
-function confirmarSugestaoEscola(escolaId){
-  var turno=val('auto-turno');
-  var alunosNaEscola = alunosData.filter(function(a){
+function confirmarParadaEmbarqueCasa(etapa){
+  if(!sugestaoAtual || !sugestaoAtual.alunoId) return;
+  regAcao(sugestaoAtual.alunoId, sugestaoAtual.nome, etapa);
+  avancarParada();
+}
+function confirmarParadaDesembarqueCasa(){
+  if(!sugestaoAtual || !sugestaoAtual.alunoId) return;
+  regAcao(sugestaoAtual.alunoId, sugestaoAtual.nome, 'em_casa');
+  avancarParada();
+}
+function confirmarParadaDesembarqueEscola(){
+  if(!sugestaoAtual || !sugestaoAtual.escolaId) return;
+  var alunosNaVan = alunosData.filter(function(a){
     var etapa=(statusCache[a.id]||{}).etapa;
-    return a.escola_id===escolaId && a.turno===turno && etapa==='embarcou';
+    return a.escola_id===sugestaoAtual.escolaId && etapa==='embarcou';
   });
-  alunosNaEscola.forEach(function(a){
+  alunosNaVan.forEach(function(a){
     db.doc('status_alunos/'+a.id).set({nome:a.nome,etapa:'na_escola',atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
   });
-  var escola=escolasData.find(function(e){ return e.id===escolaId; });
-  if(alunosNaEscola.length){
-    db.collection('mensagens').add({texto:'🏫 '+alunosNaEscola.length+' aluno(s) chegaram em '+(escola?escola.nome:'')+'',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  if(alunosNaVan.length){
+    db.collection('mensagens').add({texto:'🏫 '+alunosNaVan.length+' aluno(s) chegaram em '+sugestaoAtual.nome,tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   }
-  el('auto-suggestion').style.display='none';
-  sugestaoAtual=null;
   showToast('🏫 Desembarque confirmado!');
+  avancarParada();
 }
-
-function confirmarSugestaoEscolaEmbarque(escolaId){
-  var turno=val('auto-turno');
-  var alunosNaEscola = alunosData.filter(function(a){
+function confirmarParadaEmbarqueEscola(){
+  if(!sugestaoAtual || !sugestaoAtual.escolaId) return;
+  var alunosEsperando = alunosData.filter(function(a){
     var etapa=(statusCache[a.id]||{}).etapa;
-    return a.escola_id===escolaId && a.turno===turno && etapa==='na_escola';
+    return a.escola_id===sugestaoAtual.escolaId && etapa==='na_escola';
   });
-  alunosNaEscola.forEach(function(a){
+  alunosEsperando.forEach(function(a){
     db.doc('status_alunos/'+a.id).set({nome:a.nome,etapa:'embarcou',atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
   });
-  var escola=escolasData.find(function(e){ return e.id===escolaId; });
-  if(alunosNaEscola.length){
-    db.collection('mensagens').add({texto:'✅ '+alunosNaEscola.length+' aluno(s) embarcaram de volta em '+(escola?escola.nome:'')+'',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  if(alunosEsperando.length){
+    db.collection('mensagens').add({texto:'✅ '+alunosEsperando.length+' aluno(s) embarcaram de volta em '+sugestaoAtual.nome,tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   }
-  el('auto-suggestion').style.display='none';
-  sugestaoAtual=null;
-  showToast('✅ Embarque de volta confirmado!');
+  showToast('✅ Embarque confirmado!');
+  avancarParada();
 }
 
-// Item 12: pular a sugestão atual sem registrar nada — útil quando a criança foi
-// retirada por outra pessoa fora da rotina (ex: avó que mora fora da bolha) e o
-// motorista prefere resolver manualmente pelo painel
+// Pular: avança a parada sem registrar nenhuma ação — usado quando a sugestão não
+// se aplica (ex: criança retirada por outra pessoa, fora da rotina cadastrada).
+// Resolva manualmente pelo painel quando convier.
 function pularSugestaoAtual(){
-  if(!sugestaoAtual) return;
-  if(sugestaoAtual.tipo==='embarque' || sugestaoAtual.tipo==='casa_desembarque'){
-    idsIgnoradosAuto[sugestaoAtual.id]=true;
-  } else if(sugestaoAtual.tipo==='grupo'){
-    sugestaoAtual.ids.forEach(function(id){ idsIgnoradosAuto[id]=true; });
-  } else if(sugestaoAtual.tipo==='escola' || sugestaoAtual.tipo==='escola_embarque'){
-    idsIgnoradosAuto['escola_'+sugestaoAtual.id]=true;
-  }
-  el('auto-suggestion').style.display='none';
-  sugestaoAtual=null;
-  showToast('⏭ Pulado — resolva pelo painel manual quando quiser');
-  if(lastGpsPosition) processarDeteccaoAutomatica(lastGpsPosition.lat,lastGpsPosition.lng);
+  if(!rotaEmExecucao) return;
+  showToast('⏭ Parada pulada — resolva pelo painel manual se necessário');
+  avancarParada();
 }
 
-// Item 14: avisar os pais usando o aluno da sugestão atual, sem precisar selecionar manualmente
+// Voltar: caso o motorista confirme algo por engano ou queira reabrir a parada anterior
+function voltarParadaAnterior(){
+  if(!rotaEmExecucao || indiceParadaAtual<=0) return;
+  indiceParadaAtual--;
+  salvarProgressoRota();
+  atualizarUIProgresso();
+  if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
+}
+
 function avisarChegadaSugestao(){
-  if(!sugestaoAtual || !sugestaoAtual.id){ showToast('⚠️ Nenhuma sugestão ativa'); return; }
-  if(sugestaoAtual.tipo==='escola' || sugestaoAtual.tipo==='escola_embarque'){ showToast('⚠️ Aviso de chegada é só para casas de alunos'); return; }
-  var id = sugestaoAtual.tipo==='grupo' ? sugestaoAtual.ids[0] : sugestaoAtual.id;
-  var aluno = alunosData.find(function(a){ return a.id===id; });
-  if(!aluno) return;
+  if(!sugestaoAtual || !sugestaoAtual.alunoId){ showToast('⚠️ Aviso de chegada é só para casas de alunos'); return; }
   var msg = configData.msg_proximo || 'Motorista no caminho, favor dirigir-se ao ponto de embarque!';
-  rdb.ref('proximo_embarque').set({aluno_id:id,aluno_nome:aluno.nome,mensagem:msg,timestamp:Date.now()});
-  db.collection('mensagens').add({texto:'📍 '+aluno.nome+': '+msg,tipo:'sistema',aluno_id:id,remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  rdb.ref('proximo_embarque').set({aluno_id:sugestaoAtual.alunoId,aluno_nome:sugestaoAtual.nome,mensagem:msg,timestamp:Date.now()});
+  db.collection('mensagens').add({texto:'📍 '+sugestaoAtual.nome+': '+msg,tipo:'sistema',aluno_id:sugestaoAtual.alunoId,remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   showToast('📍 Pais avisados!');
 }
 
-// ===== MAPA EM TEMPO REAL (item 8) =====
-var mapaAutoMap=null, mapaAutoVanMarker=null, mapaAutoStopMarkers=[];
+// ===== MAPA EM TEMPO REAL =====
+var mapaRotaMap=null, mapaRotaVanMarker=null, mapaRotaStopMarkers=[];
 
-function initMapaAuto(){
-  if(mapaAutoMap) return;
-  var container = el('mapaauto-div');
-  if(!container) return;
-  mapaAutoMap = L.map('mapaauto-div',{zoomControl:true,attributionControl:true}).setView([-23.5505,-46.6333],14);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(mapaAutoMap);
+function initMapaRota(){
+  if(mapaRotaMap) return;
+  if(!el('mapaauto-div')) return;
+  mapaRotaMap = L.map('mapaauto-div',{zoomControl:true,attributionControl:true}).setView([-23.5505,-46.6333],14);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(mapaRotaMap);
 }
 
-function limparMarcadoresParadas(){
-  mapaAutoStopMarkers.forEach(function(m){ mapaAutoMap.removeLayer(m); });
-  mapaAutoStopMarkers=[];
-}
-
-function atualizarMapaAuto(){
-  // Só atualiza se a aba do mapa estiver de fato visível, evita trabalho desnecessário
+function atualizarMapaRota(){
   var view=el('view-mapaauto');
-  if(!view || !view.classList.contains('active') || !mapaAutoMap || !lastGpsPosition) return;
+  if(!view || !view.classList.contains('active') || !mapaRotaMap || !lastGpsPosition) return;
 
   var lat=lastGpsPosition.lat, lng=lastGpsPosition.lng;
-
-  if(mapaAutoVanMarker){
-    mapaAutoVanMarker.setLatLng([lat,lng]);
+  if(mapaRotaVanMarker){
+    mapaRotaVanMarker.setLatLng([lat,lng]);
   } else {
-    mapaAutoVanMarker = L.circleMarker([lat,lng],{radius:9,color:'#fff',weight:2,fillColor:'#3B82F6',fillOpacity:1}).addTo(mapaAutoMap);
-    mapaAutoMap.setView([lat,lng],15);
+    mapaRotaVanMarker = L.circleMarker([lat,lng],{radius:9,color:'#fff',weight:2,fillColor:'#3B82F6',fillOpacity:1}).addTo(mapaRotaMap);
+    mapaRotaMap.setView([lat,lng],15);
   }
 
-  limparMarcadoresParadas();
-  var turno=val('auto-turno'), sentido=val('auto-sentido');
-  if(!turno || !sentido) return;
+  mapaRotaStopMarkers.forEach(function(m){ mapaRotaMap.removeLayer(m); });
+  mapaRotaStopMarkers=[];
 
-  if(sentido==='ida'){
-    alunosData.forEach(function(a){
-      var etapa=(statusCache[a.id]||{}).etapa;
-      if(a.turno===turno && a.lat!=null && etapa!=='embarcou' && etapa!=='faltou'){
-        adicionarMarcadorParada(a.lat,a.lng,'#22C55E',a.nome);
-      }
-    });
-    var escolasComAlunos={};
-    alunosData.forEach(function(a){
-      var etapa=(statusCache[a.id]||{}).etapa;
-      if(a.turno===turno && etapa==='embarcou' && a.escola_id) escolasComAlunos[a.escola_id]=true;
-    });
-    Object.keys(escolasComAlunos).forEach(function(escId){
-      var esc=escolasData.find(function(e){ return e.id===escId; });
-      if(esc && esc.lat!=null) adicionarMarcadorParada(esc.lat,esc.lng,'#3B82F6',esc.nome);
-    });
-  } else {
-    var escolasPendentes={};
-    alunosData.forEach(function(a){
-      var etapa=(statusCache[a.id]||{}).etapa;
-      if(a.turno===turno && etapa==='na_escola' && a.escola_id) escolasPendentes[a.escola_id]=true;
-    });
-    Object.keys(escolasPendentes).forEach(function(escId){
-      var esc=escolasData.find(function(e){ return e.id===escId; });
-      if(esc && esc.lat!=null) adicionarMarcadorParada(esc.lat,esc.lng,'#3B82F6',esc.nome);
-    });
-    alunosData.forEach(function(a){
-      var etapa=(statusCache[a.id]||{}).etapa;
-      if(a.turno===turno && a.lat!=null && etapa==='embarcou'){
-        adicionarMarcadorParada(a.lat,a.lng,'#8B5CF6',a.nome);
-      }
-    });
-  }
-}
-
-function adicionarMarcadorParada(lat,lng,cor,nome){
-  var circle=L.circle([lat,lng],{radius:RAIO_CONFLITO_M,color:cor,fillColor:cor,fillOpacity:.15,weight:1.5}).addTo(mapaAutoMap);
-  var ponto=L.circleMarker([lat,lng],{radius:6,color:'#fff',weight:1.5,fillColor:cor,fillOpacity:1}).bindTooltip(nome).addTo(mapaAutoMap);
-  mapaAutoStopMarkers.push(circle, ponto);
+  if(!rotaEmExecucao) return;
+  var paradas=rotaEmExecucao.paradas||[];
+  paradas.forEach(function(p,idx){
+    var coord=coordenadaParada(p);
+    if(!coord) return;
+    var ehAtual = idx===indiceParadaAtual;
+    var cor = ehAtual ? '#FFD23F' : '#94A3B8';
+    if(ehAtual){
+      var circle=L.circle([coord.lat,coord.lng],{radius:RAIO_PARADA_M,color:cor,fillColor:cor,fillOpacity:.2,weight:2}).addTo(mapaRotaMap);
+      mapaRotaStopMarkers.push(circle);
+    }
+    var ponto=L.circleMarker([coord.lat,coord.lng],{radius:ehAtual?8:5,color:'#fff',weight:1.5,fillColor:cor,fillOpacity:1}).bindTooltip((idx+1)+'. '+coord.nome).addTo(mapaRotaMap);
+    mapaRotaStopMarkers.push(ponto);
+  });
 }
 
 var selectedAlunoId = null;
@@ -1608,12 +1397,6 @@ function saveConfig(){
 }
 
 // ADMIN ALUNOS
-function descricaoPrioridade(aluno){
-  if(!aluno.grupo_conflito_id) return 'Sem uso';
-  var companheiros = alunosData.filter(function(a){ return a.grupo_conflito_id===aluno.grupo_conflito_id && a.id!==aluno.id; }).map(function(a){return a.nome;});
-  var pos=(aluno.prioridade_grupo!=null?aluno.prioridade_grupo+1:'?');
-  return pos+'º a embarcar, em conflito com: '+(companheiros.join(', ')||'—');
-}
 function ascEscolaOptions(escolaIdAtual){
   var opts='<option value=""'+(!escolaIdAtual?' selected':'')+'>— Sem escola —</option>';
   escolasData.forEach(function(e){
@@ -1637,7 +1420,6 @@ function renderAlunosAdmin(){
       +'<div class="asc-field"><div class="asc-lbl">WhatsApp</div><input class="asc-inp" value="'+(a.responsavel_tel||'')+'" oninput="setPending(\''+a.id+'\',\'responsavel_tel\',this.value)"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Escola</div><select class="asc-inp" onchange="setPending(\''+a.id+'\',\'escola_id\',this.value||null)">'+ascEscolaOptions(a.escola_id)+'</select></div>'
       +'<div class="asc-field"><div class="asc-lbl">Turno</div><select class="asc-inp" onchange="setPending(\''+a.id+'\',\'turno\',this.value||null)"><option value=""'+(!a.turno?' selected':'')+'>— Sem turno —</option><option value="manha"'+(a.turno==='manha'?' selected':'')+'>Manhã</option><option value="tarde"'+(a.turno==='tarde'?' selected':'')+'>Tarde</option><option value="noite"'+(a.turno==='noite'?' selected':'')+'>Noite</option></select></div>'
-      +'<div class="asc-field full"><div class="asc-lbl">Prioridade de desempate</div><div style="padding:8px 10px;background:'+(a.grupo_conflito_id?'#FEF3C7':'#F1F5F9')+';border-radius:8px;font-size:13px;color:'+(a.grupo_conflito_id?'#92400E':'var(--gray400)')+';font-weight:'+(a.grupo_conflito_id?'700':'400')+'">'+descricaoPrioridade(a)+'</div></div>'
       +'<div class="asc-field"><div class="asc-lbl">Mensalidade (R$)</div><input class="asc-inp" type="number" value="'+(a.valor_mensalidade!=null?a.valor_mensalidade:'')+'" placeholder="Padrão: '+(configData.mens||380)+'" oninput="setPending(\''+a.id+'\',\'valor_mensalidade\',this.value===\'\'?null:parseFloat(this.value))"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Ordem rota</div><input class="asc-inp" type="number" value="'+(a.ordem_parada||1)+'" oninput="setPending(\''+a.id+'\',\'ordem_parada\',parseInt(this.value))"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Horário parada</div><input class="asc-inp" type="time" value="'+(a.horario_previsto||'')+'" oninput="setPending(\''+a.id+'\',\'horario_previsto\',this.value)"></div>'
@@ -1661,12 +1443,9 @@ function toggleAluno(header){
 function setPending(id,field,value){ if(!pendingAluno[id]) pendingAluno[id]={}; pendingAluno[id][field]=value; }
 function saveAluno(id){
   if(!pendingAluno[id]||!Object.keys(pendingAluno[id]).length){ showToast('Sem alterações'); return; }
-  var enderecoEditado = pendingAluno[id].endereco;
-  var nomeAtual = (alunosData.find(function(a){return a.id===id;})||{}).nome;
   db.doc('alunos/'+id).update(pendingAluno[id])
     .then(function(){
       delete pendingAluno[id]; openAlunoId=null; showToast('✅ Salvo!');
-      if(enderecoEditado!==undefined && enderecoEditado) verificarEnderecoDuplicado(id, enderecoEditado, nomeAtual);
     })
     .catch(function(e){ showToast('❌ '+e.message); });
 }
@@ -1761,7 +1540,6 @@ function criarPaiAluno(){
   }).then(function(){
     showToast('✅ Criado! Código: '+codigo+' — Senha: '+pass);
     closeModalPai();
-    if(endereco) verificarEnderecoDuplicado(novoAlunoId, endereco, alunoNome);
   }).catch(function(e){ setText('m-err','❌ '+e.message); });
 }
 
@@ -1816,7 +1594,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev1.120';
+var APP_VERSION = 'rev2.0';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
@@ -1824,7 +1602,7 @@ function initApp(){
   listenEscolas();
   listenStatus();
   listenChat();
-  restaurarEstadoAutomatico();
+  listenRotas();
   // Safety: clear orphaned trip state from previous session if GPS isn't actually running
   rdb.ref('viagem_ativa').once('value').then(function(snap){
     if(snap.val()===true && !gpsWatchId){
