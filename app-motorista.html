@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>Van Escolar — Motorista</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -137,6 +139,8 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 #modal-pai.open{display:flex}
 #modal-escola{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
 #modal-escola.open{display:flex}
+#modal-geo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:250;align-items:flex-end;justify-content:center}
+#modal-geo.open{display:flex}
 .modal-box{background:var(--white);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px}
 .modal-title{font-size:16px;font-weight:700;color:var(--navy)}
 .modal-inp{padding:12px 14px;border-radius:10px;border:1.5px solid var(--gray200);font-size:14px;font-family:'Inter',sans-serif;outline:none;width:100%}
@@ -310,6 +314,21 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
       <div class="modal-actions">
         <button class="modal-cancel" onclick="closeModalEscola()">Cancelar</button>
         <button class="modal-ok" onclick="criarEscola()">✅ Criar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL MAPA / GEOLOCALIZAÇÃO -->
+  <div id="modal-geo">
+    <div class="modal-box" style="max-height:90vh">
+      <div class="modal-title" id="geo-title">📍 Localizar endereço</div>
+      <div id="geo-status" style="font-size:13px;color:var(--gray400);text-align:center;padding:4px 0">Buscando endereço...</div>
+      <div id="geo-map" style="width:100%;height:300px;border-radius:12px;background:var(--gray100)"></div>
+      <div style="font-size:12px;color:var(--gray400);text-align:center">Arraste o pino para ajustar a posição exata, se necessário</div>
+      <button onclick="rebuscarEndereco()" style="background:var(--gray100);border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;color:var(--navy);cursor:pointer;font-family:'Inter',sans-serif">🔄 Buscar endereço novamente</button>
+      <div class="modal-actions">
+        <button class="modal-cancel" onclick="closeModalGeo()">Cancelar</button>
+        <button class="modal-ok" onclick="confirmarLocalizacao()">✅ Confirmar localização</button>
       </div>
     </div>
   </div>
@@ -563,8 +582,9 @@ function renderEscolasAdmin(){
     return;
   }
   box.innerHTML=escolasData.map(function(e){
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--gray200)">'
-      +'<div><div style="font-weight:700;font-size:14px;color:#1E293B">'+e.nome+'</div>'+(e.endereco?'<div style="font-size:12px;color:var(--gray400)">'+e.endereco+'</div>':'')+'</div>'
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--gray200);gap:8px">'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;color:#1E293B">'+e.nome+'</div>'+(e.endereco?'<div style="font-size:12px;color:var(--gray400)">'+e.endereco+'</div>':'')+'</div>'
+      +'<button onclick="abrirMapaLocalizacao(\'escola\',\''+e.id+'\')" style="background:'+(e.lat?'#DCFCE7':'#F1F5F9')+';border:none;border-radius:8px;padding:0 10px;height:32px;font-size:12px;cursor:pointer;flex-shrink:0;white-space:nowrap">'+(e.lat?'📍':'📍 Localizar')+'</button>'
       +'<button onclick="deleteEscola(\''+e.id+'\',\''+e.nome.replace(/'/g,"\\'")+'\')" style="background:#FEF2F2;color:var(--red);border:none;border-radius:8px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0">🗑️</button>'
       +'</div>';
   }).join('');
@@ -582,6 +602,88 @@ function criarEscola(){
 function deleteEscola(id,nome){
   if(!window.confirm('Excluir a escola "'+nome+'"? Alunos vinculados a ela ficarão sem escola definida.')) return;
   db.doc('escolas/'+id).delete().then(function(){ showToast('🗑️ Escola excluída'); });
+}
+
+// ===== GEOLOCALIZAÇÃO (geocodificação + mapa de confirmação) =====
+var geoTipo=null, geoId=null, geoMap=null, geoMarker=null, geoCircle=null;
+
+function abrirMapaLocalizacao(tipo, id){
+  geoTipo=tipo; geoId=id;
+  var item = tipo==='aluno' ? alunosData.find(function(a){return a.id===id;}) : escolasData.find(function(e){return e.id===id;});
+  if(!item) return;
+  setText('geo-title', (tipo==='aluno'?'📍 Localizar: ':'📍 Localizar: ')+item.nome);
+  el('modal-geo').classList.add('open');
+  setTimeout(function(){
+    initGeoMap();
+    if(item.lat && item.lng){
+      setGeoMarker(item.lat, item.lng);
+      setText('geo-status','Posição já cadastrada. Arraste se precisar ajustar.');
+    } else {
+      var endereco = tipo==='aluno' ? (el('asc-end-'+id)?el('asc-end-'+id).value:item.endereco) : item.endereco;
+      buscarEndereco(endereco);
+    }
+  }, 150);
+}
+
+function initGeoMap(){
+  if(geoMap){ geoMap.remove(); geoMap=null; }
+  geoMap = L.map('geo-map',{zoomControl:true}).setView([-23.5505,-46.6333], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(geoMap);
+  geoMap.on('click', function(e){ setGeoMarker(e.latlng.lat, e.latlng.lng); });
+}
+
+function setGeoMarker(lat,lng){
+  if(geoMarker){ geoMap.removeLayer(geoMarker); }
+  if(geoCircle){ geoMap.removeLayer(geoCircle); }
+  geoMarker = L.marker([lat,lng],{draggable:true}).addTo(geoMap);
+  geoCircle = L.circle([lat,lng],{radius:80,color:'#3B82F6',fillColor:'#3B82F6',fillOpacity:.15,weight:1}).addTo(geoMap);
+  geoMarker.on('drag', function(e){
+    var p=e.target.getLatLng();
+    geoCircle.setLatLng(p);
+  });
+  geoMap.setView([lat,lng], 17);
+  setTimeout(function(){ geoMap.invalidateSize(); }, 50);
+}
+
+function buscarEndereco(endereco){
+  if(!endereco){
+    setText('geo-status','⚠️ Sem endereço cadastrado. Clique no mapa para posicionar manualmente.');
+    return;
+  }
+  setText('geo-status','🔄 Buscando "'+endereco+'"...');
+  var url='https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q='+encodeURIComponent(endereco);
+  fetch(url).then(function(r){ return r.json(); }).then(function(results){
+    if(results && results.length){
+      var lat=parseFloat(results[0].lat), lng=parseFloat(results[0].lon);
+      setGeoMarker(lat,lng);
+      setText('geo-status','✅ Endereço encontrado! Confira e arraste se precisar ajustar.');
+    } else {
+      setText('geo-status','⚠️ Endereço não encontrado. Clique no mapa para posicionar manualmente.');
+    }
+  }).catch(function(){
+    setText('geo-status','⚠️ Erro ao buscar endereço. Clique no mapa para posicionar manualmente.');
+  });
+}
+
+function rebuscarEndereco(){
+  var item = geoTipo==='aluno' ? alunosData.find(function(a){return a.id===geoId;}) : escolasData.find(function(e){return e.id===geoId;});
+  var endereco = geoTipo==='aluno' ? (el('asc-end-'+geoId)?el('asc-end-'+geoId).value:(item&&item.endereco)) : (item&&item.endereco);
+  buscarEndereco(endereco);
+}
+
+function confirmarLocalizacao(){
+  if(!geoMarker){ showToast('⚠️ Posicione o pino no mapa primeiro'); return; }
+  var p=geoMarker.getLatLng();
+  var colecao = geoTipo==='aluno' ? 'alunos' : 'escolas';
+  db.doc(colecao+'/'+geoId).update({lat:p.lat, lng:p.lng}).then(function(){
+    showToast('✅ Localização salva!');
+    closeModalGeo();
+  });
+}
+
+function closeModalGeo(){
+  el('modal-geo').classList.remove('open');
+  if(geoMap){ geoMap.remove(); geoMap=null; geoMarker=null; geoCircle=null; }
 }
 
 function listenStatus(){
@@ -859,7 +961,7 @@ function renderAlunosAdmin(){
       +'<div class="asc-field"><div class="asc-lbl">Nome</div><input class="asc-inp" value="'+(a.nome||'')+'" oninput="setPending(\''+a.id+'\',\'nome\',this.value)"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Gênero</div><select class="asc-inp" onchange="setPending(\''+a.id+'\',\'genero\',this.value)"><option value="M"'+(a.genero!=='F'?' selected':'')+'>Menino</option><option value="F"'+(a.genero==='F'?' selected':'')+'>Menina</option></select></div>'
       +'<div class="asc-field"><div class="asc-lbl">Série</div><input class="asc-inp" value="'+(a.serie||'')+'" oninput="setPending(\''+a.id+'\',\'serie\',this.value)"></div>'
-      +'<div class="asc-field full"><div class="asc-lbl">Endereço</div><input class="asc-inp" value="'+(a.endereco||'')+'" oninput="setPending(\''+a.id+'\',\'endereco\',this.value)"></div>'
+      +'<div class="asc-field full"><div class="asc-lbl">Endereço</div><div style="display:flex;gap:6px"><input class="asc-inp" id="asc-end-'+a.id+'" value="'+(a.endereco||'')+'" oninput="setPending(\''+a.id+'\',\'endereco\',this.value)" style="flex:1"><button onclick="abrirMapaLocalizacao(\'aluno\',\''+a.id+'\')" style="background:'+(a.lat?'#DCFCE7':'#F1F5F9')+';border:none;border-radius:8px;padding:0 12px;font-size:13px;cursor:pointer;white-space:nowrap">'+(a.lat?'📍 Editar':'📍 Localizar')+'</button></div></div>'
       +'<div class="asc-field"><div class="asc-lbl">Responsável</div><input class="asc-inp" value="'+(a.responsavel_nome||'')+'" oninput="setPending(\''+a.id+'\',\'responsavel_nome\',this.value)"></div>'
       +'<div class="asc-field"><div class="asc-lbl">WhatsApp</div><input class="asc-inp" value="'+(a.responsavel_tel||'')+'" oninput="setPending(\''+a.id+'\',\'responsavel_tel\',this.value)"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Escola</div><select class="asc-inp" onchange="setPending(\''+a.id+'\',\'escola_id\',this.value||null)">'+ascEscolaOptions(a.escola_id)+'</select></div>'
