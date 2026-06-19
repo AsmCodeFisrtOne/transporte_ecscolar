@@ -301,6 +301,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
       <!-- ALUNOS -->
       <div class="adm-section">
         <div class="adm-title">👦 Alunos <span id="alunos-count" style="font-weight:400;color:var(--gray400);font-size:12px"></span><button class="adm-btn" onclick="openModalPai()">+ Novo pai/aluno</button></div>
+        <div style="padding:10px 14px;border-bottom:1px solid var(--gray200)"><button onclick="verificarTodosConflitosTexto()" style="width:100%;background:#FEF3C7;color:#92400E;border:none;border-radius:10px;padding:10px;font-size:13px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">🔍 Verificar conflitos de endereço em todos os alunos</button></div>
         <div id="alunos-admin"></div>
       </div>
     </div>
@@ -783,23 +784,75 @@ function recalcularConflitos(alunoEditadoId, latNovo, lngNovo){
   });
 }
 
+function verificarTodosConflitosTexto(){
+  var grupos={};
+  alunosData.forEach(function(a){
+    var norm=normalizarEndereco(a.endereco);
+    if(!norm) return;
+    (grupos[norm]=grupos[norm]||[]).push(a);
+  });
+  var encontrados=0;
+  Object.keys(grupos).forEach(function(k){
+    if(grupos[k].length<2) return;
+    filaPrioridade.push(grupos[k]);
+    encontrados++;
+  });
+  // Também verifica conflitos por distância (80m) entre todos que já têm coordenada
+  var geocoded=alunosData.filter(function(a){ return a.lat!=null && a.lng!=null; });
+  var parent={};
+  geocoded.forEach(function(a){ parent[a.id]=a.id; });
+  function find(x){ while(parent[x]!==x){ x=parent[x]; } return x; }
+  function union(x,y){ var rx=find(x),ry=find(y); if(rx!==ry) parent[rx]=ry; }
+  for(var i=0;i<geocoded.length;i++){
+    for(var j=i+1;j<geocoded.length;j++){
+      if(distanciaMetros(geocoded[i].lat,geocoded[i].lng,geocoded[j].lat,geocoded[j].lng)<=RAIO_CONFLITO_M){
+        union(geocoded[i].id,geocoded[j].id);
+      }
+    }
+  }
+  var gruposGeo={};
+  geocoded.forEach(function(a){ var r=find(a.id); (gruposGeo[r]=gruposGeo[r]||[]).push(a); });
+  Object.keys(gruposGeo).forEach(function(r){
+    if(gruposGeo[r].length<2) return;
+    // Evita duplicar grupo já enfileirado pelo texto (mesmo conjunto de ids)
+    var idsGeo=gruposGeo[r].map(function(a){return a.id;}).sort().join(',');
+    var jaTinha=filaPrioridade.some(function(g){ return g.map(function(a){return a.id;}).sort().join(',')===idsGeo; });
+    if(!jaTinha){ filaPrioridade.push(gruposGeo[r]); encontrados++; }
+  });
+  if(encontrados){
+    showToast('⚠️ '+encontrados+' conflito(s) encontrado(s)');
+    abrirProximoModalPrioridade();
+  } else {
+    showToast('✅ Nenhum conflito encontrado entre os alunos cadastrados');
+  }
+}
+
 function normalizarEndereco(s){
   return (s||'').trim().toLowerCase().replace(/\s+/g,' ');
 }
 function verificarEnderecoDuplicado(alunoId, enderecoTexto, nomeAtual){
   var norm = normalizarEndereco(enderecoTexto);
   if(!norm) return;
-  var duplicados = alunosData.filter(function(a){
-    return a.id!==alunoId && normalizarEndereco(a.endereco)===norm;
+  // Busca direto do servidor (não confia no cache local alunosData, que pode estar
+  // momentaneamente desatualizado se dois alunos forem criados em sequência rápida)
+  db.collection('alunos').get().then(function(snap){
+    var duplicados=[];
+    snap.forEach(function(d){
+      if(d.id===alunoId) return;
+      var data=d.data();
+      if(normalizarEndereco(data.endereco)===norm){
+        duplicados.push(Object.assign({id:d.id},data));
+      }
+    });
+    if(!duplicados.length) return;
+    var alunoAtualObj = alunosData.find(function(a){ return a.id===alunoId; })
+      || {id:alunoId, nome:nomeAtual, prioridade_grupo:null, grupo_conflito_id:null};
+    var grupo=[alunoAtualObj].concat(duplicados);
+    filaPrioridade.push(grupo);
+    if(!el('modal-prioridade').classList.contains('open')){
+      abrirProximoModalPrioridade();
+    }
   });
-  if(!duplicados.length) return;
-  var alunoAtualObj = alunosData.find(function(a){ return a.id===alunoId; })
-    || {id:alunoId, nome:nomeAtual, prioridade_grupo:null, grupo_conflito_id:null};
-  var grupo=[alunoAtualObj].concat(duplicados);
-  filaPrioridade.push(grupo);
-  if(!el('modal-prioridade').classList.contains('open')){
-    abrirProximoModalPrioridade();
-  }
 }
 
 function abrirProximoModalPrioridade(){
