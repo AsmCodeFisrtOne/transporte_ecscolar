@@ -208,7 +208,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 
   <div id="topbar">
     <div class="tb-info">
-      <div class="tb-name" id="tb-name">Motorista</div>
+      <div class="tb-name" id="tb-name"><span id="tb-name-text">Motorista</span><span id="app-version" style="font-size:10px;font-weight:600;color:rgba(255,210,63,.55);margin-left:6px;vertical-align:middle"></span></div>
       <div class="tb-sub" id="tb-sub">Paulista IE</div>
     </div>
     <div class="tb-spd">
@@ -871,12 +871,14 @@ function abrirProximoModalPrioridade(){
 
 function renderPrioridadeList(){
   var box=el('prioridade-list'); if(!box) return;
+  var total=grupoAtualPrioridade.length;
   box.innerHTML=grupoAtualPrioridade.map(function(a,idx){
+    var btnUp = idx>0 ? '<button onclick="moverPrioridade('+idx+',-1)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px">▲</button>' : '<span style="display:inline-block;width:34px"></span>';
+    var btnDown = idx<total-1 ? '<button onclick="moverPrioridade('+idx+',1)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px">▼</button>' : '<span style="display:inline-block;width:34px"></span>';
     return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--gray200)">'
       +'<div style="width:24px;text-align:center;font-weight:800;color:var(--navy)">'+(idx+1)+'º</div>'
       +'<div style="flex:1;font-size:14px;font-weight:600">'+(a.nome||'')+'</div>'
-      +'<button onclick="moverPrioridade('+idx+',-1)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px">▲</button>'
-      +'<button onclick="moverPrioridade('+idx+',1)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px">▼</button>'
+      +btnUp+btnDown
       +'</div>';
   }).join('');
 }
@@ -894,6 +896,13 @@ function confirmarOrdemPrioridade(){
   });
   batch.commit().then(function(){
     el('modal-prioridade').classList.remove('open');
+    // Atualiza o cache local imediatamente (o listener do Firestore pode demorar a refletir),
+    // garantindo que o label "Prioridade de desempate" mostre o valor certo na hora
+    grupoAtualPrioridade.forEach(function(a,idx){
+      var cached = alunosData.find(function(x){ return x.id===a.id; });
+      if(cached){ cached.grupo_conflito_id=grupoId; cached.prioridade_grupo=idx; }
+    });
+    renderAlunosAdmin();
     if(filaPrioridade.length){
       abrirProximoModalPrioridade();
     } else {
@@ -1141,7 +1150,7 @@ function loadConfig(){
   db.doc('config/main').get().then(function(snap){
     if(!snap.exists) return;
     var d=snap.data(); configData=d;
-    if(d.nome){ el('cfg-nome').value=d.nome; setText('tb-name','Motorista — '+d.nome); }
+    if(d.nome){ el('cfg-nome').value=d.nome; setText('tb-name-text','Motorista — '+d.nome); }
     if(d.unidade){ el('cfg-unidade').value=d.unidade; setText('tb-sub',d.unidade); }
     if(d.mens) el('cfg-mens').value=d.mens;
     if(d.pix) el('cfg-pix').value=d.pix;
@@ -1152,7 +1161,7 @@ function saveConfig(){
   var data={nome:val('cfg-nome'),unidade:val('cfg-unidade'),mens:parseFloat(val('cfg-mens'))||380,pix:val('cfg-pix'),venc:parseInt(val('cfg-venc'))||10,msg_proximo:val('cfg-msg-proximo')||'Motorista no caminho, favor dirigir-se ao ponto de embarque!'};
   db.doc('config/main').set(data,{merge:true}).then(function(){
     configData=data;
-    setText('tb-name','Motorista — '+(data.nome||'Daniel'));
+    setText('tb-name-text','Motorista — '+(data.nome||'Daniel'));
     setText('tb-sub',data.unidade||'');
     showToast('✅ Configurações salvas!');
   });
@@ -1367,7 +1376,9 @@ function clearTraffic(){
 }
 
 // INIT
+var APP_VERSION = 'rev1.114';
 function initApp(){
+  setText('app-version', APP_VERSION);
   loadConfig();
   listenAlunos();
   listenEscolas();
