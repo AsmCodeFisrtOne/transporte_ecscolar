@@ -783,6 +783,25 @@ function recalcularConflitos(alunoEditadoId, latNovo, lngNovo){
   });
 }
 
+function normalizarEndereco(s){
+  return (s||'').trim().toLowerCase().replace(/\s+/g,' ');
+}
+function verificarEnderecoDuplicado(alunoId, enderecoTexto, nomeAtual){
+  var norm = normalizarEndereco(enderecoTexto);
+  if(!norm) return;
+  var duplicados = alunosData.filter(function(a){
+    return a.id!==alunoId && normalizarEndereco(a.endereco)===norm;
+  });
+  if(!duplicados.length) return;
+  var alunoAtualObj = alunosData.find(function(a){ return a.id===alunoId; })
+    || {id:alunoId, nome:nomeAtual, prioridade_grupo:null, grupo_conflito_id:null};
+  var grupo=[alunoAtualObj].concat(duplicados);
+  filaPrioridade.push(grupo);
+  if(!el('modal-prioridade').classList.contains('open')){
+    abrirProximoModalPrioridade();
+  }
+}
+
 function abrirProximoModalPrioridade(){
   if(!filaPrioridade.length) return;
   grupoAtualPrioridade = filaPrioridade.shift();
@@ -1140,8 +1159,13 @@ function toggleAluno(header){
 function setPending(id,field,value){ if(!pendingAluno[id]) pendingAluno[id]={}; pendingAluno[id][field]=value; }
 function saveAluno(id){
   if(!pendingAluno[id]||!Object.keys(pendingAluno[id]).length){ showToast('Sem alterações'); return; }
+  var enderecoEditado = pendingAluno[id].endereco;
+  var nomeAtual = (alunosData.find(function(a){return a.id===id;})||{}).nome;
   db.doc('alunos/'+id).update(pendingAluno[id])
-    .then(function(){ delete pendingAluno[id]; openAlunoId=null; showToast('✅ Salvo!'); })
+    .then(function(){
+      delete pendingAluno[id]; openAlunoId=null; showToast('✅ Salvo!');
+      if(enderecoEditado!==undefined && enderecoEditado) verificarEnderecoDuplicado(id, enderecoEditado, nomeAtual);
+    })
     .catch(function(e){ showToast('❌ '+e.message); });
 }
 function deleteAluno(id,nome){
@@ -1205,6 +1229,7 @@ function criarPaiAluno(){
   setText('m-err','🔄 Criando...');
   // Internal email derived from code - never shown to the parent
   var internalEmail = codigo.toLowerCase().replace('-','')+'@vanescolar.app';
+  var novoAlunoId;
   // Create pai account using secondary app instance
   var secondaryApp;
   try{ secondaryApp = firebase.app('secondary'); }catch(e){ secondaryApp = firebase.initializeApp(firebase.app().options,'secondary'); }
@@ -1220,6 +1245,7 @@ function criarPaiAluno(){
       valor_mensalidade: valorMensalidade,
       escola_id: escolaId, turno: turno
     }).then(function(alunoRef){
+      novoAlunoId = alunoRef.id;
       // Create financeiro
       var mes=new Date().toISOString().slice(0,7);
       var valorCobranca = (valorMensalidade!==null && !isNaN(valorMensalidade)) ? valorMensalidade : (configData.mens||380);
@@ -1233,6 +1259,7 @@ function criarPaiAluno(){
   }).then(function(){
     showToast('✅ Criado! Código: '+codigo+' — Senha: '+pass);
     closeModalPai();
+    if(endereco) verificarEnderecoDuplicado(novoAlunoId, endereco, alunoNome);
   }).catch(function(e){ setText('m-err','❌ '+e.message); });
 }
 
