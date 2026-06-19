@@ -320,6 +320,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     </select>
     <input class="modal-inp" id="m-aluno-serie" placeholder="Série/Turma (ex: 8ºA)">
     <input class="modal-inp" id="m-aluno-end" placeholder="Endereço de embarque">
+    <input class="modal-inp" id="m-aluno-mens" type="number" placeholder="Mensalidade R$ (deixe vazio para usar o padrão)">
     <div class="modal-err" id="m-err"></div>
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModalPai()">Cancelar</button>
@@ -699,11 +700,12 @@ function gerarCobrancasMes(){
     var faltantes=alunosData.filter(function(a){ return !existentes[a.id]; });
     if(!faltantes.length){ showToast('✅ Todos os alunos já têm cobrança neste mês'); return; }
     var batch=[];
-    var valorMens = configData.mens||380;
+    var valorMensPadrao = configData.mens||380;
     var vencDia = configData.venc||10;
     faltantes.forEach(function(a){
+      var valorIndividual = (a.valor_mensalidade!=null && !isNaN(a.valor_mensalidade)) ? a.valor_mensalidade : valorMensPadrao;
       batch.push(db.collection('financeiro').add({
-        aluno_id:a.id,aluno_nome:a.nome,valor:valorMens,mes:mes,
+        aluno_id:a.id,aluno_nome:a.nome,valor:valorIndividual,mes:mes,
         status:'pendente',vencimento:vencDia
       }));
     });
@@ -711,7 +713,7 @@ function gerarCobrancasMes(){
       showToast('✅ '+faltantes.length+' cobrança(s) gerada(s)!');
       // Notify parents via Avisos (system message), each parent only sees their own child mentioned in their own banner, but message is shared
       db.collection('mensagens').add({
-        texto:'💰 Mensalidade de '+new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+' gerada: R$ '+valorMens.toFixed(0)+' — vencimento dia '+vencDia,
+        texto:'💰 Mensalidade de '+new Date().toLocaleDateString('pt-BR',{month:'long',year:'numeric'})+' gerada — vencimento dia '+vencDia,
         tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',
         timestamp:firebase.firestore.FieldValue.serverTimestamp()
       });
@@ -785,6 +787,7 @@ function renderAlunosAdmin(){
       +'<div class="asc-field full"><div class="asc-lbl">Endereço</div><input class="asc-inp" value="'+(a.endereco||'')+'" oninput="setPending(\''+a.id+'\',\'endereco\',this.value)"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Responsável</div><input class="asc-inp" value="'+(a.responsavel_nome||'')+'" oninput="setPending(\''+a.id+'\',\'responsavel_nome\',this.value)"></div>'
       +'<div class="asc-field"><div class="asc-lbl">WhatsApp</div><input class="asc-inp" value="'+(a.responsavel_tel||'')+'" oninput="setPending(\''+a.id+'\',\'responsavel_tel\',this.value)"></div>'
+      +'<div class="asc-field"><div class="asc-lbl">Mensalidade (R$)</div><input class="asc-inp" type="number" value="'+(a.valor_mensalidade!=null?a.valor_mensalidade:'')+'" placeholder="Padrão: '+(configData.mens||380)+'" oninput="setPending(\''+a.id+'\',\'valor_mensalidade\',this.value===\'\'?null:parseFloat(this.value))"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Ordem rota</div><input class="asc-inp" type="number" value="'+(a.ordem_parada||1)+'" oninput="setPending(\''+a.id+'\',\'ordem_parada\',parseInt(this.value))"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Horário parada</div><input class="asc-inp" type="time" value="'+(a.horario_previsto||'')+'" oninput="setPending(\''+a.id+'\',\'horario_previsto\',this.value)"></div>'
       +'</div>'
@@ -833,7 +836,7 @@ function openModalPai(){
   gerarProximoCodigo();
   el('modal-pai').classList.add('open');
 }
-function closeModalPai(){ el('modal-pai').classList.remove('open'); ['m-pai-nome','m-pai-pass','m-aluno-nome','m-aluno-serie','m-aluno-end'].forEach(function(id){ el(id).value=''; }); el('m-aluno-genero').value='M'; setText('m-err',''); }
+function closeModalPai(){ el('modal-pai').classList.remove('open'); ['m-pai-nome','m-pai-pass','m-aluno-nome','m-aluno-serie','m-aluno-end','m-aluno-mens'].forEach(function(id){ el(id).value=''; }); el('m-aluno-genero').value='M'; setText('m-err',''); }
 
 function gerarProximoCodigo(){
   // Use a dedicated persistent counter doc - never decreases even if pais docs are deleted
@@ -856,6 +859,8 @@ function criarPaiAluno(){
   var codigoNum=parseInt(el('m-pai-codigo').dataset.num)||1;
   var alunoNome=val('m-aluno-nome'), serie=val('m-aluno-serie'), endereco=val('m-aluno-end');
   var genero=val('m-aluno-genero')||'M';
+  var mensInput=val('m-aluno-mens');
+  var valorMensalidade = mensInput ? parseFloat(mensInput) : null;
   if(!paiNome||!pass){ setText('m-err','⚠️ Preencha nome e senha do pai'); return; }
   if(pass.length<6){ setText('m-err','⚠️ Senha deve ter mínimo 6 caracteres'); return; }
   if(!alunoNome){ setText('m-err','⚠️ Informe o nome do aluno'); return; }
@@ -873,11 +878,13 @@ function criarPaiAluno(){
     return db.collection('alunos').add({
       nome:alunoNome,serie:serie||'',endereco:endereco||'',genero:genero,
       responsavel_nome:paiNome,responsavel_tel:'',obs_medicas:'',
-      ordem_parada:alunosData.length+1,horario_previsto:'',ativo:true
+      ordem_parada:alunosData.length+1,horario_previsto:'',ativo:true,
+      valor_mensalidade: valorMensalidade
     }).then(function(alunoRef){
       // Create financeiro
       var mes=new Date().toISOString().slice(0,7);
-      db.collection('financeiro').add({aluno_id:alunoRef.id,aluno_nome:alunoNome,valor:configData.mens||380,mes:mes,status:'pendente',vencimento:configData.venc||10});
+      var valorCobranca = (valorMensalidade!==null && !isNaN(valorMensalidade)) ? valorMensalidade : (configData.mens||380);
+      db.collection('financeiro').add({aluno_id:alunoRef.id,aluno_nome:alunoNome,valor:valorCobranca,mes:mes,status:'pendente',vencimento:configData.venc||10});
       // Create pai record
       return db.collection('pais').add({uid:uid,email:internalEmail,codigo:codigo,codigo_num:codigoNum,nome:paiNome,aluno_id:alunoRef.id,aluno_nome:alunoNome,bloqueado:false,criado_em:firebase.firestore.FieldValue.serverTimestamp()});
     });
