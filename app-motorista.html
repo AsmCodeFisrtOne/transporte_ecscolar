@@ -141,6 +141,8 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 #modal-escola.open{display:flex}
 #modal-geo{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:250;align-items:flex-end;justify-content:center}
 #modal-geo.open{display:flex}
+#modal-prioridade{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:260;align-items:flex-end;justify-content:center}
+#modal-prioridade.open{display:flex}
 .modal-box{background:var(--white);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px}
 .modal-title{font-size:16px;font-weight:700;color:var(--navy)}
 .modal-inp{padding:12px 14px;border-radius:10px;border:1.5px solid var(--gray200);font-size:14px;font-family:'Inter',sans-serif;outline:none;width:100%}
@@ -329,6 +331,18 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
       <div class="modal-actions">
         <button class="modal-cancel" onclick="closeModalGeo()">Cancelar</button>
         <button class="modal-ok" onclick="confirmarLocalizacao()">✅ Confirmar localização</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PRIORIDADE DE DESEMPATE (conflito de proximidade) -->
+  <div id="modal-prioridade">
+    <div class="modal-box">
+      <div class="modal-title">⚠️ Conflito de proximidade</div>
+      <div style="font-size:13px;color:var(--gray400)">Esses alunos têm endereços a menos de 80 metros entre si. Defina quem tem prioridade quando os dois estiverem pendentes ao mesmo tempo na rota:</div>
+      <div id="prioridade-list"></div>
+      <div class="modal-actions">
+        <button class="modal-ok" onclick="confirmarOrdemPrioridade()" style="width:100%">✅ Confirmar ordem</button>
       </div>
     </div>
   </div>
@@ -675,15 +689,145 @@ function confirmarLocalizacao(){
   if(!geoMarker){ showToast('⚠️ Posicione o pino no mapa primeiro'); return; }
   var p=geoMarker.getLatLng();
   var colecao = geoTipo==='aluno' ? 'alunos' : 'escolas';
-  db.doc(colecao+'/'+geoId).update({lat:p.lat, lng:p.lng}).then(function(){
-    showToast('✅ Localização salva!');
+  var tipoSalvo=geoTipo, idSalvo=geoId;
+  db.doc(colecao+'/'+idSalvo).update({lat:p.lat, lng:p.lng}).then(function(){
     closeModalGeo();
+    if(tipoSalvo==='aluno'){
+      recalcularConflitos(idSalvo, p.lat, p.lng);
+    } else {
+      showToast('✅ Localização salva!');
+    }
   });
 }
 
 function closeModalGeo(){
   el('modal-geo').classList.remove('open');
   if(geoMap){ geoMap.remove(); geoMap=null; geoMarker=null; geoCircle=null; }
+}
+
+// ===== CONFLITO DE PROXIMIDADE (prioridade de desempate) =====
+var RAIO_CONFLITO_M = 80;
+function distanciaMetros(lat1,lng1,lat2,lng2){
+  var R=6371000;
+  var dLat=(lat2-lat1)*Math.PI/180, dLng=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+var filaPrioridade = []; // fila de grupos pendentes de confirmação
+var grupoAtualPrioridade = []; // grupo (array de alunos) sendo editado no modal agora
+
+function recalcularConflitos(alunoEditadoId, latNovo, lngNovo){
+  // Snapshot local com o lat/lng recém-salvo já aplicado (evita corrida com o listener do Firestore)
+  var geocoded = alunosData
+    .filter(function(a){ return (a.lat!=null && a.lng!=null) || a.id===alunoEditadoId; })
+    .map(function(a){
+      return a.id===alunoEditadoId ? Object.assign({},a,{lat:latNovo,lng:lngNovo}) : a;
+    });
+
+  var parent={};
+  geocoded.forEach(function(a){ parent[a.id]=a.id; });
+  function find(x){ while(parent[x]!==x){ x=parent[x]; } return x; }
+  function union(x,y){ var rx=find(x),ry=find(y); if(rx!==ry) parent[rx]=ry; }
+  for(var i=0;i<geocoded.length;i++){
+    for(var j=i+1;j<geocoded.length;j++){
+      if(distanciaMetros(geocoded[i].lat,geocoded[i].lng,geocoded[j].lat,geocoded[j].lng) <= RAIO_CONFLITO_M){
+        union(geocoded[i].id, geocoded[j].id);
+      }
+    }
+  }
+  var groups={};
+  geocoded.forEach(function(a){ var r=find(a.id); (groups[r]=groups[r]||[]).push(a); });
+
+  // Alunos que precisam ser reavaliados: o editado + quem estava no grupo antigo dele
+  var alunoEditado = alunosData.find(function(a){ return a.id===alunoEditadoId; });
+  var oldGrupoId = alunoEditado ? alunoEditado.grupo_conflito_id : null;
+  var idsParaReavaliar = {}; idsParaReavaliar[alunoEditadoId]=true;
+  if(oldGrupoId){
+    alunosData.forEach(function(a){ if(a.grupo_conflito_id===oldGrupoId) idsParaReavaliar[a.id]=true; });
+  }
+
+  var rootsToProcess={};
+  Object.keys(idsParaReavaliar).forEach(function(id){
+    if(parent[id]!==undefined) rootsToProcess[find(id)]=true;
+  });
+
+  var clearUpdates=[];
+  var gruposParaPerguntar=[];
+
+  Object.keys(rootsToProcess).forEach(function(r){
+    var membros=groups[r]||[];
+    if(membros.length<2){
+      membros.forEach(function(m){
+        if(m.grupo_conflito_id) clearUpdates.push(m.id);
+      });
+      return;
+    }
+    gruposParaPerguntar.push(membros);
+  });
+
+  var promessa = Promise.resolve();
+  if(clearUpdates.length){
+    var batch=db.batch();
+    clearUpdates.forEach(function(id){ batch.update(db.doc('alunos/'+id),{grupo_conflito_id:null,prioridade_grupo:null}); });
+    promessa = batch.commit();
+  }
+
+  promessa.then(function(){
+    if(gruposParaPerguntar.length){
+      filaPrioridade = gruposParaPerguntar;
+      abrirProximoModalPrioridade();
+    } else {
+      showToast('✅ Localização salva!');
+    }
+  });
+}
+
+function abrirProximoModalPrioridade(){
+  if(!filaPrioridade.length) return;
+  grupoAtualPrioridade = filaPrioridade.shift();
+  // Ordena por prioridade já existente (se houver), senão por nome, novos entram no fim
+  grupoAtualPrioridade.sort(function(a,b){
+    var pa = (a.prioridade_grupo!=null) ? a.prioridade_grupo : 999;
+    var pb = (b.prioridade_grupo!=null) ? b.prioridade_grupo : 999;
+    if(pa!==pb) return pa-pb;
+    return (a.nome||'').localeCompare(b.nome||'');
+  });
+  renderPrioridadeList();
+  el('modal-prioridade').classList.add('open');
+}
+
+function renderPrioridadeList(){
+  var box=el('prioridade-list'); if(!box) return;
+  box.innerHTML=grupoAtualPrioridade.map(function(a,idx){
+    return '<div style="display:flex;align-items:center;gap:8px;padding:10px 0;border-bottom:1px solid var(--gray200)">'
+      +'<div style="width:24px;text-align:center;font-weight:800;color:var(--navy)">'+(idx+1)+'º</div>'
+      +'<div style="flex:1;font-size:14px;font-weight:600">'+(a.nome||'')+'</div>'
+      +'<button onclick="moverPrioridade('+idx+',-1)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px">▲</button>'
+      +'<button onclick="moverPrioridade('+idx+',1)" style="background:none;border:none;font-size:18px;cursor:pointer;padding:4px 8px">▼</button>'
+      +'</div>';
+  }).join('');
+}
+function moverPrioridade(idx,dir){
+  var novo=idx+dir;
+  if(novo<0||novo>=grupoAtualPrioridade.length) return;
+  var tmp=grupoAtualPrioridade[idx]; grupoAtualPrioridade[idx]=grupoAtualPrioridade[novo]; grupoAtualPrioridade[novo]=tmp;
+  renderPrioridadeList();
+}
+function confirmarOrdemPrioridade(){
+  var grupoId = 'grp_'+Date.now()+'_'+Math.random().toString(36).slice(2,7);
+  var batch=db.batch();
+  grupoAtualPrioridade.forEach(function(a,idx){
+    batch.update(db.doc('alunos/'+a.id),{grupo_conflito_id:grupoId, prioridade_grupo:idx});
+  });
+  batch.commit().then(function(){
+    el('modal-prioridade').classList.remove('open');
+    if(filaPrioridade.length){
+      abrirProximoModalPrioridade();
+    } else {
+      showToast('✅ Prioridade definida!');
+    }
+  });
 }
 
 function listenStatus(){
@@ -943,6 +1087,12 @@ function saveConfig(){
 }
 
 // ADMIN ALUNOS
+function descricaoPrioridade(aluno){
+  if(!aluno.grupo_conflito_id) return 'Sem uso';
+  var companheiros = alunosData.filter(function(a){ return a.grupo_conflito_id===aluno.grupo_conflito_id && a.id!==aluno.id; }).map(function(a){return a.nome;});
+  var pos=(aluno.prioridade_grupo!=null?aluno.prioridade_grupo+1:'?');
+  return pos+'º a embarcar, em conflito com: '+(companheiros.join(', ')||'—');
+}
 function ascEscolaOptions(escolaIdAtual){
   var opts='<option value=""'+(!escolaIdAtual?' selected':'')+'>— Sem escola —</option>';
   escolasData.forEach(function(e){
@@ -966,6 +1116,7 @@ function renderAlunosAdmin(){
       +'<div class="asc-field"><div class="asc-lbl">WhatsApp</div><input class="asc-inp" value="'+(a.responsavel_tel||'')+'" oninput="setPending(\''+a.id+'\',\'responsavel_tel\',this.value)"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Escola</div><select class="asc-inp" onchange="setPending(\''+a.id+'\',\'escola_id\',this.value||null)">'+ascEscolaOptions(a.escola_id)+'</select></div>'
       +'<div class="asc-field"><div class="asc-lbl">Turno</div><select class="asc-inp" onchange="setPending(\''+a.id+'\',\'turno\',this.value||null)"><option value=""'+(!a.turno?' selected':'')+'>— Sem turno —</option><option value="manha"'+(a.turno==='manha'?' selected':'')+'>Manhã</option><option value="tarde"'+(a.turno==='tarde'?' selected':'')+'>Tarde</option><option value="noite"'+(a.turno==='noite'?' selected':'')+'>Noite</option></select></div>'
+      +'<div class="asc-field full"><div class="asc-lbl">Prioridade de desempate</div><div style="padding:8px 10px;background:'+(a.grupo_conflito_id?'#FEF3C7':'#F1F5F9')+';border-radius:8px;font-size:13px;color:'+(a.grupo_conflito_id?'#92400E':'var(--gray400)')+';font-weight:'+(a.grupo_conflito_id?'700':'400')+'">'+descricaoPrioridade(a)+'</div></div>'
       +'<div class="asc-field"><div class="asc-lbl">Mensalidade (R$)</div><input class="asc-inp" type="number" value="'+(a.valor_mensalidade!=null?a.valor_mensalidade:'')+'" placeholder="Padrão: '+(configData.mens||380)+'" oninput="setPending(\''+a.id+'\',\'valor_mensalidade\',this.value===\'\'?null:parseFloat(this.value))"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Ordem rota</div><input class="asc-inp" type="number" value="'+(a.ordem_parada||1)+'" oninput="setPending(\''+a.id+'\',\'ordem_parada\',parseInt(this.value))"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Horário parada</div><input class="asc-inp" type="time" value="'+(a.horario_previsto||'')+'" oninput="setPending(\''+a.id+'\',\'horario_previsto\',this.value)"></div>'
