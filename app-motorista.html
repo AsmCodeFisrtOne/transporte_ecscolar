@@ -135,6 +135,8 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 /* CRIAR PAI MODAL */
 #modal-pai{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
 #modal-pai.open{display:flex}
+#modal-escola{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-end;justify-content:center}
+#modal-escola.open{display:flex}
 .modal-box{background:var(--white);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;display:flex;flex-direction:column;gap:12px}
 .modal-title{font-size:16px;font-weight:700;color:var(--navy)}
 .modal-inp{padding:12px 14px;border-radius:10px;border:1.5px solid var(--gray200);font-size:14px;font-family:'Inter',sans-serif;outline:none;width:100%}
@@ -285,10 +287,29 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
           <div class="cfg-col"><div class="cfg-lbl">Mensagem "próximo a embarcar"</div><input class="cfg-inp" id="cfg-msg-proximo" placeholder="Motorista no caminho, favor dirigir-se ao ponto de embarque!"></div>
         </div>
       </div>
+      <!-- ESCOLAS -->
+      <div class="adm-section">
+        <div class="adm-title">🏫 Escolas <span id="escolas-count" style="font-weight:400;color:var(--gray400);font-size:12px"></span><button class="adm-btn" onclick="openModalEscola()">+ Nova escola</button></div>
+        <div id="escolas-admin"></div>
+      </div>
       <!-- ALUNOS -->
       <div class="adm-section">
         <div class="adm-title">👦 Alunos <span id="alunos-count" style="font-weight:400;color:var(--gray400);font-size:12px"></span><button class="adm-btn" onclick="openModalPai()">+ Novo pai/aluno</button></div>
         <div id="alunos-admin"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ESCOLA -->
+  <div id="modal-escola">
+    <div class="modal-box">
+      <div class="modal-title">🏫 Nova escola</div>
+      <input class="modal-inp" id="m-escola-nome" placeholder="Nome da escola">
+      <input class="modal-inp" id="m-escola-end" placeholder="Endereço (opcional)">
+      <div class="modal-err" id="m-escola-err"></div>
+      <div class="modal-actions">
+        <button class="modal-cancel" onclick="closeModalEscola()">Cancelar</button>
+        <button class="modal-ok" onclick="criarEscola()">✅ Criar</button>
       </div>
     </div>
   </div>
@@ -320,6 +341,13 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     </select>
     <input class="modal-inp" id="m-aluno-serie" placeholder="Série/Turma (ex: 8ºA)">
     <input class="modal-inp" id="m-aluno-end" placeholder="Endereço de embarque">
+    <select class="modal-inp" id="m-aluno-escola"><option value="">— Sem escola definida —</option></select>
+    <select class="modal-inp" id="m-aluno-turno">
+      <option value="">— Sem turno definido —</option>
+      <option value="manha">Manhã</option>
+      <option value="tarde">Tarde</option>
+      <option value="noite">Noite</option>
+    </select>
     <input class="modal-inp" id="m-aluno-mens" type="number" placeholder="Mensalidade R$ (deixe vazio para usar o padrão)">
     <div class="modal-err" id="m-err"></div>
     <div class="modal-actions">
@@ -516,6 +544,46 @@ function listenAlunos(){
     if(!openAlunoId) renderAlunosAdmin();
   });
 }
+
+// ESCOLAS
+var escolasData = [];
+function listenEscolas(){
+  db.collection('escolas').orderBy('nome','asc').onSnapshot(function(snap){
+    escolasData=[];
+    snap.forEach(function(d){ escolasData.push({id:d.id,...d.data()}); });
+    setText('escolas-count',escolasData.length+' escola(s)');
+    renderEscolasAdmin();
+    if(!openAlunoId) renderAlunosAdmin(); // refresh selects de escola nos alunos
+  });
+}
+function renderEscolasAdmin(){
+  var box=el('escolas-admin'); if(!box) return;
+  if(!escolasData.length){
+    box.innerHTML='<div style="padding:16px;text-align:center;color:var(--gray400);font-size:13px">Nenhuma escola cadastrada ainda</div>';
+    return;
+  }
+  box.innerHTML=escolasData.map(function(e){
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--gray200)">'
+      +'<div><div style="font-weight:700;font-size:14px;color:#1E293B">'+e.nome+'</div>'+(e.endereco?'<div style="font-size:12px;color:var(--gray400)">'+e.endereco+'</div>':'')+'</div>'
+      +'<button onclick="deleteEscola(\''+e.id+'\',\''+e.nome.replace(/'/g,"\\'")+'\')" style="background:#FEF2F2;color:var(--red);border:none;border-radius:8px;width:32px;height:32px;font-size:14px;cursor:pointer;flex-shrink:0">🗑️</button>'
+      +'</div>';
+  }).join('');
+}
+function openModalEscola(){ setText('m-escola-err',''); el('m-escola-nome').value=''; el('m-escola-end').value=''; el('modal-escola').classList.add('open'); }
+function closeModalEscola(){ el('modal-escola').classList.remove('open'); }
+function criarEscola(){
+  var nome=val('m-escola-nome'), endereco=val('m-escola-end');
+  if(!nome){ setText('m-escola-err','⚠️ Informe o nome da escola'); return; }
+  db.collection('escolas').add({nome:nome,endereco:endereco||''}).then(function(){
+    closeModalEscola();
+    showToast('✅ Escola cadastrada!');
+  });
+}
+function deleteEscola(id,nome){
+  if(!window.confirm('Excluir a escola "'+nome+'"? Alunos vinculados a ela ficarão sem escola definida.')) return;
+  db.doc('escolas/'+id).delete().then(function(){ showToast('🗑️ Escola excluída'); });
+}
+
 function listenStatus(){
   db.collection('status_alunos').onSnapshot(function(snap){
     statusCache={};
@@ -773,6 +841,13 @@ function saveConfig(){
 }
 
 // ADMIN ALUNOS
+function ascEscolaOptions(escolaIdAtual){
+  var opts='<option value=""'+(!escolaIdAtual?' selected':'')+'>— Sem escola —</option>';
+  escolasData.forEach(function(e){
+    opts += '<option value="'+e.id+'"'+(e.id===escolaIdAtual?' selected':'')+'>'+e.nome+'</option>';
+  });
+  return opts;
+}
 function renderAlunosAdmin(){
   var list=el('alunos-admin'); if(!list) return;
   if(!alunosData.length){ list.innerHTML='<div style="padding:16px;text-align:center;font-size:12px;color:var(--gray400)">Nenhum aluno</div>'; return; }
@@ -787,6 +862,8 @@ function renderAlunosAdmin(){
       +'<div class="asc-field full"><div class="asc-lbl">Endereço</div><input class="asc-inp" value="'+(a.endereco||'')+'" oninput="setPending(\''+a.id+'\',\'endereco\',this.value)"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Responsável</div><input class="asc-inp" value="'+(a.responsavel_nome||'')+'" oninput="setPending(\''+a.id+'\',\'responsavel_nome\',this.value)"></div>'
       +'<div class="asc-field"><div class="asc-lbl">WhatsApp</div><input class="asc-inp" value="'+(a.responsavel_tel||'')+'" oninput="setPending(\''+a.id+'\',\'responsavel_tel\',this.value)"></div>'
+      +'<div class="asc-field"><div class="asc-lbl">Escola</div><select class="asc-inp" onchange="setPending(\''+a.id+'\',\'escola_id\',this.value||null)">'+ascEscolaOptions(a.escola_id)+'</select></div>'
+      +'<div class="asc-field"><div class="asc-lbl">Turno</div><select class="asc-inp" onchange="setPending(\''+a.id+'\',\'turno\',this.value||null)"><option value=""'+(!a.turno?' selected':'')+'>— Sem turno —</option><option value="manha"'+(a.turno==='manha'?' selected':'')+'>Manhã</option><option value="tarde"'+(a.turno==='tarde'?' selected':'')+'>Tarde</option><option value="noite"'+(a.turno==='noite'?' selected':'')+'>Noite</option></select></div>'
       +'<div class="asc-field"><div class="asc-lbl">Mensalidade (R$)</div><input class="asc-inp" type="number" value="'+(a.valor_mensalidade!=null?a.valor_mensalidade:'')+'" placeholder="Padrão: '+(configData.mens||380)+'" oninput="setPending(\''+a.id+'\',\'valor_mensalidade\',this.value===\'\'?null:parseFloat(this.value))"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Ordem rota</div><input class="asc-inp" type="number" value="'+(a.ordem_parada||1)+'" oninput="setPending(\''+a.id+'\',\'ordem_parada\',parseInt(this.value))"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Horário parada</div><input class="asc-inp" type="time" value="'+(a.horario_previsto||'')+'" oninput="setPending(\''+a.id+'\',\'horario_previsto\',this.value)"></div>'
@@ -832,11 +909,17 @@ function deleteAluno(id,nome){
 }
 
 // CRIAR PAI/ALUNO
+function popularSelectEscolas(selectEl, valorSelecionado){
+  if(!selectEl) return;
+  selectEl.innerHTML='<option value="">— Sem escola definida —</option>'
+    + escolasData.map(function(e){ return '<option value="'+e.id+'"'+(e.id===valorSelecionado?' selected':'')+'>'+e.nome+'</option>'; }).join('');
+}
 function openModalPai(){
   gerarProximoCodigo();
+  popularSelectEscolas(el('m-aluno-escola'),'');
   el('modal-pai').classList.add('open');
 }
-function closeModalPai(){ el('modal-pai').classList.remove('open'); ['m-pai-nome','m-pai-pass','m-aluno-nome','m-aluno-serie','m-aluno-end','m-aluno-mens'].forEach(function(id){ el(id).value=''; }); el('m-aluno-genero').value='M'; setText('m-err',''); }
+function closeModalPai(){ el('modal-pai').classList.remove('open'); ['m-pai-nome','m-pai-pass','m-aluno-nome','m-aluno-serie','m-aluno-end','m-aluno-mens'].forEach(function(id){ el(id).value=''; }); el('m-aluno-genero').value='M'; el('m-aluno-escola').value=''; el('m-aluno-turno').value=''; setText('m-err',''); }
 
 function gerarProximoCodigo(){
   // Use a dedicated persistent counter doc - never decreases even if pais docs are deleted
@@ -859,6 +942,8 @@ function criarPaiAluno(){
   var codigoNum=parseInt(el('m-pai-codigo').dataset.num)||1;
   var alunoNome=val('m-aluno-nome'), serie=val('m-aluno-serie'), endereco=val('m-aluno-end');
   var genero=val('m-aluno-genero')||'M';
+  var escolaId=val('m-aluno-escola')||null;
+  var turno=val('m-aluno-turno')||null;
   var mensInput=val('m-aluno-mens');
   var valorMensalidade = mensInput ? parseFloat(mensInput) : null;
   if(!paiNome||!pass){ setText('m-err','⚠️ Preencha nome e senha do pai'); return; }
@@ -879,7 +964,8 @@ function criarPaiAluno(){
       nome:alunoNome,serie:serie||'',endereco:endereco||'',genero:genero,
       responsavel_nome:paiNome,responsavel_tel:'',obs_medicas:'',
       ordem_parada:alunosData.length+1,horario_previsto:'',ativo:true,
-      valor_mensalidade: valorMensalidade
+      valor_mensalidade: valorMensalidade,
+      escola_id: escolaId, turno: turno
     }).then(function(alunoRef){
       // Create financeiro
       var mes=new Date().toISOString().slice(0,7);
@@ -951,6 +1037,7 @@ function clearTraffic(){
 function initApp(){
   loadConfig();
   listenAlunos();
+  listenEscolas();
   listenStatus();
   listenChat();
   // Safety: clear orphaned trip state from previous session if GPS isn't actually running
