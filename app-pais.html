@@ -358,7 +358,7 @@ function loadPaiData(uid){
 // CONFIG
 var configData = {};
 function loadConfig(){
-  db.doc('config/main').get().then(function(snap){
+  db.doc('config/main').onSnapshot(function(snap){
     if(!snap.exists) return;
     var d=snap.data();
     configData = d;
