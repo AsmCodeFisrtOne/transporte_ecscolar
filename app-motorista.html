@@ -803,6 +803,30 @@ function regAcao(id, nome, etapa){
   var msgs={embarcou:'✅ '+nome+' embarcou na van',na_escola:'🏫 '+nome+' chegou na escola',em_casa:'🏠 '+nome+' chegou em casa',faltou:'❌ '+nome+' faltou'};
   if(msgs[etapa]) db.collection('mensagens').add({texto:msgs[etapa],tipo:'sistema',aluno_id:id,remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   showToast(msgs[etapa]||'✅ Atualizado');
+  sincronizarRotaComAcaoManual(id, etapa);
+}
+
+// Se o motorista resolver um aluno pelo painel manual (ex: criança foi buscada por
+// alguém fora da rotina, longe da bolha cadastrada), a rota automática precisa saber
+// disso — senão o ponteiro fica preso esperando uma bolha que nunca vai ser visitada.
+// Procura, a partir da parada atual em diante, se esse aluno é a vez dele (ou uma
+// parada futura) e avança o ponteiro pra depois dela.
+function sincronizarRotaComAcaoManual(alunoId, etapa){
+  if(!rotaEmExecucao) return;
+  if(etapa!=='embarcou' && etapa!=='faltou' && etapa!=='em_casa') return;
+  var paradas=rotaEmExecucao.paradas||[];
+  for(var i=indiceParadaAtual; i<paradas.length; i++){
+    var p=paradas[i];
+    if((p.tipo==='embarque_casa'||p.tipo==='desembarque_casa') && p.aluno_id===alunoId){
+      indiceParadaAtual=i+1;
+      salvarProgressoRota();
+      atualizarUIProgresso();
+      el('auto-suggestion').style.display='none';
+      sugestaoAtual=null;
+      if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
+      return;
+    }
+  }
 }
 
 // ===== ROTAS: cadastro (CRUD) =====
@@ -941,7 +965,7 @@ function popularSelectRotas(){
   sel.innerHTML='<option value="">— Selecione uma rota —</option>'
     + rotasData.map(function(r){ return '<option value="'+r.id+'"'+(r.id===atual?' selected':'')+'>'+r.nome+' ('+(r.paradas||[]).length+' paradas)</option>'; }).join('');
 }
-function aoTrocarRotaSelecionada(){ /* só guarda a escolha; precisa clicar em Iniciar pra valer */ }
+function aoTrocarRotaSelecionada(){ atualizarMapaRota(); }
 
 function iniciarRotaSelecionada(){
   var rotaId=val('rota-selecionada');
@@ -1151,33 +1175,48 @@ function initMapaRota(){
 
 function atualizarMapaRota(){
   var view=el('view-mapaauto');
-  if(!view || !view.classList.contains('active') || !mapaRotaMap || !lastGpsPosition) return;
+  if(!view || !view.classList.contains('active') || !mapaRotaMap) return;
 
-  var lat=lastGpsPosition.lat, lng=lastGpsPosition.lng;
-  if(mapaRotaVanMarker){
-    mapaRotaVanMarker.setLatLng([lat,lng]);
-  } else {
-    mapaRotaVanMarker = L.circleMarker([lat,lng],{radius:9,color:'#fff',weight:2,fillColor:'#3B82F6',fillOpacity:1}).addTo(mapaRotaMap);
-    mapaRotaMap.setView([lat,lng],15);
+  if(lastGpsPosition){
+    var lat=lastGpsPosition.lat, lng=lastGpsPosition.lng;
+    if(mapaRotaVanMarker){
+      mapaRotaVanMarker.setLatLng([lat,lng]);
+    } else {
+      mapaRotaVanMarker = L.circleMarker([lat,lng],{radius:10,color:'#fff',weight:3,fillColor:'#3B82F6',fillOpacity:1}).addTo(mapaRotaMap);
+      mapaRotaMap.setView([lat,lng],15);
+    }
   }
 
   mapaRotaStopMarkers.forEach(function(m){ mapaRotaMap.removeLayer(m); });
   mapaRotaStopMarkers=[];
 
-  if(!rotaEmExecucao) return;
-  var paradas=rotaEmExecucao.paradas||[];
+  // Mostra a rota em execução; se nenhuma estiver rodando ainda, mostra a
+  // selecionada no dropdown como pré-visualização (tudo cinza, sem destaque)
+  var rotaParaMostrar = rotaEmExecucao || rotasData.find(function(r){ return r.id===val('rota-selecionada'); });
+  if(!rotaParaMostrar) return;
+  var paradas=rotaParaMostrar.paradas||[];
+  var bounds=[];
   paradas.forEach(function(p,idx){
     var coord=coordenadaParada(p);
     if(!coord) return;
-    var ehAtual = idx===indiceParadaAtual;
-    var cor = ehAtual ? '#FFD23F' : '#94A3B8';
+    bounds.push([coord.lat,coord.lng]);
+    var ehAtual = rotaEmExecucao && idx===indiceParadaAtual;
+    var cor = ehAtual ? '#FFD23F' : '#475569';
     if(ehAtual){
       var circle=L.circle([coord.lat,coord.lng],{radius:RAIO_PARADA_M,color:cor,fillColor:cor,fillOpacity:.2,weight:2}).addTo(mapaRotaMap);
       mapaRotaStopMarkers.push(circle);
     }
-    var ponto=L.circleMarker([coord.lat,coord.lng],{radius:ehAtual?8:5,color:'#fff',weight:1.5,fillColor:cor,fillOpacity:1}).bindTooltip((idx+1)+'. '+coord.nome).addTo(mapaRotaMap);
+    var icone=L.divIcon({
+      html:'<div style="background:'+cor+';color:#fff;border:2px solid #fff;border-radius:50%;width:'+(ehAtual?28:22)+'px;height:'+(ehAtual?28:22)+'px;display:flex;align-items:center;justify-content:center;font-size:'+(ehAtual?13:11)+'px;font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.4)">'+(idx+1)+'</div>',
+      className:'', iconSize:[ehAtual?28:22,ehAtual?28:22], iconAnchor:[ehAtual?14:11,ehAtual?14:11]
+    });
+    var ponto=L.marker([coord.lat,coord.lng],{icon:icone}).bindTooltip(coord.nome,{permanent:false}).addTo(mapaRotaMap);
     mapaRotaStopMarkers.push(ponto);
   });
+  // Se não tem GPS ainda, ao menos centraliza o mapa pra mostrar todas as paradas da rota
+  if(!lastGpsPosition && bounds.length){
+    mapaRotaMap.fitBounds(bounds, {padding:[30,30]});
+  }
 }
 
 var selectedAlunoId = null;
@@ -1594,7 +1633,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev2.0';
+var APP_VERSION = 'rev2.2';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
