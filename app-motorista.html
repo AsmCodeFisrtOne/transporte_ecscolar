@@ -821,6 +821,7 @@ function sincronizarRotaComAcaoManual(alunoId, etapa){
       indiceParadaAtual=i+1;
       salvarProgressoRota();
       atualizarUIProgresso();
+      atualizarMapaRota();
       el('auto-suggestion').style.display='none';
       sugestaoAtual=null;
       if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
@@ -975,6 +976,7 @@ function iniciarRotaSelecionada(){
   indiceParadaAtual=0;
   salvarProgressoRota();
   atualizarUIProgresso();
+  atualizarMapaRota();
   showToast('▶ Rota "'+rota.nome+'" iniciada!');
   if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
 }
@@ -1089,6 +1091,7 @@ function avancarParada(){
   indiceParadaAtual++;
   salvarProgressoRota();
   atualizarUIProgresso();
+  atualizarMapaRota();
   el('auto-suggestion').style.display='none';
   sugestaoAtual=null;
   // Reavalia imediatamente: se a próxima parada também já estiver no raio
@@ -1152,6 +1155,7 @@ function voltarParadaAnterior(){
   indiceParadaAtual--;
   salvarProgressoRota();
   atualizarUIProgresso();
+  atualizarMapaRota();
   if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
 }
 
