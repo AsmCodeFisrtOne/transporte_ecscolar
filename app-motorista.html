@@ -1421,7 +1421,7 @@ function atualizarMapaRota(){
       }
     } else {
       var iconeVan = L.divIcon({
-        html:'<div style="font-size:32px;line-height:1;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))">🚐</div>',
+        html:'<div style="font-size:32px;line-height:1;filter:brightness(0.55) drop-shadow(0 1px 3px rgba(0,0,0,.6))">🚐</div>',
         className:'', iconSize:[36,36], iconAnchor:[18,18]
       });
       mapaRotaVanMarker = L.marker([lat,lng],{icon:iconeVan}).addTo(mapaRotaMap);
@@ -2030,7 +2030,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev5.8';
+var APP_VERSION = 'rev5.9';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
