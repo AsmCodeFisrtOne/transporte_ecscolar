@@ -529,6 +529,7 @@ function doLogin(){
 
 // GPS
 var lastGpsPosition = null;
+var lastRealGpsPosition = null; // sempre a posição real do GPS, usada só pra publicar no banco (pais/auxiliar)
 var simulacaoGpsAtiva = false; // true enquanto o simulador de chegada está "no controle", ignora GPS real
 var gpsHeartbeatInterval = null;
 
@@ -542,10 +543,9 @@ function toggleGPS(){
   showToast('🛰️ Ativando GPS...');
   gpsWatchId = navigator.geolocation.watchPosition(
     function(pos){
-      if(simulacaoGpsAtiva) return; // ignora GPS real enquanto o simulador de chegada está em uso
       var lat=pos.coords.latitude, lng=pos.coords.longitude;
       var spd=pos.coords.speed?Math.round(pos.coords.speed*3.6):0;
-      lastGpsPosition={lat:lat,lng:lng,spd:spd};
+      lastRealGpsPosition={lat:lat,lng:lng,spd:spd};
       var dot=el('gps-dot'); if(dot) dot.className='gps-dot on';
       setText('gps-txt','GPS · '+lat.toFixed(5)+', '+lng.toFixed(5));
       setText('gps-btn','⏹ Parar');
@@ -553,6 +553,12 @@ function toggleGPS(){
       var badge=el('spd-badge');
       if(badge){ badge.textContent=spd<10?'● PARADO':'▶ '+spd+' km/h'; badge.className='tb-badge '+(spd<10?'stopped':'moving'); }
       publishGps(lat,lng,spd);
+      // A partir daqui é só o que afeta a detecção de parada/mapa local — isso
+      // sim fica pausado durante o teste com o simulador, pra não brigar com
+      // a posição forjada. A publicação acima continua sempre, então pais e
+      // auxiliar nunca ficam sem ver a posição real da van.
+      if(simulacaoGpsAtiva) return;
+      lastGpsPosition={lat:lat,lng:lng,spd:spd};
       if(modoAutomaticoAtivo && tripStarted) processarParadaAtual(lat,lng);
       atualizarMapaRota();
     },
@@ -562,10 +568,12 @@ function toggleGPS(){
   // Heartbeat: re-publish last known position every 10s even if van is stationary,
   // so pais/auxiliar apps don't think the trip went offline due to stale timestamp
   gpsHeartbeatInterval = setInterval(function(){
+    if(lastRealGpsPosition){
+      publishGps(lastRealGpsPosition.lat,lastRealGpsPosition.lng,lastRealGpsPosition.spd);
+    }
     if(simulacaoGpsAtiva) return;
-    if(lastGpsPosition){
-      publishGps(lastGpsPosition.lat,lastGpsPosition.lng,lastGpsPosition.spd);
-      if(modoAutomaticoAtivo && tripStarted) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
+    if(lastGpsPosition && modoAutomaticoAtivo && tripStarted){
+      processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
     }
   }, 5000);
 }
@@ -573,6 +581,7 @@ function stopGPS(){
   if(gpsWatchId){ navigator.geolocation.clearWatch(gpsWatchId); gpsWatchId=null; }
   if(gpsHeartbeatInterval){ clearInterval(gpsHeartbeatInterval); gpsHeartbeatInterval=null; }
   lastGpsPosition=null;
+  lastRealGpsPosition=null;
   var dot=el('gps-dot'); if(dot) dot.className='gps-dot';
   setText('gps-txt','GPS desativado');
   setText('gps-btn','Ativar ▶');
@@ -2005,7 +2014,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev4.2';
+var APP_VERSION = 'rev4.3';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
