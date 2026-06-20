@@ -593,6 +593,20 @@ function stopGPS(){
 }
 
 // TRIP
+// Controla o habilitado/desabilitado de tudo que só faz sentido com a
+// viagem ativa: toggle do modo automático, botão de simular GPS, dropdown
+// de rota e botão de iniciar rota. Sem viagem, nenhum desses tem efeito útil.
+function atualizarControlesDependentesDeViagem(){
+  var toggleAuto=el('modo-auto-toggle');
+  var btnSim=el('btn-simular-gps');
+  var selRota=el('rota-selecionada');
+  var btnIniciarRota=el('btn-iniciar-rota');
+  if(toggleAuto) toggleAuto.disabled=!tripStarted;
+  if(btnSim && !tripStarted) btnSim.style.display='none';
+  if(selRota) selRota.disabled = !tripStarted || (btnIniciarRota && btnIniciarRota.textContent==='🚐 Na rota');
+  if(btnIniciarRota && btnIniciarRota.textContent!=='🚐 Na rota') btnIniciarRota.disabled=!tripStarted;
+}
+
 function startTrip(){
   if(!gpsWatchId){
     showToast('⚠️ Ative o GPS antes de iniciar a viagem');
@@ -603,6 +617,7 @@ function startTrip(){
   el('btn-finish').disabled=false;
   el('fab-sos').disabled=false;
   updateTrafficBtn();
+  atualizarControlesDependentesDeViagem();
   setText('trip-status','✅ Viagem em andamento');
   // Update GPS to reflect trip started
   window.gpsRef.update({viagem_ativa:true});
@@ -636,6 +651,11 @@ function finishTrip(){
   atualizarUIProgresso();
   atualizarMapaRota();
   resetarBotaoIniciarRota();
+  // Desliga e trava o modo automático e o botão de simular GPS — só fazem
+  // sentido com viagem ativa.
+  modoAutomaticoAtivo=false;
+  var toggleAuto=el('modo-auto-toggle'); if(toggleAuto) toggleAuto.checked=false;
+  atualizarControlesDependentesDeViagem();
   showToast('🏁 Viagem finalizada!');
   renderPainel();
 }
@@ -1017,6 +1037,7 @@ function popularSelectRotas(){
 function aoTrocarRotaSelecionada(){ atualizarMapaRota(); }
 
 function iniciarRotaSelecionada(){
+  if(!tripStarted){ showToast('⚠️ Inicie a viagem antes de escolher uma rota'); return; }
   var rotaId=val('rota-selecionada');
   var rota=rotasData.find(function(r){ return r.id===rotaId; });
   if(!rota){ showToast('⚠️ Selecione uma rota primeiro'); return; }
@@ -1070,6 +1091,7 @@ function garantirEstadoInicialAoAbrirApp(){
   rdb.ref('viagem_ativa').set(false);
   window.gpsRef.remove();
   resetarBotaoIniciarRota();
+  atualizarControlesDependentesDeViagem();
   atualizarUIProgresso();
   atualizarMapaRota();
   renderPainel();
@@ -1927,7 +1949,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev3.8';
+var APP_VERSION = 'rev3.9';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
