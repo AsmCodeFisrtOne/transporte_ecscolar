@@ -529,6 +529,7 @@ function doLogin(){
 
 // GPS
 var lastGpsPosition = null;
+var simulacaoGpsAtiva = false; // true enquanto o simulador de chegada está "no controle", ignora GPS real
 var gpsHeartbeatInterval = null;
 
 function publishGps(lat,lng,spd){
@@ -541,6 +542,7 @@ function toggleGPS(){
   showToast('🛰️ Ativando GPS...');
   gpsWatchId = navigator.geolocation.watchPosition(
     function(pos){
+      if(simulacaoGpsAtiva) return; // ignora GPS real enquanto o simulador de chegada está em uso
       var lat=pos.coords.latitude, lng=pos.coords.longitude;
       var spd=pos.coords.speed?Math.round(pos.coords.speed*3.6):0;
       lastGpsPosition={lat:lat,lng:lng,spd:spd};
@@ -560,6 +562,7 @@ function toggleGPS(){
   // Heartbeat: re-publish last known position every 10s even if van is stationary,
   // so pais/auxiliar apps don't think the trip went offline due to stale timestamp
   gpsHeartbeatInterval = setInterval(function(){
+    if(simulacaoGpsAtiva) return;
     if(lastGpsPosition){
       publishGps(lastGpsPosition.lat,lastGpsPosition.lng,lastGpsPosition.spd);
       if(modoAutomaticoAtivo && tripStarted) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
@@ -654,6 +657,7 @@ function finishTrip(){
   // Desliga e trava o modo automático e o botão de simular GPS — só fazem
   // sentido com viagem ativa.
   modoAutomaticoAtivo=false;
+  simulacaoGpsAtiva=false;
   var toggleAuto=el('modo-auto-toggle'); if(toggleAuto) toggleAuto.checked=false;
   atualizarControlesDependentesDeViagem();
   showToast('🏁 Viagem finalizada!');
@@ -1206,6 +1210,7 @@ function toggleModoAutomatico(){
   modoAutomaticoAtivo = el('modo-auto-toggle').checked;
   if(!modoAutomaticoAtivo){
     sugestaoAtual=null;
+    simulacaoGpsAtiva=false;
     el('auto-suggestion').style.display='none';
   } else if(lastGpsPosition){
     processarParadaAtual(lastGpsPosition.lat, lastGpsPosition.lng);
@@ -1227,6 +1232,7 @@ function simularChegadaParadaAtual(){
   if(!p){ showToast('✅ Rota já concluída'); return; }
   var coord=coordenadaParada(p);
   if(!coord){ showToast('⚠️ Essa parada não tem coordenada cadastrada'); return; }
+  simulacaoGpsAtiva=true; // a partir de agora, ignora o GPS real até desligar o modo automático ou finalizar a viagem
   lastGpsPosition={lat:coord.lat,lng:coord.lng};
   atualizarMapaRota();
   processarParadaAtual(coord.lat,coord.lng);
@@ -1999,7 +2005,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev4.1';
+var APP_VERSION = 'rev4.2';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
