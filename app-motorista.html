@@ -1176,6 +1176,8 @@ function toggleModoAutomatico(){
     processarParadaAtual(lastGpsPosition.lat, lastGpsPosition.lng);
   }
   renderParadaColetivaManual();
+  atualizarMapaRota();
+  renderPainel();
 }
 
 var ultimoAvisoAutoIndice = -1;
@@ -1358,7 +1360,7 @@ function atualizarMapaRota(){
     var coord=coordenadaParada(p);
     if(!coord) return;
     bounds.push([coord.lat,coord.lng]);
-    var ehAtual = idx===indiceParadaAtual;
+    var ehAtual = modoAutomaticoAtivo && idx===indiceParadaAtual;
     // Com confirmação fora de ordem, uma parada "pra frente" do ponteiro
     // atual pode já estar resolvida (ex: aluno C embarcou antes do B) —
     // por isso checamos o status real, não só a posição em relação ao índice.
@@ -1476,7 +1478,7 @@ function renderPainel(){
   // ponto específico de um aluno (embarque/desembarque em casa). Paradas na
   // escola são coletivas e não destacam ninguém em particular.
   var nextAlunoId=null;
-  if(rotaEmExecucao && rotaEmExecucao.paradas){
+  if(modoAutomaticoAtivo && rotaEmExecucao && rotaEmExecucao.paradas){
     var paradaAtual=rotaEmExecucao.paradas[indiceParadaAtual];
     if(paradaAtual && paradaAtual.aluno_id) nextAlunoId=paradaAtual.aluno_id;
   }
@@ -1894,7 +1896,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev3.6';
+var APP_VERSION = 'rev3.7';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
