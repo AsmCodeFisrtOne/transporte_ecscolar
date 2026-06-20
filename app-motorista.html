@@ -1409,11 +1409,12 @@ function atualizarMapaRota(){
   var rotaParaMostrar = rotaEmExecucao;
   var paradas=rotaParaMostrar.paradas||[];
   var bounds=[];
+  var destacados=calcularDestacadosAtuais();
   paradas.forEach(function(p,idx){
     var coord=coordenadaParada(p);
     if(!coord) return;
     bounds.push([coord.lat,coord.lng]);
-    var ehAtual = modoAutomaticoAtivo && idx===indiceParadaAtual;
+    var ehAtual = modoAutomaticoAtivo && (idx===indiceParadaAtual || (p.aluno_id!=null && destacados.indexOf(p.aluno_id)!==-1));
     // Com confirmação fora de ordem, uma parada "pra frente" do ponteiro
     // atual pode já estar resolvida (ex: aluno C embarcou antes do B) —
     // por isso checamos o status real, não só a posição em relação ao índice.
@@ -1452,18 +1453,49 @@ var ordemChipsAtual = null; // array de aluno ids, ordem visual atual (persiste 
 var animandoChips = false;
 var ETAPA_LABEL = {embarcou:'Na van',faltou:'Faltou',em_casa:'Em casa',na_escola:'Na escola'};
 
-function construirChipHtml(a, nextAlunoId){
+// Calcula quem deve aparecer destacado agora: a parada atual da rota, mais
+// qualquer "irmão" — outro aluno com coordenada praticamente igual (mesmo
+// endereço) que também tenha uma parada pendente do MESMO tipo (embarque ou
+// desembarque em casa). Isso cobre o caso de irmãos que moram juntos: o
+// motorista busca os dois ao mesmo tempo, então os dois acendem juntos.
+// Só vale em modo automático (regra já estabelecida pro destaque "próximo").
+function calcularDestacadosAtuais(){
+  if(!modoAutomaticoAtivo || !rotaEmExecucao || !rotaEmExecucao.paradas) return [];
+  var paradaAtual=rotaEmExecucao.paradas[indiceParadaAtual];
+  if(!paradaAtual || !paradaAtual.aluno_id) return [];
+  var nextAlunoId=paradaAtual.aluno_id;
+  var resultado=[nextAlunoId];
+  var alunoRef=alunosData.find(function(a){ return a.id===nextAlunoId; });
+  if(!alunoRef || alunoRef.lat==null || alunoRef.lng==null) return resultado;
+  var tipoAtual=paradaAtual.tipo;
+  alunosData.forEach(function(a){
+    if(a.id===nextAlunoId || a.lat==null || a.lng==null) return;
+    // Mesmo endereço = coordenada exatamente igual (a margem aqui é só pra
+    // erro de ponto flutuante, não pra proximidade real)
+    if(Math.abs(alunoRef.lat-a.lat)>0.00005 || Math.abs(alunoRef.lng-a.lng)>0.00005) return;
+    var temPendente = rotaEmExecucao.paradas.some(function(p){
+      if(p.tipo!==tipoAtual || p.aluno_id!==a.id) return false;
+      var et=(statusCache[a.id]||{}).etapa;
+      var resolvido = tipoAtual==='embarque_casa' ? (et==='embarcou'||et==='faltou') : (et==='em_casa'||et==='faltou');
+      return !resolvido;
+    });
+    if(temPendente) resultado.push(a.id);
+  });
+  return resultado;
+}
+
+function construirChipHtml(a, destacados){
   var s=statusCache[a.id]||{};
   var etapa=s.etapa;
   var sel=selectedAlunoId===a.id;
   var border=sel?'#0F172A':'#E2E8F0', bg=sel?'#0F172A':'#fff', nameColor=sel?'#FFD23F':'#1E293B';
   var chipFade = tripStarted ? '' : 'opacity:.35;cursor:not-allowed;pointer-events:none;';
-  // "isNext" depende só do id bater com a parada atual da rota — não do
+  // "isNext" depende só do id estar entre os destacados atuais — não do
   // aluno estar "sem status". Isso é essencial pro trajeto de volta
   // (escola → casa): nessa hora todo aluno já tem um status antigo da
   // manhã (ex: "Na escola"), então checar "sem status" nunca destacava
   // ninguém. O ponteiro da rota já garante que essa parada está pendente.
-  var isNext = a.id===nextAlunoId;
+  var isNext = destacados.indexOf(a.id)!==-1;
   return '<div class="chip-clickable" data-aluno-id="'+a.id+'" onclick="selectAlunoPainel(this.dataset.alunoId)" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;border:2px solid '+border+';background:'+bg+';cursor:pointer;flex-shrink:0;min-width:70px;'+chipFade+'">'
     +avatarHtml(a,36,isNext)
     +'<div style="font-size:11px;font-weight:600;color:'+nameColor+';text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nome+'</div>'
@@ -1472,18 +1504,18 @@ function construirChipHtml(a, nextAlunoId){
     +'</div>';
 }
 
-function renderizarChipsNaOrdem(ordem, nextAlunoId){
+function renderizarChipsNaOrdem(ordem, destacados){
   var chips=el('alunos-chips'); if(!chips) return;
   chips.innerHTML = ordem.map(function(id){
     var a = alunosData.find(function(x){ return x.id===id; });
-    return a ? construirChipHtml(a, nextAlunoId) : '';
+    return a ? construirChipHtml(a, destacados) : '';
   }).join('');
 }
 
 // Troca dois chips adjacentes (posições idx e idx-1) com uma animação de
 // deslize suave (técnica FLIP: registra a posição antes, redesenha, e anima
 // a diferença). Usado pra fazer o avatar "saltar" passo a passo até a frente.
-function trocarChipsComAnimacao(ordem, idxA, idxB, nextAlunoId){
+function trocarChipsComAnimacao(ordem, idxA, idxB, destacados){
   var chips=el('alunos-chips'); if(!chips) return;
   var antes={};
   ordem.forEach(function(id){
@@ -1491,7 +1523,7 @@ function trocarChipsComAnimacao(ordem, idxA, idxB, nextAlunoId){
     if(elChip) antes[id]=elChip.getBoundingClientRect().left;
   });
   var tmp=ordem[idxA]; ordem[idxA]=ordem[idxB]; ordem[idxB]=tmp;
-  renderizarChipsNaOrdem(ordem, nextAlunoId);
+  renderizarChipsNaOrdem(ordem, destacados);
   ordem.forEach(function(id){
     var elChip = chips.querySelector('[data-aluno-id="'+id+'"]');
     if(!elChip || antes[id]===undefined) return;
@@ -1507,18 +1539,39 @@ function trocarChipsComAnimacao(ordem, idxA, idxB, nextAlunoId){
   });
 }
 
-function animarProximoParaFrente(targetId, nextAlunoId){
+// Move um único aluno até a posição (índice) destino, um passo de cada vez.
+// Usado pra colocar cada destacado (próximo + irmãos) no lugar certo da fila.
+function animarParaPosicao(targetId, posicaoDestino, destacados, callback){
   if(!ordemChipsAtual){ ordemChipsAtual=alunosData.map(function(a){return a.id;}); }
   var idx=ordemChipsAtual.indexOf(targetId);
-  if(idx<=0){ renderizarChipsNaOrdem(ordemChipsAtual, nextAlunoId); renderAcoesPainel(); return; }
+  if(idx<0 || idx===posicaoDestino){
+    renderizarChipsNaOrdem(ordemChipsAtual, destacados);
+    renderAcoesPainel();
+    if(callback) callback();
+    return;
+  }
   animandoChips=true;
   function passo(){
-    if(idx<=0){ animandoChips=false; renderAcoesPainel(); return; }
-    trocarChipsComAnimacao(ordemChipsAtual, idx, idx-1, nextAlunoId);
-    idx=idx-1;
+    if(idx===posicaoDestino){ animandoChips=false; renderAcoesPainel(); if(callback) callback(); return; }
+    var dir = idx>posicaoDestino ? -1 : 1;
+    trocarChipsComAnimacao(ordemChipsAtual, idx, idx+dir, destacados);
+    idx=idx+dir;
     setTimeout(passo, 100);
   }
   passo();
+}
+
+// Move, em sequência, cada destacado pra sua posição na frente da fila
+// (o "próximo" pra posição 0, o irmão pra posição 1, etc.)
+function animarDestacadosParaFrente(destacados){
+  var i=0;
+  function proximo(){
+    if(i>=destacados.length) return;
+    var posicao=i, id=destacados[i];
+    i++;
+    animarParaPosicao(id, posicao, destacados, proximo);
+  }
+  proximo();
 }
 
 function renderPainel(){
@@ -1527,14 +1580,11 @@ function renderPainel(){
     chips.innerHTML='<div style="font-size:13px;color:#94A3B8">Nenhum aluno</div>';
     return;
   }
-  // Próximo aluno a ser buscado: a parada atual da rota, só quando for um
-  // ponto específico de um aluno (embarque/desembarque em casa). Paradas na
-  // escola são coletivas e não destacam ninguém em particular.
-  var nextAlunoId=null;
-  if(modoAutomaticoAtivo && rotaEmExecucao && rotaEmExecucao.paradas){
-    var paradaAtual=rotaEmExecucao.paradas[indiceParadaAtual];
-    if(paradaAtual && paradaAtual.aluno_id) nextAlunoId=paradaAtual.aluno_id;
-  }
+  // Destacados agora: a parada atual da rota, mais qualquer irmão no mesmo
+  // endereço com parada pendente do mesmo tipo. Paradas na escola (sem
+  // aluno_id) não destacam ninguém em particular.
+  var destacados = calcularDestacadosAtuais();
+  var nextAlunoId = destacados.length ? destacados[0] : null;
   // Mantém a ordem visual sincronizada com a lista de alunos (adiciona novos
   // no fim, remove os que não existem mais), sem perder a ordem já animada.
   if(!ordemChipsAtual){ ordemChipsAtual=alunosData.map(function(a){return a.id;}); }
@@ -1542,20 +1592,20 @@ function renderPainel(){
   alunosData.forEach(function(a){ if(ordemChipsAtual.indexOf(a.id)===-1) ordemChipsAtual.push(a.id); });
 
   // A seleção (fundo preto, que mostra os botões de ação) acompanha
-  // automaticamente o "próximo" sempre que ele muda — ou seja, ao avançar de
-  // parada. Se o motorista tocar manualmente em outro aluno nesse meio
-  // tempo, essa escolha manual continua valendo até a próxima mudança de
-  // "próximo".
+  // automaticamente o "próximo" (o primeiro dos destacados — o que a rota
+  // realmente aponta, nunca um irmão) sempre que ele muda. Se o motorista
+  // tocar manualmente em outro aluno nesse meio tempo, essa escolha manual
+  // continua valendo até a próxima mudança de "próximo".
   if(nextAlunoId!==ultimoNextAlunoIdRastreado){
     ultimoNextAlunoIdRastreado=nextAlunoId;
     if(nextAlunoId){
       selectedAlunoId=nextAlunoId;
-      animarProximoParaFrente(nextAlunoId, nextAlunoId);
+      animarDestacadosParaFrente(destacados);
       return; // a animação já cuida de redesenhar e chamar renderAcoesPainel
     }
   }
   if(!animandoChips){
-    renderizarChipsNaOrdem(ordemChipsAtual, nextAlunoId);
+    renderizarChipsNaOrdem(ordemChipsAtual, destacados);
     renderAcoesPainel();
   }
 }
@@ -1949,7 +1999,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev3.9';
+var APP_VERSION = 'rev4.1';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
