@@ -263,6 +263,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
           </div>
         </div>
       </div>
+      <div id="parada-coletiva-manual" style="display:none;margin:0 14px 0 14px;margin-top:10px;background:#0F172A;border-radius:14px;padding:14px"></div>
       <div style="padding:10px 14px;background:#fff;border-top:1px solid #E2E8F0">
         <div style="font-size:11px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Selecione o aluno</div>
         <div id="alunos-chips" style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px"></div>
@@ -1065,6 +1066,7 @@ function coordenadaParada(p){
 }
 
 function atualizarUIProgresso(){
+  renderParadaColetivaManual();
   var box=el('rota-progresso'); if(!box) return;
   if(!rotaEmExecucao){ box.style.display='none'; return; }
   var total=(rotaEmExecucao.paradas||[]).length;
@@ -1076,6 +1078,68 @@ function atualizarUIProgresso(){
   var p=paradaAtualObj();
   box.style.display='block';
   box.textContent='Parada '+(indiceParadaAtual+1)+' de '+total+' — '+rotaEmExecucao.nome+': '+iconeParada(p.tipo)+' '+nomeParada(p);
+}
+
+// Botão manual pra confirmar paradas coletivas da escola (embarque/desembarque
+// de todos de uma vez), pra quem opera sem GPS/modo automático — equivalente
+// ao que já existe na caixa de sugestão automática, só que sob controle do
+// motorista.
+function renderParadaColetivaManual(){
+  var box=el('parada-coletiva-manual'); if(!box) return;
+  var p=paradaAtualObj();
+  if(!p || (p.tipo!=='embarque_escola' && p.tipo!=='desembarque_escola')){
+    box.style.display='none'; box.innerHTML=''; return;
+  }
+  var coord=coordenadaParada(p);
+  var nomeEscola = coord ? coord.nome : 'escola';
+  if(p.tipo==='embarque_escola'){
+    box.innerHTML = '<div style="color:#FFD23F;font-weight:700;font-size:13px;margin-bottom:10px">🏫 Embarque de volta em '+nomeEscola+'</div>'
+      +'<button onclick="confirmarEmbarqueEscolaManual()" style="width:100%;background:#22C55E;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">✅ Confirmar embarque de todos</button>';
+  } else {
+    box.innerHTML = '<div style="color:#FFD23F;font-weight:700;font-size:13px;margin-bottom:10px">🏫 Desembarque em '+nomeEscola+'</div>'
+      +'<button onclick="confirmarDesembarqueEscolaManual()" style="width:100%;background:#3B82F6;color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;cursor:pointer">✅ Confirmar desembarque de todos</button>';
+  }
+  box.style.display='block';
+}
+
+function confirmarEmbarqueEscolaManual(){
+  var p=paradaAtualObj(); if(!p || p.tipo!=='embarque_escola') return;
+  var escolaId=p.escola_id;
+  var escola=escolasData.find(function(e){ return e.id===escolaId; });
+  // Modo manual: confirma todos os alunos dessa escola que ainda não foram
+  // marcados como falta — não depende de um status anterior específico (ex:
+  // "na_escola"), porque numa viagem iniciada do zero ninguém tem status
+  // ainda. O motorista está afirmando o fato real diretamente.
+  var alunosAlvo = alunosData.filter(function(a){
+    var etapa=(statusCache[a.id]||{}).etapa;
+    return a.escola_id===escolaId && etapa!=='faltou';
+  });
+  alunosAlvo.forEach(function(a){
+    db.doc('status_alunos/'+a.id).set({nome:a.nome,etapa:'embarcou',atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  });
+  if(alunosAlvo.length){
+    db.collection('mensagens').add({texto:'✅ '+alunosAlvo.length+' aluno(s) embarcaram de volta em '+(escola?escola.nome:''),tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  }
+  showToast('✅ Embarque confirmado!');
+  avancarParada();
+}
+
+function confirmarDesembarqueEscolaManual(){
+  var p=paradaAtualObj(); if(!p || p.tipo!=='desembarque_escola') return;
+  var escolaId=p.escola_id;
+  var escola=escolasData.find(function(e){ return e.id===escolaId; });
+  var alunosAlvo = alunosData.filter(function(a){
+    var etapa=(statusCache[a.id]||{}).etapa;
+    return a.escola_id===escolaId && etapa!=='faltou';
+  });
+  alunosAlvo.forEach(function(a){
+    db.doc('status_alunos/'+a.id).set({nome:a.nome,etapa:'na_escola',atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
+  });
+  if(alunosAlvo.length){
+    db.collection('mensagens').add({texto:'🏫 '+alunosAlvo.length+' aluno(s) chegaram em '+(escola?escola.nome:''),tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  }
+  showToast('🏫 Desembarque confirmado!');
+  avancarParada();
 }
 
 function toggleModoAutomatico(){
@@ -1154,6 +1218,7 @@ function avancarParada(){
   salvarProgressoRota();
   atualizarUIProgresso();
   atualizarMapaRota();
+  renderPainel();
   el('auto-suggestion').style.display='none';
   sugestaoAtual=null;
   // Reavalia imediatamente: se a próxima parada também já estiver no raio
@@ -1301,6 +1366,78 @@ function atualizarMapaRota(){
 
 var selectedAlunoId = null;
 var ultimoNextAlunoIdRastreado = undefined; // undefined = ainda não inicializado
+var ordemChipsAtual = null; // array de aluno ids, ordem visual atual (persiste entre renders)
+var animandoChips = false;
+var ETAPA_LABEL = {embarcou:'Na van',faltou:'Faltou',em_casa:'Em casa',na_escola:'Na escola'};
+
+function construirChipHtml(a, nextAlunoId){
+  var s=statusCache[a.id]||{};
+  var etapa=s.etapa;
+  var sel=selectedAlunoId===a.id;
+  var border=sel?'#0F172A':'#E2E8F0', bg=sel?'#0F172A':'#fff', nameColor=sel?'#FFD23F':'#1E293B';
+  var chipFade = tripStarted ? '' : 'opacity:.35;cursor:not-allowed;pointer-events:none;';
+  // "isNext" depende só do id bater com a parada atual da rota — não do
+  // aluno estar "sem status". Isso é essencial pro trajeto de volta
+  // (escola → casa): nessa hora todo aluno já tem um status antigo da
+  // manhã (ex: "Na escola"), então checar "sem status" nunca destacava
+  // ninguém. O ponteiro da rota já garante que essa parada está pendente.
+  var isNext = a.id===nextAlunoId;
+  return '<div class="chip-clickable" data-aluno-id="'+a.id+'" onclick="selectAlunoPainel(this.dataset.alunoId)" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;border:2px solid '+border+';background:'+bg+';cursor:pointer;flex-shrink:0;min-width:70px;'+chipFade+'">'
+    +avatarHtml(a,36,isNext)
+    +'<div style="font-size:11px;font-weight:600;color:'+nameColor+';text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nome+'</div>'
+    +(a.serie?'<div style="font-size:9px;color:#94A3B8">'+a.serie+'</div>':'')
+    +(isNext?'<div style="font-size:9px;padding:2px 6px;border-radius:20px;font-weight:600;background:#FFD23F;color:#7A5B00">Próximo</div>':(etapa?'<div style="font-size:9px;padding:2px 6px;border-radius:20px;font-weight:600;background:#F1F5F9;color:#475569">'+(ETAPA_LABEL[etapa]||etapa)+'</div>':''))
+    +'</div>';
+}
+
+function renderizarChipsNaOrdem(ordem, nextAlunoId){
+  var chips=el('alunos-chips'); if(!chips) return;
+  chips.innerHTML = ordem.map(function(id){
+    var a = alunosData.find(function(x){ return x.id===id; });
+    return a ? construirChipHtml(a, nextAlunoId) : '';
+  }).join('');
+}
+
+// Troca dois chips adjacentes (posições idx e idx-1) com uma animação de
+// deslize suave (técnica FLIP: registra a posição antes, redesenha, e anima
+// a diferença). Usado pra fazer o avatar "saltar" passo a passo até a frente.
+function trocarChipsComAnimacao(ordem, idxA, idxB, nextAlunoId){
+  var chips=el('alunos-chips'); if(!chips) return;
+  var antes={};
+  ordem.forEach(function(id){
+    var elChip = chips.querySelector('[data-aluno-id="'+id+'"]');
+    if(elChip) antes[id]=elChip.getBoundingClientRect().left;
+  });
+  var tmp=ordem[idxA]; ordem[idxA]=ordem[idxB]; ordem[idxB]=tmp;
+  renderizarChipsNaOrdem(ordem, nextAlunoId);
+  ordem.forEach(function(id){
+    var elChip = chips.querySelector('[data-aluno-id="'+id+'"]');
+    if(!elChip || antes[id]===undefined) return;
+    var depois = elChip.getBoundingClientRect().left;
+    var delta = antes[id]-depois;
+    if(!delta) return;
+    elChip.style.transition='none';
+    elChip.style.transform='translateX('+delta+'px)';
+    requestAnimationFrame(function(){
+      elChip.style.transition='transform 90ms ease';
+      elChip.style.transform='translateX(0)';
+    });
+  });
+}
+
+function animarProximoParaFrente(targetId, nextAlunoId){
+  if(!ordemChipsAtual){ ordemChipsAtual=alunosData.map(function(a){return a.id;}); }
+  var idx=ordemChipsAtual.indexOf(targetId);
+  if(idx<=0){ renderizarChipsNaOrdem(ordemChipsAtual, nextAlunoId); renderAcoesPainel(); return; }
+  animandoChips=true;
+  function passo(){
+    if(idx<=0){ animandoChips=false; renderAcoesPainel(); return; }
+    trocarChipsComAnimacao(ordemChipsAtual, idx, idx-1, nextAlunoId);
+    idx=idx-1;
+    setTimeout(passo, 100);
+  }
+  passo();
+}
 
 function renderPainel(){
   var chips=el('alunos-chips'); if(!chips) return;
@@ -1308,8 +1445,6 @@ function renderPainel(){
     chips.innerHTML='<div style="font-size:13px;color:#94A3B8">Nenhum aluno</div>';
     return;
   }
-  var etapaLabel={embarcou:'Na van',faltou:'Faltou',em_casa:'Em casa',na_escola:'Na escola'};
-  var chipFade = tripStarted ? '' : 'opacity:.35;cursor:not-allowed;pointer-events:none;';
   // Próximo aluno a ser buscado: a parada atual da rota, só quando for um
   // ponto específico de um aluno (embarque/desembarque em casa). Paradas na
   // escola são coletivas e não destacam ninguém em particular.
@@ -1318,6 +1453,12 @@ function renderPainel(){
     var paradaAtual=rotaEmExecucao.paradas[indiceParadaAtual];
     if(paradaAtual && paradaAtual.aluno_id) nextAlunoId=paradaAtual.aluno_id;
   }
+  // Mantém a ordem visual sincronizada com a lista de alunos (adiciona novos
+  // no fim, remove os que não existem mais), sem perder a ordem já animada.
+  if(!ordemChipsAtual){ ordemChipsAtual=alunosData.map(function(a){return a.id;}); }
+  ordemChipsAtual = ordemChipsAtual.filter(function(id){ return alunosData.some(function(a){return a.id===id;}); });
+  alunosData.forEach(function(a){ if(ordemChipsAtual.indexOf(a.id)===-1) ordemChipsAtual.push(a.id); });
+
   // A seleção (fundo preto, que mostra os botões de ação) acompanha
   // automaticamente o "próximo" sempre que ele muda — ou seja, ao avançar de
   // parada. Se o motorista tocar manualmente em outro aluno nesse meio
@@ -1325,34 +1466,16 @@ function renderPainel(){
   // "próximo".
   if(nextAlunoId!==ultimoNextAlunoIdRastreado){
     ultimoNextAlunoIdRastreado=nextAlunoId;
-    if(nextAlunoId) selectedAlunoId=nextAlunoId;
+    if(nextAlunoId){
+      selectedAlunoId=nextAlunoId;
+      animarProximoParaFrente(nextAlunoId, nextAlunoId);
+      return; // a animação já cuida de redesenhar e chamar renderAcoesPainel
+    }
   }
-  // O aluno em destaque (próximo a ser buscado) sempre aparece primeiro na
-  // lista, furando a fila — o resto mantém a ordem normal (ordem_parada)
-  var alunosOrdenados = alunosData.slice().sort(function(a,b){
-    if(a.id===nextAlunoId) return -1;
-    if(b.id===nextAlunoId) return 1;
-    return 0;
-  });
-  chips.innerHTML=alunosOrdenados.map(function(a){
-    var s=statusCache[a.id]||{};
-    var etapa=s.etapa;
-    var sel=selectedAlunoId===a.id;
-    var border=sel?'#0F172A':'#E2E8F0', bg=sel?'#0F172A':'#fff', nameColor=sel?'#FFD23F':'#1E293B';
-    // "isNext" depende só do id bater com a parada atual da rota — não do
-    // aluno estar "sem status". Isso é essencial pro trajeto de volta
-    // (escola → casa): nessa hora todo aluno já tem um status antigo da
-    // manhã (ex: "Na escola"), então checar "sem status" nunca destacava
-    // ninguém. O ponteiro da rota já garante que essa parada está pendente.
-    var isNext = a.id===nextAlunoId;
-    return '<div class="chip-clickable" data-aluno-id="'+a.id+'" onclick="selectAlunoPainel(this.dataset.alunoId)" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;border:2px solid '+border+';background:'+bg+';cursor:pointer;flex-shrink:0;min-width:70px;'+chipFade+'">'
-      +avatarHtml(a,36,isNext)
-      +'<div style="font-size:11px;font-weight:600;color:'+nameColor+';text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nome+'</div>'
-      +(a.serie?'<div style="font-size:9px;color:#94A3B8">'+a.serie+'</div>':'')
-      +(isNext?'<div style="font-size:9px;padding:2px 6px;border-radius:20px;font-weight:600;background:#FFD23F;color:#7A5B00">Próximo</div>':(etapa?'<div style="font-size:9px;padding:2px 6px;border-radius:20px;font-weight:600;background:#F1F5F9;color:#475569">'+(etapaLabel[etapa]||etapa)+'</div>':''))
-      +'</div>';
-  }).join('');
-  renderAcoesPainel();
+  if(!animandoChips){
+    renderizarChipsNaOrdem(ordemChipsAtual, nextAlunoId);
+    renderAcoesPainel();
+  }
 }
 
 function selectAlunoPainel(id){
@@ -1744,7 +1867,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev3.1';
+var APP_VERSION = 'rev3.2';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
