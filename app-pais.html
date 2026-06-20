@@ -192,7 +192,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
   <div id="topbar">
     <div class="tb-left">
       <div class="tb-logo">🚐</div>
-      <div><div class="tb-name" id="tb-driver">Tio Daniel</div><div class="tb-sub" id="tb-school">Paulista IE</div></div>
+      <div><div class="tb-name" id="tb-driver">Tio Daniel<span id="app-version" style="font-size:10px;font-weight:600;color:rgba(255,210,63,.55);margin-left:6px;vertical-align:middle"></span></div><div class="tb-sub" id="tb-school">Paulista IE</div></div>
     </div>
     <div class="live-badge"><div class="live-dot" id="live-dot"></div><span class="live-txt" id="live-txt">Offline</span></div>
   </div>
@@ -437,7 +437,19 @@ function updateMap(lat,lng){
       _lmap.panTo([lat,lng],{animate:true,duration:0.8});
     }
   } else {
-    _lmarker = L.marker([lat,lng]).addTo(_lmap);
+    var svgVan = '<svg width="38" height="38" viewBox="0 0 38 38" xmlns="http://www.w3.org/2000/svg">'
+      +'<g filter="drop-shadow(0 1px 3px rgba(0,0,0,.6))">'
+      +'<path d="M4 14 L4 24 L6 24 A4 4 0 0 0 14 24 L24 24 A4 4 0 0 0 32 24 L34 24 L34 17 L29 17 L25 11 L8 11 L4 14 Z" fill="#3B82F6" stroke="#fff" stroke-width="1.6" stroke-linejoin="round"/>'
+      +'<rect x="9" y="13" width="6" height="5" rx="0.8" fill="#fff" opacity=".9"/>'
+      +'<rect x="16" y="13" width="6" height="5" rx="0.8" fill="#fff" opacity=".9"/>'
+      +'<circle cx="10" cy="24" r="3.2" fill="#1E293B" stroke="#fff" stroke-width="1.2"/>'
+      +'<circle cx="28" cy="24" r="3.2" fill="#1E293B" stroke="#fff" stroke-width="1.2"/>'
+      +'</g></svg>';
+    var iconeVan = L.divIcon({
+      html:svgVan,
+      className:'', iconSize:[38,38], iconAnchor:[19,19]
+    });
+    _lmarker = L.marker([lat,lng],{icon:iconeVan}).addTo(_lmap);
     _lmap.setView([lat,lng],16);
   }
   lastLat=lat; lastLng=lng;
@@ -538,7 +550,10 @@ function listenAvisos(){
 }
 
 // INIT
+var APP_VERSION = 'rev1.0';
+
 function initApp(){
+  setText('app-version', APP_VERSION);
   loadConfig();
   checkBloqueado(currentUser.uid);
   listenGPS();
