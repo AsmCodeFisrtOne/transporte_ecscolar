@@ -1124,21 +1124,25 @@ function confirmarEmbarqueEscolaManual(){
   var p=paradaAtualObj(); if(!p || p.tipo!=='embarque_escola') return;
   var escolaId=p.escola_id;
   var escola=escolasData.find(function(e){ return e.id===escolaId; });
-  // Modo manual: confirma todos os alunos dessa escola que ainda não foram
-  // marcados como falta — não depende de um status anterior específico (ex:
-  // "na_escola"), porque numa viagem iniciada do zero ninguém tem status
-  // ainda. O motorista está afirmando o fato real diretamente.
+  // Só pega quem está explicitamente marcado como "na escola" — igual ao
+  // modo automático. Isso é essencial quando duas levas compartilham a
+  // mesma escola na mesma viagem: nunca pode incluir quem acabou de ser
+  // desembarcado agora mesmo (esses ficam "na_escola" só depois do
+  // desembarque_escola, então não entram aqui por engano).
   var alunosAlvo = alunosData.filter(function(a){
     var etapa=(statusCache[a.id]||{}).etapa;
-    return a.escola_id===escolaId && etapa!=='faltou';
+    return a.escola_id===escolaId && etapa==='na_escola';
   });
+  if(!alunosAlvo.length){
+    showToast('⚠️ Nenhum aluno marcado "Na escola" pra embarcar — use o botão individual de cada aluno se for o caso');
+  }
   alunosAlvo.forEach(function(a){
     db.doc('status_alunos/'+a.id).set({nome:a.nome,etapa:'embarcou',atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
   });
   if(alunosAlvo.length){
     db.collection('mensagens').add({texto:'✅ '+alunosAlvo.length+' aluno(s) embarcaram de volta em '+(escola?escola.nome:''),tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+    showToast('✅ Embarque confirmado!');
   }
-  showToast('✅ Embarque confirmado!');
   avancarParada();
 }
 
@@ -1146,9 +1150,12 @@ function confirmarDesembarqueEscolaManual(){
   var p=paradaAtualObj(); if(!p || p.tipo!=='desembarque_escola') return;
   var escolaId=p.escola_id;
   var escola=escolasData.find(function(e){ return e.id===escolaId; });
+  // Só pega quem está explicitamente "na van" (embarcou) — igual ao modo
+  // automático. Evita desembarcar por engano alunos de outra leva que já
+  // tenham sido recolocados na van nessa mesma escola.
   var alunosAlvo = alunosData.filter(function(a){
     var etapa=(statusCache[a.id]||{}).etapa;
-    return a.escola_id===escolaId && etapa!=='faltou';
+    return a.escola_id===escolaId && etapa==='embarcou';
   });
   alunosAlvo.forEach(function(a){
     db.doc('status_alunos/'+a.id).set({nome:a.nome,etapa:'na_escola',atualizado_em:firebase.firestore.FieldValue.serverTimestamp()},{merge:true});
@@ -1505,7 +1512,7 @@ function selectAlunoPainel(id){
 }
 function updateTrafficBtn(){
   var btn=el('fab-traffic'); if(!btn) return;
-  btn.disabled = !(tripStarted && selectedAlunoId);
+  btn.disabled = !tripStarted;
 }
 
 function renderAcoesPainel(){
@@ -1887,7 +1894,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev3.4';
+var APP_VERSION = 'rev3.6';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
