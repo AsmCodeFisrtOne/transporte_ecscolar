@@ -1101,6 +1101,9 @@ function atualizarUIProgresso(){
 // motorista.
 function renderParadaColetivaManual(){
   var box=el('parada-coletiva-manual'); if(!box) return;
+  // No modo automático, essa confirmação já é feita pela caixa de sugestão
+  // disparada por GPS (auto-suggestion) — não duplicar o botão aqui.
+  if(modoAutomaticoAtivo){ box.style.display='none'; box.innerHTML=''; return; }
   var p=paradaAtualObj();
   if(!p || (p.tipo!=='embarque_escola' && p.tipo!=='desembarque_escola')){
     box.style.display='none'; box.innerHTML=''; return;
@@ -1165,6 +1168,7 @@ function toggleModoAutomatico(){
   } else if(lastGpsPosition){
     processarParadaAtual(lastGpsPosition.lat, lastGpsPosition.lng);
   }
+  renderParadaColetivaManual();
 }
 
 var ultimoAvisoAutoIndice = -1;
@@ -1243,13 +1247,14 @@ function avancarParada(){
 
 function confirmarParadaEmbarqueCasa(etapa){
   if(!sugestaoAtual || !sugestaoAtual.alunoId) return;
+  // regAcao() já avança o ponteiro da rota internamente (via
+  // sincronizarRotaComAcaoManual) — não chamar avancarParada() aqui, senão
+  // o ponteiro avança duas vezes e pula o próximo aluno sem querer.
   regAcao(sugestaoAtual.alunoId, sugestaoAtual.nome, etapa);
-  avancarParada();
 }
 function confirmarParadaDesembarqueCasa(){
   if(!sugestaoAtual || !sugestaoAtual.alunoId) return;
   regAcao(sugestaoAtual.alunoId, sugestaoAtual.nome, 'em_casa');
-  avancarParada();
 }
 function confirmarParadaDesembarqueEscola(){
   if(!sugestaoAtual || !sugestaoAtual.escolaId) return;
@@ -1882,7 +1887,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev3.3';
+var APP_VERSION = 'rev3.4';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
