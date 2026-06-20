@@ -187,6 +187,8 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 .mt-cancel{padding:13px 18px;border-radius:10px;border:none;background:var(--gray100);color:var(--gray600);font-size:14px;font-weight:700;cursor:pointer;flex:1}
 .mt-confirm{padding:13px 18px;border-radius:10px;border:none;background:var(--orange);color:#fff;font-size:14px;font-weight:700;cursor:pointer;flex:1}
 .mt-clear{padding:13px 18px;border-radius:10px;border:none;background:#FEF2F2;color:var(--red);font-size:14px;font-weight:700;cursor:pointer}
+#mapaauto-status-bar{position:absolute;top:10px;left:10px;right:10px;z-index:10;pointer-events:none}
+.mapaauto-card{background:rgba(255,255,255,.96);border-radius:12px;padding:10px 14px;display:flex;justify-content:flex-end;align-items:center;box-shadow:0 2px 10px rgba(0,0,0,.15);pointer-events:auto}
 </style>
 </head>
 <body>
@@ -278,8 +280,12 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
   <!-- MAPA EM TEMPO REAL (modo automático) -->
   <div id="view-mapaauto" class="view" style="position:relative">
     <div id="mapaauto-div" style="width:100%;height:100%"></div>
-    <button onclick="centralizarMapaRota()" style="position:absolute;top:14px;right:14px;background:#0F172A;color:#FFD23F;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;box-shadow:0 2px 10px rgba(0,0,0,.25)">📍 Centralizar</button>
-    <div id="mapaauto-legenda" style="position:absolute;bottom:14px;left:14px;right:14px;background:rgba(255,255,255,.96);border-radius:12px;padding:10px 14px;font-size:12px;color:#1E293B;box-shadow:0 2px 10px rgba(0,0,0,.15)">
+    <div id="mapaauto-status-bar">
+      <div class="mapaauto-card">
+        <button onclick="centralizarMapaRota()" id="btn-centralizar-rota" style="background:#0F172A;color:#FFD23F;border:none;border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;pointer-events:auto">📍 Centralizar</button>
+      </div>
+    </div>
+    <div id="mapaauto-legenda" style="position:absolute;bottom:14px;left:14px;right:14px;z-index:1000;background:rgba(255,255,255,.96);border-radius:12px;padding:10px 14px;font-size:12px;color:#1E293B;box-shadow:0 2px 10px rgba(0,0,0,.15)">
       🔵 Van &nbsp;&nbsp;🟢 Embarque pendente &nbsp;&nbsp;🔵 Escola pendente
     </div>
   </div>
@@ -2026,7 +2032,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev4.5';
+var APP_VERSION = 'rev4.7';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
