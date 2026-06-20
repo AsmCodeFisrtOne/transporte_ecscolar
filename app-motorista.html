@@ -624,6 +624,15 @@ function finishTrip(){
   // Clear status
   db.collection('status_alunos').get().then(function(snap){ snap.forEach(function(d){ d.ref.delete(); }); });
   db.collection('mensagens').add({texto:'🏁 Viagem finalizada!',tipo:'sistema',remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  // Volta tudo ao estado inicial: rota, índice da parada atual e o controle
+  // de aviso automático — assim o mapa fica neutro (sem nenhuma parada em
+  // destaque) até a próxima viagem ser iniciada.
+  rotaEmExecucao=null;
+  indiceParadaAtual=-1;
+  ultimoAvisoAutoIndice=-1;
+  salvarProgressoRota();
+  atualizarUIProgresso();
+  atualizarMapaRota();
   showToast('🏁 Viagem finalizada!');
   renderPainel();
 }
@@ -992,6 +1001,7 @@ function iniciarRotaSelecionada(){
   if(!rota){ showToast('⚠️ Selecione uma rota primeiro'); return; }
   rotaEmExecucao=rota;
   indiceParadaAtual=0;
+  ultimoAvisoAutoIndice=-1;
   salvarProgressoRota();
   atualizarUIProgresso();
   atualizarMapaRota();
@@ -1060,6 +1070,8 @@ function toggleModoAutomatico(){
   }
 }
 
+var ultimoAvisoAutoIndice = -1;
+
 // Vigia SOMENTE a parada atual da sequência — é isso que elimina o problema da
 // "bolha fantasma" (passar perto da casa de um aluno que não é a vez dele ainda)
 function processarParadaAtual(lat,lng){
@@ -1082,6 +1094,19 @@ function processarParadaAtual(lat,lng){
     return;
   }
   exibirSugestaoParada(p,coord,d);
+  // Aviso automático aos pais: dispara uma única vez por parada, só ao entrar
+  // na bolha de embarque em casa — evita reenviar a cada atualização de GPS
+  // enquanto a van estiver parada/lenta dentro do raio.
+  if(p.tipo==='embarque_casa' && ultimoAvisoAutoIndice!==indiceParadaAtual){
+    ultimoAvisoAutoIndice=indiceParadaAtual;
+    enviarAvisoChegada(coord.alunoId, coord.nome);
+  }
+}
+
+function enviarAvisoChegada(alunoId, nome){
+  var msg = configData.msg_proximo || 'Motorista no caminho, favor dirigir-se ao ponto de embarque!';
+  rdb.ref('proximo_embarque').set({aluno_id:alunoId,aluno_nome:nome,mensagem:msg,timestamp:Date.now()});
+  db.collection('mensagens').add({texto:'📍 '+nome+': '+msg,tipo:'sistema',aluno_id:alunoId,remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
 }
 
 function exibirSugestaoParada(p,coord,dist){
@@ -1181,9 +1206,7 @@ function voltarParadaAnterior(){
 
 function avisarChegadaSugestao(){
   if(!sugestaoAtual || !sugestaoAtual.alunoId){ showToast('⚠️ Aviso de chegada é só para casas de alunos'); return; }
-  var msg = configData.msg_proximo || 'Motorista no caminho, favor dirigir-se ao ponto de embarque!';
-  rdb.ref('proximo_embarque').set({aluno_id:sugestaoAtual.alunoId,aluno_nome:sugestaoAtual.nome,mensagem:msg,timestamp:Date.now()});
-  db.collection('mensagens').add({texto:'📍 '+sugestaoAtual.nome+': '+msg,tipo:'sistema',aluno_id:sugestaoAtual.alunoId,remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  enviarAvisoChegada(sugestaoAtual.alunoId, sugestaoAtual.nome);
   showToast('📍 Pais avisados!');
 }
 
@@ -1214,10 +1237,11 @@ function atualizarMapaRota(){
   mapaRotaStopMarkers.forEach(function(m){ mapaRotaMap.removeLayer(m); });
   mapaRotaStopMarkers=[];
 
-  // Mostra a rota em execução; se nenhuma estiver rodando ainda, mostra a
-  // selecionada no dropdown como pré-visualização (tudo cinza, sem destaque)
-  var rotaParaMostrar = rotaEmExecucao || rotasData.find(function(r){ return r.id===val('rota-selecionada'); });
-  if(!rotaParaMostrar) return;
+  // Mapa só mostra as paradas quando tem viagem ativa. Sem viagem, fica vazio
+  // (nenhum ponto de aluno/escola) até a próxima viagem ser iniciada.
+  if(!tripStarted || !rotaEmExecucao) return;
+
+  var rotaParaMostrar = rotaEmExecucao;
   var paradas=rotaParaMostrar.paradas||[];
   var bounds=[];
   paradas.forEach(function(p,idx){
@@ -1261,7 +1285,14 @@ function renderPainel(){
     var paradaAtual=rotaEmExecucao.paradas[indiceParadaAtual];
     if(paradaAtual && paradaAtual.aluno_id) nextAlunoId=paradaAtual.aluno_id;
   }
-  chips.innerHTML=alunosData.map(function(a){
+  // O aluno em destaque (próximo a ser buscado) sempre aparece primeiro na
+  // lista, furando a fila — o resto mantém a ordem normal (ordem_parada)
+  var alunosOrdenados = alunosData.slice().sort(function(a,b){
+    if(a.id===nextAlunoId) return -1;
+    if(b.id===nextAlunoId) return 1;
+    return 0;
+  });
+  chips.innerHTML=alunosOrdenados.map(function(a){
     var s=statusCache[a.id]||{};
     var etapa=s.etapa;
     var sel=selectedAlunoId===a.id;
@@ -1666,7 +1697,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev2.4';
+var APP_VERSION = 'rev2.7';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
