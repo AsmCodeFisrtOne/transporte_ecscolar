@@ -1339,12 +1339,17 @@ function renderPainel(){
     var etapa=s.etapa;
     var sel=selectedAlunoId===a.id;
     var border=sel?'#0F172A':'#E2E8F0', bg=sel?'#0F172A':'#fff', nameColor=sel?'#FFD23F':'#1E293B';
-    var isNext = a.id===nextAlunoId && !etapa;
+    // "isNext" depende só do id bater com a parada atual da rota — não do
+    // aluno estar "sem status". Isso é essencial pro trajeto de volta
+    // (escola → casa): nessa hora todo aluno já tem um status antigo da
+    // manhã (ex: "Na escola"), então checar "sem status" nunca destacava
+    // ninguém. O ponteiro da rota já garante que essa parada está pendente.
+    var isNext = a.id===nextAlunoId;
     return '<div class="chip-clickable" data-aluno-id="'+a.id+'" onclick="selectAlunoPainel(this.dataset.alunoId)" style="display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 12px;border-radius:12px;border:2px solid '+border+';background:'+bg+';cursor:pointer;flex-shrink:0;min-width:70px;'+chipFade+'">'
       +avatarHtml(a,36,isNext)
       +'<div style="font-size:11px;font-weight:600;color:'+nameColor+';text-align:center;max-width:70px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+a.nome+'</div>'
       +(a.serie?'<div style="font-size:9px;color:#94A3B8">'+a.serie+'</div>':'')
-      +(etapa?'<div style="font-size:9px;padding:2px 6px;border-radius:20px;font-weight:600;background:#F1F5F9;color:#475569">'+(etapaLabel[etapa]||etapa)+'</div>':(isNext?'<div style="font-size:9px;padding:2px 6px;border-radius:20px;font-weight:600;background:#FFD23F;color:#7A5B00">Próximo</div>':''))
+      +(isNext?'<div style="font-size:9px;padding:2px 6px;border-radius:20px;font-weight:600;background:#FFD23F;color:#7A5B00">Próximo</div>':(etapa?'<div style="font-size:9px;padding:2px 6px;border-radius:20px;font-weight:600;background:#F1F5F9;color:#475569">'+(etapaLabel[etapa]||etapa)+'</div>':''))
       +'</div>';
   }).join('');
   renderAcoesPainel();
@@ -1739,7 +1744,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev3.0';
+var APP_VERSION = 'rev3.1';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
