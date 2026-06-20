@@ -749,6 +749,20 @@ function confirmarLocalizacao(){
   db.doc(colecao+'/'+geoId).update({lat:p.lat, lng:p.lng}).then(function(){
     closeModalGeo();
     showToast('✅ Localização salva!');
+    // Atualiza a lista local imediatamente: o listener onSnapshot também vai
+    // disparar, mas renderAlunosAdmin() fica bloqueado enquanto um cartão está
+    // aberto (pra não perder o que a pessoa está digitando). Como aqui não tem
+    // esse risco — o modal de localização acabou de fechar — força o refresh
+    // pra não deixar o botão "Localizar" cinza até recarregar o app.
+    if(geoTipo==='aluno'){
+      var a=alunosData.find(function(x){ return x.id===geoId; });
+      if(a){ a.lat=p.lat; a.lng=p.lng; }
+      renderAlunosAdmin();
+    } else {
+      var e=escolasData.find(function(x){ return x.id===geoId; });
+      if(e){ e.lat=p.lat; e.lng=p.lng; }
+      renderEscolasAdmin();
+    }
   });
 }
 
@@ -1637,7 +1651,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev2.2';
+var APP_VERSION = 'rev2.3';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
