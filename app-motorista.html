@@ -842,19 +842,37 @@ function sincronizarRotaComAcaoManual(alunoId, etapa){
   if(!rotaEmExecucao) return;
   if(etapa!=='embarcou' && etapa!=='faltou' && etapa!=='em_casa') return;
   var paradas=rotaEmExecucao.paradas||[];
-  for(var i=indiceParadaAtual; i<paradas.length; i++){
+  var pertenceARota = paradas.some(function(p){ return (p.tipo==='embarque_casa'||p.tipo==='desembarque_casa') && p.aluno_id===alunoId; });
+  if(!pertenceARota) return;
+
+  // Recalcula o ponteiro do zero a cada confirmação, em vez de só avançar pra
+  // depois de quem foi clicado. Aponta sempre para a primeira parada de casa
+  // (embarque/desembarque) ainda pendente, na ordem da rota — assim funciona
+  // certo mesmo se os alunos forem confirmados fora de ordem (ex: A, C, B, D),
+  // sem nenhum aluno ficar "perdido" sem nunca ser marcado como próximo.
+  // Paradas de escola (coletivas) continuam com o comportamento sequencial
+  // de antes, baseado no ponteiro atual.
+  var novoIndice = paradas.length;
+  for(var i=0;i<paradas.length;i++){
     var p=paradas[i];
-    if((p.tipo==='embarque_casa'||p.tipo==='desembarque_casa') && p.aluno_id===alunoId){
-      indiceParadaAtual=i+1;
-      salvarProgressoRota();
-      atualizarUIProgresso();
-      atualizarMapaRota();
-      el('auto-suggestion').style.display='none';
-      sugestaoAtual=null;
-      if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
-      return;
+    if(p.tipo==='embarque_casa' || p.tipo==='desembarque_casa'){
+      var etapaDesseAluno = (p.aluno_id===alunoId) ? etapa : (statusCache[p.aluno_id]||{}).etapa;
+      var resolvido = p.tipo==='embarque_casa'
+        ? (etapaDesseAluno==='embarcou' || etapaDesseAluno==='faltou')
+        : (etapaDesseAluno==='em_casa' || etapaDesseAluno==='faltou');
+      if(!resolvido){ novoIndice=i; break; }
+    } else if(i>=indiceParadaAtual){
+      novoIndice=i; break;
     }
   }
+  indiceParadaAtual=novoIndice;
+  salvarProgressoRota();
+  atualizarUIProgresso();
+  atualizarMapaRota();
+  renderPainel();
+  el('auto-suggestion').style.display='none';
+  sugestaoAtual=null;
+  if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
 }
 
 // ===== ROTAS: cadastro (CRUD) =====
@@ -1248,14 +1266,28 @@ function atualizarMapaRota(){
     var coord=coordenadaParada(p);
     if(!coord) return;
     bounds.push([coord.lat,coord.lng]);
-    var ehAtual = rotaEmExecucao && idx===indiceParadaAtual;
-    var cor = ehAtual ? '#FFD23F' : '#475569';
+    var ehAtual = idx===indiceParadaAtual;
+    // Com confirmação fora de ordem, uma parada "pra frente" do ponteiro
+    // atual pode já estar resolvida (ex: aluno C embarcou antes do B) —
+    // por isso checamos o status real, não só a posição em relação ao índice.
+    var feito = false;
+    if(p.tipo==='embarque_casa'){
+      var et=(statusCache[p.aluno_id]||{}).etapa;
+      feito = (et==='embarcou' || et==='faltou');
+    } else if(p.tipo==='desembarque_casa'){
+      var et2=(statusCache[p.aluno_id]||{}).etapa;
+      feito = (et2==='em_casa' || et2==='faltou');
+    } else {
+      feito = idx<indiceParadaAtual;
+    }
+    var cor = ehAtual ? '#FFD23F' : (feito ? '#22C55E' : '#475569');
     if(ehAtual){
       var circle=L.circle([coord.lat,coord.lng],{radius:RAIO_PARADA_M,color:cor,fillColor:cor,fillOpacity:.2,weight:2}).addTo(mapaRotaMap);
       mapaRotaStopMarkers.push(circle);
     }
+    var conteudoIcone = (ehAtual||!feito) ? (idx+1) : '✓';
     var icone=L.divIcon({
-      html:'<div style="background:'+cor+';color:#fff;border:2px solid #fff;border-radius:50%;width:'+(ehAtual?28:22)+'px;height:'+(ehAtual?28:22)+'px;display:flex;align-items:center;justify-content:center;font-size:'+(ehAtual?13:11)+'px;font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.4)">'+(idx+1)+'</div>',
+      html:'<div style="background:'+cor+';color:#fff;border:2px solid #fff;border-radius:50%;width:'+(ehAtual?28:22)+'px;height:'+(ehAtual?28:22)+'px;display:flex;align-items:center;justify-content:center;font-size:'+(ehAtual?13:11)+'px;font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.4)">'+conteudoIcone+'</div>',
       className:'', iconSize:[ehAtual?28:22,ehAtual?28:22], iconAnchor:[ehAtual?14:11,ehAtual?14:11]
     });
     var ponto=L.marker([coord.lat,coord.lng],{icon:icone}).bindTooltip(coord.nome,{permanent:false}).addTo(mapaRotaMap);
@@ -1268,6 +1300,7 @@ function atualizarMapaRota(){
 }
 
 var selectedAlunoId = null;
+var ultimoNextAlunoIdRastreado = undefined; // undefined = ainda não inicializado
 
 function renderPainel(){
   var chips=el('alunos-chips'); if(!chips) return;
@@ -1284,6 +1317,15 @@ function renderPainel(){
   if(rotaEmExecucao && rotaEmExecucao.paradas){
     var paradaAtual=rotaEmExecucao.paradas[indiceParadaAtual];
     if(paradaAtual && paradaAtual.aluno_id) nextAlunoId=paradaAtual.aluno_id;
+  }
+  // A seleção (fundo preto, que mostra os botões de ação) acompanha
+  // automaticamente o "próximo" sempre que ele muda — ou seja, ao avançar de
+  // parada. Se o motorista tocar manualmente em outro aluno nesse meio
+  // tempo, essa escolha manual continua valendo até a próxima mudança de
+  // "próximo".
+  if(nextAlunoId!==ultimoNextAlunoIdRastreado){
+    ultimoNextAlunoIdRastreado=nextAlunoId;
+    if(nextAlunoId) selectedAlunoId=nextAlunoId;
   }
   // O aluno em destaque (próximo a ser buscado) sempre aparece primeiro na
   // lista, furando a fila — o resto mantém a ordem normal (ordem_parada)
@@ -1697,7 +1739,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev2.7';
+var APP_VERSION = 'rev3.0';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
