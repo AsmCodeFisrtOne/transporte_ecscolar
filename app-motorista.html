@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
@@ -425,6 +426,7 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 <!-- MODAL CRIAR PAI/ALUNO -->
 <div id="modal-pai">
   <div class="modal-box">
+    <div id="modal-pai-form">
     <div class="modal-title">➕ Novo pai/aluno</div>
     <div style="font-size:12px;color:var(--gray400)">Dados do pai</div>
     <input class="modal-inp" id="m-pai-nome" placeholder="Nome do pai/mãe">
@@ -452,6 +454,15 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     <div class="modal-actions">
       <button class="modal-cancel" onclick="closeModalPai()">Cancelar</button>
       <button class="modal-ok" onclick="criarPaiAluno()">✅ Criar</button>
+    </div>
+    </div>
+    <div id="modal-pai-sucesso" style="display:none;text-align:center;padding:10px 0">
+      <div style="font-size:44px;margin-bottom:6px">✅</div>
+      <div style="font-size:16px;font-weight:700;color:#1E293B;margin-bottom:4px">Cadastro concluído!</div>
+      <div id="modal-pai-sucesso-detalhe" style="font-size:13px;color:#64748B;margin-bottom:18px"></div>
+      <div style="background:#FEF3C7;border-radius:10px;padding:10px 14px;font-size:12px;color:#92400E;text-align:left;margin-bottom:16px">⚠️ Esta é a <b>única vez</b> que o sistema mostra a senha — ela não fica salva em lugar nenhum. Gere o contrato agora, ou anote a senha antes de fechar.</div>
+      <button onclick="gerarContratoUltimoCadastro()" style="width:100%;background:#0F172A;color:#FFD23F;border:none;border-radius:12px;padding:14px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:10px">📄 Gerar Contrato em PDF</button>
+      <button onclick="closeModalPai()" style="width:100%;background:#F1F5F9;color:#475569;border:none;border-radius:12px;padding:13px;font-weight:700;font-size:14px;cursor:pointer">Fechar</button>
     </div>
   </div>
 </div>
@@ -667,7 +678,7 @@ function startTrip(){
 }
 function finishTrip(){
   if(!window.confirm('Finalizar viagem?')) return;
-  pararAlertaSonoroRepetido();
+  pararTodosAlertasSonoros();
   tripStarted=false;
   selectedAlunoId=null;
   el('btn-start').disabled=false;
@@ -967,7 +978,7 @@ function sincronizarRotaComAcaoManual(alunoId, etapa){
   atualizarMapaRota();
   renderPainel();
   el('auto-suggestion').style.display='none';
-  pararAlertaSonoroRepetido();
+  pararAlertaRotaRepetido();
   sugestaoAtual=null;
   if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
 }
@@ -1110,13 +1121,34 @@ function popularSelectRotas(){
 }
 function aoTrocarRotaSelecionada(){ atualizarMapaRota(); }
 
+// Calcula em qual parada a rota deve realmente começar — pula de cara
+// qualquer parada de casa que já esteja resolvida (ex: um aviso de falta
+// que chegou antes da rota ser iniciada). Paradas de escola sempre param
+// na primeira que aparecer (fluxo sequencial, sem essa checagem).
+function calcularIndiceInicialRota(rota){
+  var paradas=rota.paradas||[];
+  for(var i=0;i<paradas.length;i++){
+    var p=paradas[i];
+    if(p.tipo==='embarque_casa'){
+      var et=(statusCache[p.aluno_id]||{}).etapa;
+      if(et!=='embarcou' && et!=='faltou') return i;
+    } else if(p.tipo==='desembarque_casa'){
+      var et2=(statusCache[p.aluno_id]||{}).etapa;
+      if(et2!=='em_casa' && et2!=='faltou') return i;
+    } else {
+      return i;
+    }
+  }
+  return paradas.length;
+}
+
 function iniciarRotaSelecionada(){
   if(!tripStarted){ showToast('⚠️ Inicie a viagem antes de escolher uma rota'); return; }
   var rotaId=val('rota-selecionada');
   var rota=rotasData.find(function(r){ return r.id===rotaId; });
   if(!rota){ showToast('⚠️ Selecione uma rota primeiro'); return; }
   rotaEmExecucao=rota;
-  indiceParadaAtual=0;
+  indiceParadaAtual=calcularIndiceInicialRota(rota);
   ultimoAvisoAutoIndice=-1;
   salvarProgressoRota();
   atualizarUIProgresso();
@@ -1156,7 +1188,7 @@ function garantirEstadoInicialAoAbrirApp(){
   rotaEmExecucao=null;
   indiceParadaAtual=-1;
   ultimoAvisoAutoIndice=-1;
-  pararAlertaSonoroRepetido();
+  pararTodosAlertasSonoros();
   selectedAlunoId=null;
   ordemChipsAtual=null;
   ultimoNextAlunoIdRastreado=undefined;
@@ -1285,7 +1317,7 @@ function toggleModoAutomatico(){
     sugestaoAtual=null;
     simulacaoGpsAtiva=false;
     el('auto-suggestion').style.display='none';
-    pararAlertaSonoroRepetido();
+    pararAlertaRotaRepetido();
   } else if(lastGpsPosition){
     processarParadaAtual(lastGpsPosition.lat, lastGpsPosition.lng);
   }
@@ -1315,7 +1347,8 @@ function simularChegadaParadaAtual(){
 
 var ultimoAvisoAutoIndice = -1;
 var alertaSonoroAtivo = (localStorage.getItem('alertaSonoroAtivo') !== 'false'); // ligado por padrão
-var alertaSonoroIntervalId = null;
+var alertaRotaIntervalId = null;
+var alertaFaltaIntervalId = null;
 var alertaAudioCtx = null;
 
 // Reaproveita UM único AudioContext entre os beeps. Criar um novo a cada
@@ -1350,22 +1383,38 @@ function tocarBeepAlerta(){
   }catch(e){ /* navegador sem suporte a áudio — ignora silenciosamente */ }
 }
 
-// Toca o alerta repetidamente, a cada 1.2s, enquanto a caixa de sugestão
-// estiver na tela — não só uma vez. Idempotente: chamar de novo enquanto já
-// está tocando não cria um segundo intervalo.
-function iniciarAlertaSonoroRepetido(){
-  if(alertaSonoroIntervalId) return;
+// Toca o alerta repetidamente, a cada 1.2s, enquanto a respectiva caixa
+// estiver na tela. São DOIS controles independentes (rota e falta) — antes
+// eram um só, e qualquer evento de rotina do monitoramento da rota (que
+// roda a cada atualização de GPS) parava o som mesmo quando quem estava
+// tocando era o aviso de falta, sem relação nenhuma com a rota.
+function iniciarAlertaRotaRepetido(){
+  if(alertaRotaIntervalId) return;
   tocarBeepAlerta();
-  alertaSonoroIntervalId = setInterval(tocarBeepAlerta, 1200);
+  alertaRotaIntervalId = setInterval(tocarBeepAlerta, 1200);
 }
-function pararAlertaSonoroRepetido(){
-  if(alertaSonoroIntervalId){ clearInterval(alertaSonoroIntervalId); alertaSonoroIntervalId=null; }
+function pararAlertaRotaRepetido(){
+  if(alertaRotaIntervalId){ clearInterval(alertaRotaIntervalId); alertaRotaIntervalId=null; }
+}
+function iniciarAlertaFaltaRepetido(){
+  if(alertaFaltaIntervalId) return;
+  tocarBeepAlerta();
+  alertaFaltaIntervalId = setInterval(tocarBeepAlerta, 1200);
+}
+function pararAlertaFaltaRepetido(){
+  if(alertaFaltaIntervalId){ clearInterval(alertaFaltaIntervalId); alertaFaltaIntervalId=null; }
+}
+// Só usada nos pontos de segurança (reset geral, fim de viagem, toggle
+// desligado) — nunca dentro da lógica específica de uma caixa só.
+function pararTodosAlertasSonoros(){
+  pararAlertaRotaRepetido();
+  pararAlertaFaltaRepetido();
 }
 
 function toggleAlertaSonoro(){
   alertaSonoroAtivo = el('alerta-sonoro-toggle').checked;
   localStorage.setItem('alertaSonoroAtivo', alertaSonoroAtivo ? 'true' : 'false');
-  if(!alertaSonoroAtivo) pararAlertaSonoroRepetido();
+  if(!alertaSonoroAtivo) pararTodosAlertasSonoros();
 }
 
 // Vigia SOMENTE a parada atual da sequência — é isso que elimina o problema da
@@ -1375,7 +1424,7 @@ function processarParadaAtual(lat,lng){
   var p=paradaAtualObj();
   if(!p){
     el('auto-suggestion').style.display='none';
-    pararAlertaSonoroRepetido();
+    pararAlertaRotaRepetido();
     sugestaoAtual=null;
     return;
   }
@@ -1387,7 +1436,7 @@ function processarParadaAtual(lat,lng){
   var d=distanciaMetros(lat,lng,coord.lat,coord.lng);
   if(d>RAIO_PARADA_M){
     el('auto-suggestion').style.display='none';
-    pararAlertaSonoroRepetido();
+    pararAlertaRotaRepetido();
     sugestaoAtual=null;
     return;
   }
@@ -1403,6 +1452,8 @@ function processarParadaAtual(lat,lng){
 
 // Aviso de falta enviado pelos pais — fica ouvindo o tempo todo (não só
 // durante a viagem), porque o pai pode avisar a qualquer momento do dia.
+var avisoFaltaAtual = null;
+
 function listenAvisoFalta(){
   rdb.ref('aviso_falta').on('value', function(snap){
     var d=snap.val();
@@ -1412,15 +1463,24 @@ function listenAvisoFalta(){
 
 function mostrarAvisoFalta(d){
   var box=el('aviso-falta-box'); if(!box) return;
+  avisoFaltaAtual=d;
   setText('aviso-falta-text', (d.aluno_nome||'Aluno')+' vai faltar hoje — informado em '+(d.data_hora_texto||''));
   box.style.display='block';
-  if(alertaSonoroAtivo) iniciarAlertaSonoroRepetido();
+  if(alertaSonoroAtivo) iniciarAlertaFaltaRepetido();
 }
 
+// Ao confirmar o aviso: marca o aluno como "Faltou" automaticamente (mesma
+// função usada pelos botões manuais — já cuida de avançar o ponteiro da
+// rota pra pular esse aluno e reposicionar quem é o próximo, e também já
+// pinta o marcador dele de vermelho no mapa, via o status 'faltou').
 function fecharAvisoFalta(){
   var box=el('aviso-falta-box'); if(box) box.style.display='none';
-  pararAlertaSonoroRepetido();
+  pararAlertaFaltaRepetido();
   rdb.ref('aviso_falta').update({ativo:false});
+  if(avisoFaltaAtual && avisoFaltaAtual.aluno_id){
+    regAcao(avisoFaltaAtual.aluno_id, avisoFaltaAtual.aluno_nome||'Aluno', 'faltou');
+  }
+  avisoFaltaAtual=null;
 }
 
 function enviarAvisoChegada(alunoId, nome){
@@ -1435,8 +1495,8 @@ function exibirSugestaoParada(p,coord,dist){
   sugestaoAtual={tipo:p.tipo, alunoId:coord.alunoId, escolaId:coord.escolaId, nome:coord.nome};
   // Alerta sonoro: continua tocando em loop enquanto essa caixa estiver na
   // tela — para sozinho quando a parada é resolvida, pulada, ou a van sai
-  // do raio (ver pararAlertaSonoroRepetido nos pontos que escondem a caixa).
-  if(alertaSonoroAtivo) iniciarAlertaSonoroRepetido();
+  // do raio (ver pararAlertaRotaRepetido nos pontos que escondem a caixa).
+  if(alertaSonoroAtivo) iniciarAlertaRotaRepetido();
   if(p.tipo==='embarque_casa'){
     textEl.textContent='📍 Perto de '+coord.nome+' ('+Math.round(dist)+'m)';
     btnsEl.innerHTML =
@@ -1462,7 +1522,7 @@ function avancarParada(){
   atualizarMapaRota();
   renderPainel();
   el('auto-suggestion').style.display='none';
-  pararAlertaSonoroRepetido();
+  pararAlertaRotaRepetido();
   sugestaoAtual=null;
   // Reavalia imediatamente: se a próxima parada também já estiver no raio
   // (ex: irmãos no mesmo endereço, paradas consecutivas), a sugestão já aparece de novo
@@ -1629,21 +1689,24 @@ function atualizarMapaRota(){
     // atual pode já estar resolvida (ex: aluno C embarcou antes do B) —
     // por isso checamos o status real, não só a posição em relação ao índice.
     var feito = false;
+    var faltou = false;
     if(p.tipo==='embarque_casa'){
       var et=(statusCache[p.aluno_id]||{}).etapa;
       feito = (et==='embarcou' || et==='faltou');
+      faltou = (et==='faltou');
     } else if(p.tipo==='desembarque_casa'){
       var et2=(statusCache[p.aluno_id]||{}).etapa;
       feito = (et2==='em_casa' || et2==='faltou');
+      faltou = (et2==='faltou');
     } else {
       feito = idx<indiceParadaAtual;
     }
-    var cor = ehAtual ? '#FFD23F' : (feito ? '#22C55E' : '#475569');
+    var cor = ehAtual ? '#FFD23F' : (faltou ? '#EF4444' : (feito ? '#22C55E' : '#475569'));
     if(ehAtual){
       var circle=L.circle([coord.lat,coord.lng],{radius:RAIO_PARADA_M,color:cor,fillColor:cor,fillOpacity:.2,weight:2}).addTo(mapaRotaMap);
       mapaRotaStopMarkers.push(circle);
     }
-    var conteudoIcone = (ehAtual||!feito) ? (idx+1) : '✓';
+    var conteudoIcone = (ehAtual||!feito) ? (idx+1) : (faltou ? '✕' : '✓');
     var icone=L.divIcon({
       html:'<div style="background:'+cor+';color:#fff;border:2px solid #fff;border-radius:50%;width:'+(ehAtual?28:22)+'px;height:'+(ehAtual?28:22)+'px;display:flex;align-items:center;justify-content:center;font-size:'+(ehAtual?13:11)+'px;font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.4);transform:rotate('+contraRot+'deg)">'+conteudoIcone+'</div>',
       className:'', iconSize:[ehAtual?28:22,ehAtual?28:22], iconAnchor:[ehAtual?14:11,ehAtual?14:11]
@@ -2041,7 +2104,7 @@ function renderAlunosAdmin(){
       +'<div class="asc-field"><div class="asc-lbl">Ordem rota</div><input class="asc-inp" type="number" value="'+(a.ordem_parada||1)+'" oninput="setPending(\''+a.id+'\',\'ordem_parada\',parseInt(this.value))"></div>'
       +'<div class="asc-field"><div class="asc-lbl">Horário parada</div><input class="asc-inp" type="time" value="'+(a.horario_previsto||'')+'" oninput="setPending(\''+a.id+'\',\'horario_previsto\',this.value)"></div>'
       +'</div>'
-      +'<div class="asc-actions"><button class="asc-save" onclick="saveAluno(\''+a.id+'\')">💾 Salvar</button><button class="asc-del" onclick="deleteAluno(\''+a.id+'\',\''+a.nome+'\')">🗑️</button></div>'
+      +'<div class="asc-actions"><button class="asc-save" onclick="saveAluno(\''+a.id+'\')">💾 Salvar</button><button onclick="gerarContratoAlunoExistente(\''+a.id+'\')" style="background:#0F172A;color:#FFD23F;border:none;border-radius:8px;padding:0 14px;font-size:13px;font-weight:700;cursor:pointer">📄 Contrato</button><button class="asc-del" onclick="deleteAluno(\''+a.id+'\',\''+a.nome+'\')">🗑️</button></div>'
       +'</div></div>';
   }).join('');
   if(openAlunoId){
@@ -2094,7 +2157,13 @@ function openModalPai(){
   popularSelectEscolas(el('m-aluno-escola'),'');
   el('modal-pai').classList.add('open');
 }
-function closeModalPai(){ el('modal-pai').classList.remove('open'); ['m-pai-nome','m-pai-pass','m-aluno-nome','m-aluno-serie','m-aluno-end','m-aluno-mens'].forEach(function(id){ el(id).value=''; }); el('m-aluno-genero').value='M'; el('m-aluno-escola').value=''; el('m-aluno-turno').value=''; setText('m-err',''); }
+function closeModalPai(){
+  el('modal-pai').classList.remove('open');
+  ['m-pai-nome','m-pai-pass','m-aluno-nome','m-aluno-serie','m-aluno-end','m-aluno-mens'].forEach(function(id){ el(id).value=''; });
+  el('m-aluno-genero').value='M'; el('m-aluno-escola').value=''; el('m-aluno-turno').value=''; setText('m-err','');
+  el('modal-pai-form').style.display='block';
+  el('modal-pai-sucesso').style.display='none';
+}
 
 function gerarProximoCodigo(){
   // Use a dedicated persistent counter doc - never decreases even if pais docs are deleted
@@ -2111,6 +2180,174 @@ function gerarProximoCodigo(){
     el('m-pai-codigo').dataset.num=1;
   });
 }
+// CONTRATO EM PDF
+var ultimoCadastroCriado = null; // só existe em memória, nunca salvo — é a única janela em que a senha está disponível
+
+function buscarRotaDoAluno(alunoId){
+  for(var i=0;i<rotasData.length;i++){
+    var r=rotasData[i];
+    if(r.paradas && r.paradas.some(function(p){ return p.aluno_id===alunoId; })) return r;
+  }
+  return null;
+}
+
+function gerarContratoUltimoCadastro(){
+  if(!ultimoCadastroCriado){ showToast('⚠️ Nenhum cadastro recente encontrado nesta sessão'); return; }
+  gerarContratoPDF(ultimoCadastroCriado);
+}
+
+// Gera o contrato em PDF, direto no navegador (sem servidor), usando jsPDF.
+// Inclui dados do aluno, da escola/rota, do responsável, os dados de acesso
+// do app, e cláusulas usuais de transporte escolar — incluindo a explicação
+// de que a mensalidade é o valor anual dividido em 12 parcelas (cobradas
+// também nas férias, período usado pra manutenção preventiva do veículo) e
+// a cláusula de proteção de dados pessoais (LGPD).
+function gerarContratoPDF(dados){
+  if(!window.jspdf){ showToast('⚠️ Biblioteca de PDF não carregou — verifique sua internet e tente novamente'); return; }
+  var doc = new window.jspdf.jsPDF({unit:'mm', format:'a4'});
+  var margin=18, pageW=210, pageH=297, maxW=pageW-margin*2, lineH=5.2;
+  var y=margin;
+
+  function novaPaginaSeNecessario(altura){
+    if(y+altura > pageH-margin){ doc.addPage(); y=margin; }
+  }
+  function titulo(texto){
+    novaPaginaSeNecessario(lineH+3);
+    doc.setFont('helvetica','bold'); doc.setFontSize(11);
+    doc.text(texto, margin, y);
+    y += lineH+1.5;
+    doc.setFont('helvetica','normal'); doc.setFontSize(10);
+  }
+  function paragrafo(texto, opts){
+    opts=opts||{};
+    doc.setFont('helvetica', opts.bold?'bold':'normal');
+    doc.setFontSize(opts.size||10);
+    var linhas = doc.splitTextToSize(texto, maxW);
+    linhas.forEach(function(l){
+      novaPaginaSeNecessario(lineH);
+      doc.text(l, margin, y);
+      y += lineH;
+    });
+    y += (opts.gap!=null ? opts.gap : 2.5);
+  }
+
+  var rota = buscarRotaDoAluno(dados.alunoId);
+  var dataHoje = new Date().toLocaleDateString('pt-BR');
+  var nomeTurno = {manha:'Manhã',tarde:'Tarde',noite:'Noite'}[dados.turno] || dados.turno || 'Não informado';
+  var valorParcela = (dados.valorMensalidade||0).toFixed(2).replace('.',',');
+  var valorAnual = ((dados.valorMensalidade||0)*12).toFixed(2).replace('.',',');
+  var diaVenc = (configData && configData.venc) ? configData.venc : 10;
+
+  doc.setFont('helvetica','bold'); doc.setFontSize(14);
+  doc.text('CONTRATO DE PRESTAÇÃO DE SERVIÇOS', pageW/2, y, {align:'center'}); y+=6.5;
+  doc.text('DE TRANSPORTE ESCOLAR', pageW/2, y, {align:'center'}); y+=10;
+  doc.setFont('helvetica','normal'); doc.setFontSize(10);
+
+  paragrafo('Pelo presente instrumento particular, as partes abaixo identificadas têm entre si justo e contratado o serviço de transporte escolar, nos termos das cláusulas seguintes:', {gap:4});
+
+  titulo('CONTRATADO (Transportador)');
+  paragrafo('Tio Daniel & Tia Irene — Serviço de Transporte Escolar, doravante denominado CONTRATADO, responsável pela prestação do serviço de transporte escolar regular do(a) aluno(a) abaixo identificado(a).');
+
+  titulo('CONTRATANTE (Responsável legal)');
+  paragrafo('Nome: '+dados.paiNome);
+  paragrafo('Doravante denominado CONTRATANTE, na qualidade de responsável legal pelo(a) aluno(a) identificado(a) a seguir.');
+
+  titulo('ALUNO(A) TRANSPORTADO(A)');
+  paragrafo('Nome: '+dados.alunoNome);
+  paragrafo('Série/Turma: '+(dados.serie||'Não informado'));
+  paragrafo('Escola: '+(dados.escolaNome||'Não informado'));
+  paragrafo('Turno: '+nomeTurno);
+  paragrafo('Endereço de embarque/desembarque: '+(dados.endereco||'Não informado'));
+  paragrafo('Rota/Itinerário: '+(rota ? rota.nome : 'a ser confirmado conforme planejamento operacional do CONTRATADO'));
+
+  titulo('CLÁUSULA 1ª — DO OBJETO');
+  paragrafo('O presente contrato tem por objeto a prestação de serviço de transporte escolar regular, compreendendo o translado do(a) aluno(a) acima identificado(a) entre o endereço de embarque informado e a instituição de ensino indicada, nos dias de aula do calendário escolar vigente.');
+
+  titulo('CLÁUSULA 2ª — DO VALOR E DA FORMA DE PAGAMENTO');
+  paragrafo('O valor do serviço de transporte escolar é estabelecido em base ANUAL, correspondente a R$ '+valorAnual+' (referente ao ano contratado), o qual é dividido, exclusivamente para fins de pagamento, em 12 (doze) parcelas mensais iguais de R$ '+valorParcela+' cada, com vencimento todo dia '+diaVenc+' de cada mês.');
+  paragrafo('Parágrafo único: as 12 (doze) parcelas mensais são devidas ao longo de todo o ano civil, incluindo os meses correspondentes ao período de férias escolares, nos quais não há prestação efetiva do transporte. Isso porque, durante o recesso escolar, o CONTRATADO realiza manutenção preventiva do veículo, revisões mecânicas, vistorias de segurança, regularização de documentação e demais procedimentos necessários para garantir a regularidade, a segurança e a continuidade do serviço no ano letivo subsequente — atividades que integram o próprio objeto deste contrato.');
+
+  titulo('CLÁUSULA 3ª — DA VIGÊNCIA');
+  paragrafo('Este contrato vigora a partir da data de assinatura, acompanhando o calendário escolar do ano em curso, renovando-se automaticamente para o ano subsequente, salvo manifestação em contrário de qualquer das partes, por escrito, com antecedência mínima de 30 (trinta) dias do início do próximo ano letivo.');
+
+  titulo('CLÁUSULA 4ª — DAS OBRIGAÇÕES DO CONTRATADO');
+  paragrafo('a) Realizar o transporte do(a) aluno(a) com pontualidade, segurança e zelo, respeitando os horários previamente combinados;');
+  paragrafo('b) Manter o veículo em boas condições de uso, conservação e segurança, com documentação e seguros exigidos pela legislação de trânsito vigente;');
+  paragrafo('c) Comunicar ao CONTRATANTE, com a maior brevidade possível, qualquer atraso, alteração de rota ou impossibilidade de realização do serviço;');
+  paragrafo('d) Zelar pela integridade física e pelo bem-estar do(a) aluno(a) durante todo o trajeto.');
+
+  titulo('CLÁUSULA 5ª — DAS OBRIGAÇÕES DO CONTRATANTE');
+  paragrafo('a) Efetuar o pagamento das parcelas mensais nas datas de vencimento acordadas;');
+  paragrafo('b) Informar previamente ao CONTRATADO eventuais faltas, alterações de endereço, escola, turno, ou condição de saúde relevante do(a) aluno(a);');
+  paragrafo('c) Garantir que o(a) aluno(a) esteja disponível no horário e local combinados para o embarque;');
+  paragrafo('d) Zelar pelo cumprimento, pelo(a) aluno(a), das normas básicas de comportamento e segurança durante o transporte.');
+
+  titulo('CLÁUSULA 6ª — DO ATRASO E DA INADIMPLÊNCIA');
+  paragrafo('O não pagamento da mensalidade até a data de vencimento sujeitará o CONTRATANTE à multa de 2% (dois por cento) sobre o valor em atraso, acrescida de juros de mora de 1% (um por cento) ao mês, sem prejuízo da suspensão do serviço em caso de inadimplência superior a 30 (trinta) dias, mediante prévia notificação.');
+
+  titulo('CLÁUSULA 7ª — DA RESCISÃO');
+  paragrafo('O presente contrato poderá ser rescindido por qualquer das partes, mediante comunicação prévia e por escrito, com antecedência mínima de 30 (trinta) dias, sem prejuízo do pagamento proporcional dos valores devidos até a efetiva desvinculação do serviço.');
+
+  titulo('CLÁUSULA 8ª — DA PROTEÇÃO DE DADOS PESSOAIS (LGPD)');
+  paragrafo('Para a execução deste contrato, o CONTRATADO realiza o tratamento de dados pessoais do(a) aluno(a) e do CONTRATANTE, incluindo nome, endereço residencial, dados de geolocalização durante o trajeto, escola, turno e, quando aplicável, informações de saúde relevantes para a segurança do transporte — estes últimos classificados como dados sensíveis nos termos do art. 5º, inciso II, da Lei nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais — LGPD).');
+  paragrafo('O tratamento desses dados tem como base legal a execução deste contrato e, quando aplicável, o consentimento do CONTRATANTE, sendo utilizados exclusivamente para a prestação do serviço de transporte escolar, comunicação entre as partes, segurança do(a) aluno(a) e controle administrativo/financeiro do CONTRATADO, não sendo compartilhados com terceiros para finalidades distintas das aqui previstas.');
+  paragrafo('O CONTRATANTE poderá, a qualquer momento, solicitar informações sobre os dados tratados, sua correção, ou a eliminação dos dados ao término da relação contratual, nos termos da legislação vigente.');
+  paragrafo('O acesso ao aplicativo de acompanhamento da van é pessoal e intransferível, sendo de responsabilidade do CONTRATANTE a guarda de seus dados de acesso, informados a seguir:');
+  paragrafo('Código de acesso: '+dados.codigo+'   |   Senha inicial: '+dados.pass, {bold:true, gap:4});
+  paragrafo('Recomenda-se a alteração da senha inicial após o primeiro acesso e a não divulgação dos dados de acesso a terceiros não autorizados.');
+
+  titulo('CLÁUSULA 9ª — DO FORO');
+  paragrafo('As partes elegem o foro da comarca de domicílio do CONTRATADO para dirimir quaisquer dúvidas ou litígios decorrentes deste contrato, com renúncia expressa a qualquer outro, por mais privilegiado que seja.');
+
+  paragrafo('E, por estarem assim justas e contratadas, as partes firmam o presente instrumento.', {gap:8});
+  paragrafo('Local e data: ______________________________________, '+dataHoje+'.', {gap:14});
+
+  novaPaginaSeNecessario(26);
+  y += 8;
+  doc.line(margin, y, margin+72, y);
+  doc.line(pageW-margin-72, y, pageW-margin, y);
+  y += 5;
+  doc.setFontSize(9);
+  doc.text('CONTRATADO', margin, y);
+  doc.text('CONTRATANTE: '+dados.paiNome, pageW-margin-72, y);
+
+  novaPaginaSeNecessario(12);
+  y += 12;
+  doc.setFontSize(7.5); doc.setTextColor(150);
+  doc.text(doc.splitTextToSize('Documento gerado automaticamente pelo sistema, com base em modelo padrão para serviços de transporte escolar. Recomenda-se a revisão por um(a) advogado(a) antes do uso oficial — este texto não constitui aconselhamento jurídico.', maxW), margin, y);
+
+  var nomeArquivo = 'Contrato_'+(dados.alunoNome||'aluno').replace(/\s+/g,'_')+'.pdf';
+  doc.save(nomeArquivo);
+  showToast('📄 Contrato gerado!');
+}
+
+// Gera contrato pra um aluno JÁ cadastrado (ex: reimprimir uma via depois).
+// Importante: a senha original nunca fica salva no sistema (só existe no
+// momento da criação), então aqui ela aparece como um aviso no lugar do
+// valor real.
+function gerarContratoAlunoExistente(alunoId){
+  var a = alunosData.find(function(x){ return x.id===alunoId; });
+  if(!a){ showToast('⚠️ Aluno não encontrado'); return; }
+  showToast('🔄 Gerando contrato...');
+  db.collection('pais').where('aluno_id','==',alunoId).get().then(function(snap){
+    var paiNome = a.responsavel_nome || 'Não informado', codigo = 'Não disponível';
+    if(!snap.empty){
+      var p=snap.docs[0].data();
+      paiNome = p.nome || paiNome;
+      codigo = p.codigo || codigo;
+    }
+    var escolaObj = a.escola_id ? escolasData.find(function(e){ return e.id===a.escola_id; }) : null;
+    gerarContratoPDF({
+      paiNome:paiNome,
+      pass:'(definida no momento do cadastro — não fica salva no sistema; solicite ao responsável a redefinição, se necessário)',
+      codigo:codigo, alunoNome:a.nome, serie:a.serie, endereco:a.endereco, genero:a.genero,
+      escolaNome: escolaObj?escolaObj.nome:null, turno:a.turno,
+      valorMensalidade: (a.valor_mensalidade!=null && !isNaN(a.valor_mensalidade)) ? a.valor_mensalidade : (configData.mens||380),
+      alunoId: a.id
+    });
+  }).catch(function(e){ showToast('❌ '+e.message); });
+}
+
 function criarPaiAluno(){
   var paiNome=val('m-pai-nome'), pass=val('m-pai-pass');
   var codigo=el('m-pai-codigo').textContent;
@@ -2155,8 +2392,17 @@ function criarPaiAluno(){
     // Persist the counter so it never reuses this number, even if this pai record is deleted later
     return db.doc('config/contador_codigo').set({ultimo_codigo:codigoNum},{merge:true});
   }).then(function(){
-    showToast('✅ Criado! Código: '+codigo+' — Senha: '+pass);
-    closeModalPai();
+    var escolaObj = escolaId ? escolasData.find(function(e){ return e.id===escolaId; }) : null;
+    ultimoCadastroCriado = {
+      paiNome:paiNome, pass:pass, codigo:codigo,
+      alunoNome:alunoNome, serie:serie, endereco:endereco, genero:genero,
+      escolaNome: escolaObj ? escolaObj.nome : null,
+      turno: turno, valorMensalidade: (valorMensalidade!==null && !isNaN(valorMensalidade)) ? valorMensalidade : (configData.mens||380),
+      alunoId: novoAlunoId
+    };
+    setText('modal-pai-sucesso-detalhe', alunoNome+' — Código de acesso: '+codigo+' — Senha: '+pass);
+    el('modal-pai-form').style.display='none';
+    el('modal-pai-sucesso').style.display='block';
   }).catch(function(e){ setText('m-err','❌ '+e.message); });
 }
 
@@ -2211,7 +2457,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev6.8';
+var APP_VERSION = 'rev7.1';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
