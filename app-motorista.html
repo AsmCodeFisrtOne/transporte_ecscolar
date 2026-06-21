@@ -2281,7 +2281,7 @@ function gerarContratoPDF(dados){
 
   titulo('CLÁUSULA 2ª — DO VALOR E DA FORMA DE PAGAMENTO');
   paragrafo('O valor do serviço de transporte escolar é estabelecido em base ANUAL, correspondente a R$ '+valorAnual+' (referente ao ano contratado), o qual é dividido, exclusivamente para fins de pagamento, em 12 (doze) parcelas mensais iguais de R$ '+valorParcela+' cada, com vencimento todo dia '+diaVenc+' de cada mês.');
-  paragrafo('Parágrafo único: as 12 (doze) parcelas mensais são devidas ao longo de todo o ano civil, incluindo os meses correspondentes ao período de férias escolares, nos quais não há prestação efetiva do transporte. Isso porque, durante o recesso escolar, o CONTRATADO realiza manutenção preventiva do veículo, revisões mecânicas, vistorias de segurança, regularização de documentação e demais procedimentos necessários para garantir a regularidade, a segurança e a continuidade do serviço no ano letivo subsequente — atividades que integram o próprio objeto deste contrato.');
+  paragrafo('Parágrafo único: conforme estabelecido no caput desta cláusula, o valor anual do serviço é dividido em 12 (doze) parcelas mensais iguais, sendo estas devidas ao longo de todo o ano civil — incluindo os meses correspondentes ao período de férias escolares, nos quais não há prestação efetiva do transporte. Isso porque, durante o recesso escolar, o CONTRATADO realiza manutenção preventiva do veículo, revisões mecânicas, vistorias de segurança, regularização de documentação e demais procedimentos necessários para garantir a regularidade, a segurança e a continuidade do serviço no ano letivo subsequente — atividades que integram o próprio objeto deste contrato e justificam a manutenção das 12 parcelas mensais durante todo o período contratual, sem interrupção ou desconto nos meses de férias.');
 
   titulo('CLÁUSULA 3ª — DA VIGÊNCIA');
   paragrafo('Este contrato vigora a partir da data de assinatura, acompanhando o calendário escolar do ano em curso, renovando-se automaticamente para o ano subsequente, salvo manifestação em contrário de qualquer das partes, por escrito, com antecedência mínima de 30 (trinta) dias do início do próximo ano letivo.');
@@ -2309,8 +2309,8 @@ function gerarContratoPDF(dados){
   paragrafo('O tratamento desses dados tem como base legal a execução deste contrato e, quando aplicável, o consentimento do CONTRATANTE, sendo utilizados exclusivamente para a prestação do serviço de transporte escolar, comunicação entre as partes, segurança do(a) aluno(a) e controle administrativo/financeiro do CONTRATADO, não sendo compartilhados com terceiros para finalidades distintas das aqui previstas.');
   paragrafo('O CONTRATANTE poderá, a qualquer momento, solicitar informações sobre os dados tratados, sua correção, ou a eliminação dos dados ao término da relação contratual, nos termos da legislação vigente.');
   paragrafo('O acesso ao aplicativo de acompanhamento da van é pessoal e intransferível, sendo de responsabilidade do CONTRATANTE a guarda de seus dados de acesso, informados a seguir:');
-  paragrafo('Código de acesso: '+dados.codigo+'   |   Senha inicial: '+dados.pass, {bold:true, gap:4});
-  paragrafo('Recomenda-se a alteração da senha inicial após o primeiro acesso e a não divulgação dos dados de acesso a terceiros não autorizados.');
+  paragrafo('Código de acesso: '+dados.codigo+'   |   Senha: '+dados.pass, {bold:true, gap:4});
+  paragrafo('O código de acesso e a senha acima são fixos, definidos pelo CONTRATADO no momento do cadastro, não havendo funcionalidade de alteração pelo CONTRATANTE.');
 
   titulo('CLÁUSULA 9ª — DO FORO');
   paragrafo('As partes elegem o foro da comarca de domicílio do CONTRATADO para dirimir quaisquer dúvidas ou litígios decorrentes deste contrato, com renúncia expressa a qualquer outro, por mais privilegiado que seja.');
@@ -2473,7 +2473,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev7.3';
+var APP_VERSION = 'rev7.4';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
