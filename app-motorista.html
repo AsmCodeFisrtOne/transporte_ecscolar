@@ -648,6 +648,7 @@ function startTrip(){
 }
 function finishTrip(){
   if(!window.confirm('Finalizar viagem?')) return;
+  pararAlertaSonoroRepetido();
   tripStarted=false;
   selectedAlunoId=null;
   el('btn-start').disabled=false;
@@ -947,6 +948,7 @@ function sincronizarRotaComAcaoManual(alunoId, etapa){
   atualizarMapaRota();
   renderPainel();
   el('auto-suggestion').style.display='none';
+  pararAlertaSonoroRepetido();
   sugestaoAtual=null;
   if(modoAutomaticoAtivo && lastGpsPosition) processarParadaAtual(lastGpsPosition.lat,lastGpsPosition.lng);
 }
@@ -1135,7 +1137,7 @@ function garantirEstadoInicialAoAbrirApp(){
   rotaEmExecucao=null;
   indiceParadaAtual=-1;
   ultimoAvisoAutoIndice=-1;
-  ultimoAlertaSonoroIndice=-1;
+  pararAlertaSonoroRepetido();
   selectedAlunoId=null;
   ordemChipsAtual=null;
   ultimoNextAlunoIdRastreado=undefined;
@@ -1263,6 +1265,7 @@ function toggleModoAutomatico(){
     sugestaoAtual=null;
     simulacaoGpsAtiva=false;
     el('auto-suggestion').style.display='none';
+    pararAlertaSonoroRepetido();
   } else if(lastGpsPosition){
     processarParadaAtual(lastGpsPosition.lat, lastGpsPosition.lng);
   }
@@ -1291,30 +1294,39 @@ function simularChegadaParadaAtual(){
 }
 
 var ultimoAvisoAutoIndice = -1;
-var ultimoAlertaSonoroIndice = -1;
 var alertaSonoroAtivo = (localStorage.getItem('alertaSonoroAtivo') !== 'false'); // ligado por padrão
+var alertaSonoroIntervalId = null;
 
-function tocarAlertaSonoro(){
+function tocarBeepAlerta(){
   try{
     var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    function beep(tempo, freq){
-      var osc=ctx.createOscillator(), gain=ctx.createGain();
-      osc.type='sine'; osc.frequency.value=freq;
-      osc.connect(gain); gain.connect(ctx.destination);
-      gain.gain.setValueAtTime(0.0001, ctx.currentTime+tempo);
-      gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime+tempo+0.02);
-      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+tempo+0.28);
-      osc.start(ctx.currentTime+tempo);
-      osc.stop(ctx.currentTime+tempo+0.3);
-    }
-    beep(0, 880);
-    beep(0.32, 880);
+    var osc=ctx.createOscillator(), gain=ctx.createGain();
+    osc.type='sine'; osc.frequency.value=880;
+    osc.connect(gain); gain.connect(ctx.destination);
+    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime+0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.28);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime+0.3);
   }catch(e){ /* navegador sem suporte a áudio — ignora silenciosamente */ }
+}
+
+// Toca o alerta repetidamente, a cada 1.2s, enquanto a caixa de sugestão
+// estiver na tela — não só uma vez. Idempotente: chamar de novo enquanto já
+// está tocando não cria um segundo intervalo.
+function iniciarAlertaSonoroRepetido(){
+  if(alertaSonoroIntervalId) return;
+  tocarBeepAlerta();
+  alertaSonoroIntervalId = setInterval(tocarBeepAlerta, 1200);
+}
+function pararAlertaSonoroRepetido(){
+  if(alertaSonoroIntervalId){ clearInterval(alertaSonoroIntervalId); alertaSonoroIntervalId=null; }
 }
 
 function toggleAlertaSonoro(){
   alertaSonoroAtivo = el('alerta-sonoro-toggle').checked;
   localStorage.setItem('alertaSonoroAtivo', alertaSonoroAtivo ? 'true' : 'false');
+  if(!alertaSonoroAtivo) pararAlertaSonoroRepetido();
 }
 
 // Vigia SOMENTE a parada atual da sequência — é isso que elimina o problema da
@@ -1324,6 +1336,7 @@ function processarParadaAtual(lat,lng){
   var p=paradaAtualObj();
   if(!p){
     el('auto-suggestion').style.display='none';
+    pararAlertaSonoroRepetido();
     sugestaoAtual=null;
     return;
   }
@@ -1335,6 +1348,7 @@ function processarParadaAtual(lat,lng){
   var d=distanciaMetros(lat,lng,coord.lat,coord.lng);
   if(d>RAIO_PARADA_M){
     el('auto-suggestion').style.display='none';
+    pararAlertaSonoroRepetido();
     sugestaoAtual=null;
     return;
   }
@@ -1358,12 +1372,10 @@ function exibirSugestaoParada(p,coord,dist){
   var box=el('auto-suggestion'), textEl=el('auto-suggestion-text'), btnsEl=el('auto-suggestion-buttons');
   if(!box) return;
   sugestaoAtual={tipo:p.tipo, alunoId:coord.alunoId, escolaId:coord.escolaId, nome:coord.nome};
-  // Alerta sonoro: dispara uma única vez por parada, no momento em que a
-  // caixa de sugestão aparece — não repete a cada atualização de GPS.
-  if(alertaSonoroAtivo && ultimoAlertaSonoroIndice!==indiceParadaAtual){
-    ultimoAlertaSonoroIndice=indiceParadaAtual;
-    tocarAlertaSonoro();
-  }
+  // Alerta sonoro: continua tocando em loop enquanto essa caixa estiver na
+  // tela — para sozinho quando a parada é resolvida, pulada, ou a van sai
+  // do raio (ver pararAlertaSonoroRepetido nos pontos que escondem a caixa).
+  if(alertaSonoroAtivo) iniciarAlertaSonoroRepetido();
   if(p.tipo==='embarque_casa'){
     textEl.textContent='📍 Perto de '+coord.nome+' ('+Math.round(dist)+'m)';
     btnsEl.innerHTML =
@@ -1389,6 +1401,7 @@ function avancarParada(){
   atualizarMapaRota();
   renderPainel();
   el('auto-suggestion').style.display='none';
+  pararAlertaSonoroRepetido();
   sugestaoAtual=null;
   // Reavalia imediatamente: se a próxima parada também já estiver no raio
   // (ex: irmãos no mesmo endereço, paradas consecutivas), a sugestão já aparece de novo
@@ -2103,7 +2116,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev6.4';
+var APP_VERSION = 'rev6.5';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
