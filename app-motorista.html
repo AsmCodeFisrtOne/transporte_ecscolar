@@ -1296,18 +1296,37 @@ function simularChegadaParadaAtual(){
 var ultimoAvisoAutoIndice = -1;
 var alertaSonoroAtivo = (localStorage.getItem('alertaSonoroAtivo') !== 'false'); // ligado por padrão
 var alertaSonoroIntervalId = null;
+var alertaAudioCtx = null;
+
+// Reaproveita UM único AudioContext entre os beeps. Criar um novo a cada
+// beep (como era antes) esbarra no limite de contextos simultâneos que os
+// navegadores impõem — depois de alguns beeps ele parava de tocar sem
+// nenhum aviso, porque o erro ficava engolido silenciosamente.
+function obterAudioCtxAlerta(){
+  if(!alertaAudioCtx){
+    alertaAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  if(alertaAudioCtx.state==='suspended'){ alertaAudioCtx.resume(); }
+  return alertaAudioCtx;
+}
 
 function tocarBeepAlerta(){
   try{
-    var ctx = new (window.AudioContext || window.webkitAudioContext)();
-    var osc=ctx.createOscillator(), gain=ctx.createGain();
-    osc.type='sine'; osc.frequency.value=880;
-    osc.connect(gain); gain.connect(ctx.destination);
-    gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime+0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.28);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime+0.3);
+    var ctx = obterAudioCtxAlerta();
+    function tom(inicio, freq, duracao){
+      var osc=ctx.createOscillator(), gain=ctx.createGain();
+      osc.type='square'; osc.frequency.value=freq;
+      osc.connect(gain); gain.connect(ctx.destination);
+      gain.gain.setValueAtTime(0.0001, ctx.currentTime+inicio);
+      gain.gain.exponentialRampToValueAtTime(1, ctx.currentTime+inicio+0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+inicio+duracao);
+      osc.start(ctx.currentTime+inicio);
+      osc.stop(ctx.currentTime+inicio+duracao+0.02);
+    }
+    // Som bem mais alto e chamativo: onda quadrada (mais "estridente" que
+    // senoide) no volume máximo, em dois tons.
+    tom(0, 1000, 0.18);
+    tom(0.2, 1300, 0.18);
   }catch(e){ /* navegador sem suporte a áudio — ignora silenciosamente */ }
 }
 
@@ -2116,7 +2135,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev6.5';
+var APP_VERSION = 'rev6.6';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
