@@ -242,6 +242,13 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     </div>
   </div>
 
+  <!-- AVISO DE FALTA (enviado pelos pais) — também global, em qualquer aba -->
+  <div id="aviso-falta-box" style="display:none;margin:10px 14px 0 14px;background:#0F172A;border:2px solid #F87171;border-radius:14px;padding:14px;flex-shrink:0">
+    <div style="color:#F87171;font-weight:700;font-size:14px;margin-bottom:6px">🚫 Aviso de falta</div>
+    <div id="aviso-falta-text" style="color:#fff;font-size:13px;margin-bottom:10px"></div>
+    <button onclick="fecharAvisoFalta()" style="width:100%;background:#22C55E;color:#fff;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:14px;cursor:pointer">✅ OK</button>
+  </div>
+
   <!-- PAINEL -->
   <div id="view-painel" class="view active">
     <div class="scroll" id="painel-scroll" style="position:relative">
@@ -1394,6 +1401,28 @@ function processarParadaAtual(lat,lng){
   }
 }
 
+// Aviso de falta enviado pelos pais — fica ouvindo o tempo todo (não só
+// durante a viagem), porque o pai pode avisar a qualquer momento do dia.
+function listenAvisoFalta(){
+  rdb.ref('aviso_falta').on('value', function(snap){
+    var d=snap.val();
+    if(d && d.ativo) mostrarAvisoFalta(d);
+  });
+}
+
+function mostrarAvisoFalta(d){
+  var box=el('aviso-falta-box'); if(!box) return;
+  setText('aviso-falta-text', (d.aluno_nome||'Aluno')+' vai faltar hoje — informado em '+(d.data_hora_texto||''));
+  box.style.display='block';
+  if(alertaSonoroAtivo) iniciarAlertaSonoroRepetido();
+}
+
+function fecharAvisoFalta(){
+  var box=el('aviso-falta-box'); if(box) box.style.display='none';
+  pararAlertaSonoroRepetido();
+  rdb.ref('aviso_falta').update({ativo:false});
+}
+
 function enviarAvisoChegada(alunoId, nome){
   var msg = configData.msg_proximo || 'Motorista no caminho, favor dirigir-se ao ponto de embarque!';
   rdb.ref('proximo_embarque').set({aluno_id:alunoId,aluno_nome:nome,mensagem:msg,timestamp:Date.now()});
@@ -2182,11 +2211,12 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev6.7';
+var APP_VERSION = 'rev6.8';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
   listenAlunos();
+  listenAvisoFalta();
   listenEscolas();
   listenStatus();
   listenChat();
