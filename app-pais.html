@@ -197,6 +197,15 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     <div class="live-badge"><div class="live-dot" id="live-dot"></div><span class="live-txt" id="live-txt">Offline</span></div>
   </div>
 
+  <!-- AVISO GLOBAL: confirmação do motorista de que o filho não será buscado — aparece em qualquer aba -->
+  <div id="confirmacao-falta-banner" style="display:none;margin:10px 14px 0 14px;background:#7C2D12;border:2px solid #FCA5A5;border-radius:14px;padding:14px;flex-shrink:0">
+    <div style="color:#FECACA;font-weight:700;font-size:13px;margin-bottom:6px">🚫 Confirmado pelo motorista</div>
+    <div id="confirmacao-falta-text" style="color:#fff;font-size:13px;margin-bottom:6px"></div>
+    <div style="color:#FED7AA;font-size:11.5px;margin-bottom:10px">A responsabilidade por não levar seu filho(a) até a van hoje é sua, conforme informado por você.</div>
+    <button onclick="confirmarRecebimentoFalta()" style="width:100%;background:#22C55E;color:#fff;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:8px">✅ OK, recebi a mensagem</button>
+    <button onclick="cancelarAvisoFalta()" style="width:100%;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:10px;padding:9px;font-weight:700;font-size:13px;cursor:pointer">❌ Cancelar — meu filho(a) será buscado(a) normalmente</button>
+  </div>
+
   <!-- MAPA -->
   <div id="view-mapa" class="view active">
     <div id="emergency-banner">
@@ -506,10 +515,48 @@ function avisarFalta(){
     aluno_nome: nome,
     data_hora_texto: dataHora,
     timestamp: Date.now(),
-    ativo: true
+    ativo: true,
+    motorista_confirmou: false,
+    pai_recebeu: false
   });
   db.collection('mensagens').add({texto:'🚫 '+nome+' vai faltar hoje ('+dataHora+')',tipo:'sistema',aluno_id:paisData.aluno_id,remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
   showToast('✅ Motorista avisado!');
+}
+
+// Escuta o aviso de falta o tempo todo — quando o motorista confirma (clica
+// OK no app dele), mostra o aviso "seu filho não será buscado" pro pai, com
+// o botão de confirmação de recebimento. Isso é o que depois libera o
+// motorista a gerar o comprovante em PDF com o código de verificação.
+function listenConfirmacaoFalta(){
+  rdb.ref('aviso_falta').on('value', function(snap){
+    var d=snap.val();
+    var box=el('confirmacao-falta-banner'); if(!box) return;
+    if(d && d.motorista_confirmou && !d.pai_recebeu && paisData && d.aluno_id===paisData.aluno_id){
+      setText('confirmacao-falta-text', (d.aluno_nome||'Seu filho(a)')+' não será buscado(a) hoje.');
+      box.style.display='block';
+    } else {
+      box.style.display='none';
+    }
+  });
+}
+
+function confirmarRecebimentoFalta(){
+  rdb.ref('aviso_falta').update({pai_recebeu:true, pai_recebeu_em: Date.now()});
+  el('confirmacao-falta-banner').style.display='none';
+  showToast('✅ Confirmação enviada ao motorista');
+}
+
+// O pai pode refutar o aviso (mudou de ideia, ou foi engano). Isso avisa o
+// motorista, mas NÃO gera nenhum comprovante — já que a solicitação foi
+// cancelada antes de ser concluída.
+function cancelarAvisoFalta(){
+  if(!window.confirm('Cancelar este aviso? O motorista será avisado de que seu filho(a) será buscado(a) normalmente.')) return;
+  rdb.ref('aviso_falta').update({
+    cancelado_pelo_pai:true, cancelado_em:Date.now(),
+    ativo:false, pai_recebeu:false, motorista_confirmou:false
+  });
+  el('confirmacao-falta-banner').style.display='none';
+  showToast('❌ Aviso cancelado — motorista avisado');
 }
 
 function sendMsg(){
@@ -562,7 +609,7 @@ function listenAvisos(){
 }
 
 // INIT
-var APP_VERSION = 'rev1.2';
+var APP_VERSION = 'rev1.4';
 
 function initApp(){
   setText('app-version', APP_VERSION);
@@ -578,6 +625,7 @@ function initApp(){
     listenStatus();
     listenProximoEmbarque();
     listenFinanceiro();
+    listenConfirmacaoFalta();
   });
 }
 

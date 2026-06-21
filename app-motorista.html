@@ -250,6 +250,20 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
     <button onclick="fecharAvisoFalta()" style="width:100%;background:#22C55E;color:#fff;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:14px;cursor:pointer">✅ OK</button>
   </div>
 
+  <!-- CONVITE PRA GERAR O COMPROVANTE — só aparece depois que o pai confirma recebimento -->
+  <div id="comprovante-falta-banner" style="display:none;margin:10px 14px 0 14px;background:#0F172A;border:2px solid #22C55E;border-radius:14px;padding:14px;flex-shrink:0">
+    <div style="color:#86EFAC;font-weight:700;font-size:13px;margin-bottom:6px">✅ Pai confirmou recebimento</div>
+    <div id="comprovante-falta-text" style="color:#fff;font-size:13px;margin-bottom:10px"></div>
+    <button onclick="gerarComprovanteFaltaPDF()" style="width:100%;background:#FFD23F;color:#0F172A;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:14px;cursor:pointer">📄 Gerar comprovante em PDF</button>
+  </div>
+
+  <!-- AVISO DE CANCELAMENTO (o pai refutou a falta) -->
+  <div id="cancelamento-falta-box" style="display:none;margin:10px 14px 0 14px;background:#0F172A;border:2px solid #FB923C;border-radius:14px;padding:14px;flex-shrink:0">
+    <div style="color:#FB923C;font-weight:700;font-size:14px;margin-bottom:6px">⚠️ Falta cancelada pelo responsável</div>
+    <div id="cancelamento-falta-text" style="color:#fff;font-size:13px;margin-bottom:10px"></div>
+    <button onclick="fecharCancelamentoFalta()" style="width:100%;background:#22C55E;color:#fff;border:none;border-radius:10px;padding:10px;font-weight:700;font-size:14px;cursor:pointer">✅ OK, entendido</button>
+  </div>
+
   <!-- PAINEL -->
   <div id="view-painel" class="view active">
     <div class="scroll" id="painel-scroll" style="position:relative">
@@ -1484,14 +1498,86 @@ function mostrarAvisoFalta(d){
 // função usada pelos botões manuais — já cuida de avançar o ponteiro da
 // rota pra pular esse aluno e reposicionar quem é o próximo, e também já
 // pinta o marcador dele de vermelho no mapa, via o status 'faltou').
+// Importante: isso NÃO gera o comprovante em PDF ainda — só registra que o
+// motorista confirmou. O comprovante só é gerado depois que o PAI também
+// confirmar que recebeu o aviso de que o filho não será buscado (ver
+// listenConfirmacaoRecebimentoPai).
 function fecharAvisoFalta(){
   var box=el('aviso-falta-box'); if(box) box.style.display='none';
   pararAlertaFaltaRepetido();
-  rdb.ref('aviso_falta').update({ativo:false});
   if(avisoFaltaAtual && avisoFaltaAtual.aluno_id){
     regAcao(avisoFaltaAtual.aluno_id, avisoFaltaAtual.aluno_nome||'Aluno', 'faltou');
+    rdb.ref('aviso_falta').update({ativo:false, motorista_confirmou:true, motorista_confirmou_em:Date.now()});
+  } else {
+    rdb.ref('aviso_falta').update({ativo:false});
   }
   avisoFaltaAtual=null;
+}
+
+// Escuta a confirmação de RECEBIMENTO do pai (depois que ele vê o aviso "seu
+// filho não será buscado" e aperta "OK, recebi"). Só nesse momento aparece
+// o convite pra gerar o comprovante em PDF — nunca antes disso, e nunca se
+// o pai tiver cancelado o aviso nesse meio tempo.
+var comprovanteFaltaPendente = null;
+function listenConfirmacaoRecebimentoPai(){
+  rdb.ref('aviso_falta').on('value', function(snap){
+    var d=snap.val();
+    var box=el('comprovante-falta-banner'); if(!box) return;
+    if(d && d.motorista_confirmou && d.pai_recebeu && !d.documento_gerado && !d.cancelado_pelo_pai){
+      comprovanteFaltaPendente=d;
+      setText('comprovante-falta-text', (d.aluno_nome||'Aluno')+' — pai confirmou recebimento em '+new Date(d.pai_recebeu_em).toLocaleString('pt-BR'));
+      box.style.display='block';
+    } else {
+      box.style.display='none';
+    }
+  });
+}
+
+// Escuta o cancelamento do pai (ele refutou o aviso de falta antes de
+// confirmar recebimento). Avisa o motorista com som, e desfaz a marcação de
+// falta automaticamente — o aluno volta a ser buscado normalmente. Não gera
+// nenhum comprovante, já que o processo foi cancelado antes de concluir.
+var avisoCanceladoAtual = null;
+function listenCancelamentoFalta(){
+  rdb.ref('aviso_falta').on('value', function(snap){
+    var d=snap.val();
+    var box=el('cancelamento-falta-box'); if(!box) return;
+    if(d && d.cancelado_pelo_pai && !d.motorista_notificado_cancelamento){
+      avisoCanceladoAtual=d;
+      setText('cancelamento-falta-text', (d.aluno_nome||'Aluno')+' — o responsável cancelou o aviso de falta. Ele(a) será buscado(a) normalmente.');
+      box.style.display='block';
+      if(alertaSonoroAtivo) iniciarAlertaFaltaRepetido();
+    } else {
+      box.style.display='none';
+    }
+  });
+}
+
+function fecharCancelamentoFalta(){
+  var box=el('cancelamento-falta-box'); if(box) box.style.display='none';
+  pararAlertaFaltaRepetido();
+  if(avisoCanceladoAtual && avisoCanceladoAtual.aluno_id){
+    desfazerFaltaAluno(avisoCanceladoAtual.aluno_id, avisoCanceladoAtual.aluno_nome||'Aluno');
+    rdb.ref('aviso_falta').update({motorista_notificado_cancelamento:true});
+  }
+  avisoCanceladoAtual=null;
+}
+
+// Reverte a marcação de "Faltou": remove o status, recalcula em qual parada
+// a rota deve estar (reusa a mesma lógica de "primeira parada pendente"),
+// e o aluno volta a aparecer normalmente como pendente na rota e no mapa.
+function desfazerFaltaAluno(alunoId, nome){
+  db.doc('status_alunos/'+alunoId).delete();
+  delete statusCache[alunoId];
+  if(rotaEmExecucao){
+    indiceParadaAtual = calcularIndiceInicialRota(rotaEmExecucao);
+    salvarProgressoRota();
+    atualizarUIProgresso();
+    atualizarMapaRota();
+    renderPainel();
+  }
+  db.collection('mensagens').add({texto:'↩️ '+nome+': falta cancelada pelo responsável — será buscado(a) normalmente',tipo:'sistema',aluno_id:alunoId,remetente:'sistema',remetente_tipo:'sistema',timestamp:firebase.firestore.FieldValue.serverTimestamp()});
+  showToast('↩️ '+nome+' volta a ser buscado(a) normalmente');
 }
 
 function enviarAvisoChegada(alunoId, nome){
@@ -2364,6 +2450,64 @@ function gerarContratoAlunoExistente(alunoId){
   }).catch(function(e){ showToast('❌ '+e.message); });
 }
 
+// Gera um código de verificação (hash SHA-256, encurtado) a partir dos
+// dados e timestamps do processo inteiro. Isso NÃO é uma assinatura digital
+// com certificado — é um código de integridade: se qualquer um dos dados
+// originais (datas, nomes, ids) for alterado depois, o hash não confere
+// mais. Serve como evidência de que o documento corresponde exatamente ao
+// que foi registrado nesse momento, não como prova jurídica de assinatura.
+function gerarHashFalta(d){
+  var base = 'VanEscolarFaltaV1|'+d.aluno_id+'|'+d.aluno_nome+'|'+d.timestamp+'|'+d.motorista_confirmou_em+'|'+d.pai_recebeu_em;
+  var enc = new TextEncoder().encode(base);
+  return crypto.subtle.digest('SHA-256', enc).then(function(buf){
+    var bytes = Array.from(new Uint8Array(buf));
+    var hex = bytes.map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+    return hex.substring(0,24).toUpperCase().replace(/(.{4})/g,'$1-').replace(/-$/,'');
+  });
+}
+
+function gerarComprovanteFaltaPDF(){
+  if(!comprovanteFaltaPendente){ showToast('⚠️ Nenhum comprovante pendente'); return; }
+  if(!window.jspdf){ showToast('⚠️ Biblioteca de PDF não carregou — verifique sua internet'); return; }
+  var d = comprovanteFaltaPendente;
+  showToast('🔄 Gerando comprovante...');
+  gerarHashFalta(d).then(function(hash){
+    var doc = new window.jspdf.jsPDF({unit:'mm', format:'a4'});
+    var margin=18, pageW=210, maxW=pageW-margin*2, lineH=6, y=margin;
+    function p(texto, opts){
+      opts=opts||{};
+      doc.setFont('helvetica', opts.bold?'bold':'normal'); doc.setFontSize(opts.size||10.5);
+      doc.splitTextToSize(texto, maxW).forEach(function(l){ doc.text(l, margin, y); y+=lineH; });
+      y += (opts.gap!=null?opts.gap:3);
+    }
+    doc.setFont('helvetica','bold'); doc.setFontSize(14);
+    doc.text('COMPROVANTE DE COMUNICAÇÃO DE FALTA', pageW/2, y, {align:'center'}); y+=10;
+
+    p('Este documento comprova a comunicação de ausência do(a) aluno(a) no transporte escolar do dia informado abaixo, e o ciclo completo de confirmação entre as partes.', {gap:6});
+
+    p('Aluno(a): '+(d.aluno_nome||'Não informado'), {bold:true});
+    p('Data/hora do aviso enviado pelo responsável: '+(d.data_hora_texto||new Date(d.timestamp).toLocaleString('pt-BR')));
+    p('Data/hora da confirmação do motorista: '+new Date(d.motorista_confirmou_em).toLocaleString('pt-BR'));
+    p('Data/hora da confirmação de recebimento pelo responsável: '+new Date(d.pai_recebeu_em).toLocaleString('pt-BR'), {gap:6});
+
+    p('Pelo presente comprovante, fica registrado que o(a) responsável pelo(a) aluno(a) comunicou, pelo aplicativo, que o(a) aluno(a) não utilizaria o transporte escolar na data acima. O motorista confirmou o recebimento desse aviso, e o(a) responsável, por sua vez, confirmou ter recebido e compreendido a informação de que o(a) aluno(a) não seria buscado(a) pela van. A responsabilidade pela ausência de busca do(a) aluno(a) nesta data é, portanto, exclusiva do(a) responsável que originou o aviso.', {gap:8});
+
+    doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+    doc.text('Código de verificação:', margin, y); y+=6;
+    doc.setFont('helvetica','normal'); doc.setFontSize(13);
+    doc.text(hash, margin, y); y+=8;
+    doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(120);
+    doc.splitTextToSize('Este código é gerado a partir dos dados e horários registrados no momento de cada confirmação. Ele não é uma assinatura digital com certificado — serve apenas como evidência de integridade: qualquer alteração posterior nos dados originais (datas, nomes, identificadores) faz com que o código não confira mais com este documento.', maxW).forEach(function(l){ doc.text(l, margin, y); y+=4.2; });
+
+    var nomeArquivo = 'Comprovante_Falta_'+(d.aluno_nome||'aluno').replace(/\s+/g,'_')+'.pdf';
+    doc.save(nomeArquivo);
+    rdb.ref('aviso_falta').update({documento_gerado:true, hash:hash});
+    el('comprovante-falta-banner').style.display='none';
+    comprovanteFaltaPendente=null;
+    showToast('📄 Comprovante gerado!');
+  });
+}
+
 function criarPaiAluno(){
   var paiNome=val('m-pai-nome'), pass=val('m-pai-pass');
   var codigo=el('m-pai-codigo').textContent;
@@ -2473,12 +2617,14 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev7.4';
+var APP_VERSION = 'rev7.6';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
   listenAlunos();
   listenAvisoFalta();
+  listenConfirmacaoRecebimentoPai();
+  listenCancelamentoFalta();
   listenEscolas();
   listenStatus();
   listenChat();
