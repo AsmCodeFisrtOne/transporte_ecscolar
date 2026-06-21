@@ -706,6 +706,7 @@ function finishTrip(){
   // sentido com viagem ativa.
   modoAutomaticoAtivo=false;
   simulacaoGpsAtiva=false;
+  clearTimeout(simulacaoTimeoutId);
   var toggleAuto=el('modo-auto-toggle'); if(toggleAuto) toggleAuto.checked=false;
   atualizarControlesDependentesDeViagem();
   showToast('🏁 Viagem finalizada!');
@@ -1316,6 +1317,7 @@ function toggleModoAutomatico(){
   if(!modoAutomaticoAtivo){
     sugestaoAtual=null;
     simulacaoGpsAtiva=false;
+    clearTimeout(simulacaoTimeoutId);
     el('auto-suggestion').style.display='none';
     pararAlertaRotaRepetido();
   } else if(lastGpsPosition){
@@ -1331,6 +1333,8 @@ function toggleModoAutomatico(){
 // MESMA função real de detecção por GPS (processarParadaAtual) — só pra
 // testar o fluxo automático completo sem precisar mover a van de verdade.
 // Não inventa nenhuma lógica nova: é o caminho real, com posição forjada.
+var simulacaoTimeoutId = null;
+
 function simularChegadaParadaAtual(){
   if(!modoAutomaticoAtivo){ showToast('⚠️ Ative o modo automático primeiro'); return; }
   if(!tripStarted || !rotaEmExecucao){ showToast('⚠️ Nenhuma rota em andamento'); return; }
@@ -1338,11 +1342,18 @@ function simularChegadaParadaAtual(){
   if(!p){ showToast('✅ Rota já concluída'); return; }
   var coord=coordenadaParada(p);
   if(!coord){ showToast('⚠️ Essa parada não tem coordenada cadastrada'); return; }
-  simulacaoGpsAtiva=true; // a partir de agora, ignora o GPS real até desligar o modo automático ou finalizar a viagem
+  simulacaoGpsAtiva=true;
   lastGpsPosition={lat:coord.lat,lng:coord.lng};
   atualizarMapaRota();
   processarParadaAtual(coord.lat,coord.lng);
   showToast('🧪 Simulando chegada em '+coord.nome);
+  // O GPS real é sempre a regra de ouro: a simulação só "trava" a posição
+  // por alguns segundos (tempo suficiente pra caixa de sugestão aparecer
+  // sem ser fechada na hora por uma atualização real concorrente). Depois
+  // disso, solta sozinha e o GPS real volta a comandar o mapa normalmente
+  // — sem precisar desligar/religar o modo automático pra "destravar".
+  clearTimeout(simulacaoTimeoutId);
+  simulacaoTimeoutId = setTimeout(function(){ simulacaoGpsAtiva=false; }, 6000);
 }
 
 var ultimoAvisoAutoIndice = -1;
@@ -1648,8 +1659,13 @@ function atualizarMapaRota(){
   var view=el('view-mapaauto');
   if(!view || !view.classList.contains('active') || !mapaRotaMap) return;
 
-  if(lastGpsPosition){
-    var lat=lastGpsPosition.lat, lng=lastGpsPosition.lng;
+  // O ícone da van no mapa usa SEMPRE a posição real do GPS — nunca a
+  // posição usada internamente pelo simulador de teste. Mesmo simulando a
+  // chegada numa parada, a van visível no mapa não se move daí; só a
+  // checagem de proximidade (pra testar a caixa de sugestão) usa a posição
+  // simulada, separadamente.
+  if(lastRealGpsPosition){
+    var lat=lastRealGpsPosition.lat, lng=lastRealGpsPosition.lng;
     if(mapaRotaVanMarker){
       mapaRotaVanMarker.setLatLng([lat,lng]);
       // Se o marcador saiu da área visível, move o mapa suavemente — igual ao app dos pais
@@ -1715,7 +1731,7 @@ function atualizarMapaRota(){
     mapaRotaStopMarkers.push(ponto);
   });
   // Se não tem GPS ainda, ao menos centraliza o mapa pra mostrar todas as paradas da rota
-  if(!lastGpsPosition && bounds.length){
+  if(!lastRealGpsPosition && bounds.length){
     mapaRotaMap.fitBounds(bounds, {padding:[30,30]});
   }
   aplicarRotacaoMapa();
@@ -2457,7 +2473,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev7.1';
+var APP_VERSION = 'rev7.3';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
