@@ -2499,7 +2499,7 @@ function gerarComprovanteFaltaPDF(){
     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(120);
     doc.splitTextToSize('Este código é gerado a partir dos dados e horários registrados no momento de cada confirmação. Ele não é uma assinatura digital com certificado — serve apenas como evidência de integridade: qualquer alteração posterior nos dados originais (datas, nomes, identificadores) faz com que o código não confira mais com este documento.', maxW).forEach(function(l){ doc.text(l, margin, y); y+=4.2; });
 
-    var nomeArquivo = 'Comprovante_Falta_'+(d.aluno_nome||'aluno').replace(/\s+/g,'_')+'.pdf';
+    var nomeArquivo = 'Comprovante_Falta_'+(d.aluno_nome||'aluno').replace(/\s+/g,'_')+'_'+Date.now()+'.pdf';
     doc.save(nomeArquivo);
     rdb.ref('aviso_falta').update({documento_gerado:true, hash:hash});
     el('comprovante-falta-banner').style.display='none';
@@ -2617,7 +2617,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev7.6';
+var APP_VERSION = 'rev7.7';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
