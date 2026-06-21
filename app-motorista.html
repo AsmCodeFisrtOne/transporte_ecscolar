@@ -283,10 +283,16 @@ html,body{height:100%;height:100dvh;font-family:'Inter',sans-serif;background:#0
 
   <!-- MAPA EM TEMPO REAL (modo automático) -->
   <div id="view-mapaauto" class="view">
-    <div style="display:flex;justify-content:flex-end;padding:8px 10px;background:var(--navy2);border-bottom:1px solid #0F172A;flex-shrink:0">
-      <button onclick="centralizarMapaRota()" id="btn-centralizar-rota" style="padding:5px 14px;border-radius:20px;border:none;background:var(--yellow);color:var(--navy);font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif">📍 Centralizar</button>
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:var(--navy2);border-bottom:1px solid #0F172A;flex-shrink:0;gap:8px">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;white-space:nowrap">
+        <input type="checkbox" id="mapa-rotacao-toggle" onchange="toggleRotacaoMapa()" style="width:16px;height:16px">
+        🧭 Seguir direção
+      </label>
+      <button onclick="centralizarMapaRota()" id="btn-centralizar-rota" style="padding:5px 14px;border-radius:20px;border:none;background:var(--yellow);color:var(--navy);font-size:12px;font-weight:700;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap">📍 Centralizar</button>
     </div>
-    <div id="mapaauto-div" style="width:100%;flex:1;min-height:0"></div>
+    <div id="mapaauto-wrap" style="position:relative;overflow:hidden;flex:1;min-height:0">
+      <div id="mapaauto-div" style="position:absolute;top:-35%;left:-35%;width:170%;height:170%;transform-origin:center center"></div>
+    </div>
   </div>
 
   <!-- CHAT -->
@@ -567,6 +573,12 @@ function toggleGPS(){
       // auxiliar nunca ficam sem ver a posição real da van.
       if(simulacaoGpsAtiva) return;
       lastGpsPosition={lat:lat,lng:lng,spd:spd};
+      // Só atualiza a direção do mapa girado com a van realmente em
+      // movimento (≥10km/h) — parada ou bem lenta, o GPS não entrega uma
+      // direção confiável, então mantemos a última válida (sem "tremer").
+      if(mapaRotacaoAtiva && spd>=10 && pos.coords.heading!=null && !isNaN(pos.coords.heading)){
+        headingAtual = pos.coords.heading;
+      }
       if(modoAutomaticoAtivo && tripStarted) processarParadaAtual(lat,lng);
       atualizarMapaRota();
     },
@@ -1142,6 +1154,7 @@ function garantirEstadoInicialAoAbrirApp(){
   ordemChipsAtual=null;
   ultimoNextAlunoIdRastreado=undefined;
   var alertaToggle=el('alerta-sonoro-toggle'); if(alertaToggle) alertaToggle.checked=alertaSonoroAtivo;
+  var rotacaoToggle=el('mapa-rotacao-toggle'); if(rotacaoToggle) rotacaoToggle.checked=mapaRotacaoAtiva;
   db.collection('status_alunos').get().then(function(snap){ snap.forEach(function(d){ d.ref.delete(); }); });
   rdb.ref('rota_progresso').remove();
   rdb.ref('proximo_embarque').remove();
@@ -1497,6 +1510,37 @@ function avisarChegadaSugestao(){
 
 // ===== MAPA EM TEMPO REAL =====
 var mapaRotaMap=null, mapaRotaVanMarker=null, mapaRotaStopMarkers=[];
+var mapaRotacaoAtiva = (localStorage.getItem('mapaRotacaoAtiva') === 'true'); // desligado por padrão
+var headingAtual = 0; // direção atual aplicada ao mapa (graus), só atualiza com a van em movimento real
+
+function toggleRotacaoMapa(){
+  mapaRotacaoAtiva = el('mapa-rotacao-toggle').checked;
+  localStorage.setItem('mapaRotacaoAtiva', mapaRotacaoAtiva ? 'true' : 'false');
+  if(!mapaRotacaoAtiva){ headingAtual=0; }
+  aplicarRotacaoMapa();
+}
+
+// Gira visualmente o contêiner do mapa pra manter "frente da van = topo da
+// tela" (tipo Waze/Maps), e contra-gira o desenho da van pra ele continuar
+// na posição normal (não de cabeça pra baixo). É só CSS por cima do que já
+// existe — não toca na lógica de paradas/status. Importante: a contra-
+// rotação é aplicada num elemento FILHO do marcador (a <img> de dentro), não
+// no elemento que o próprio Leaflet usa pra posicionar (que ele sobrescreve
+// a cada pan/zoom) — assim as duas rotações não brigam entre si.
+function aplicarRotacaoMapa(){
+  var div=el('mapaauto-div'); if(!div) return;
+  var angulo = mapaRotacaoAtiva ? -headingAtual : 0;
+  div.style.transform = 'rotate('+angulo+'deg)';
+  if(mapaRotaVanMarker){
+    var elVan=mapaRotaVanMarker.getElement();
+    var img = elVan ? elVan.querySelector('img') : null;
+    if(img) img.style.transform = 'rotate('+(-angulo)+'deg)';
+  }
+  // Os controles de zoom (+/-) do Leaflet ficam dentro do mesmo contêiner
+  // que giramos, então contra-giram aqui pra continuarem retos na tela.
+  var controles = div.querySelector('.leaflet-control-container');
+  if(controles) controles.style.transform = 'rotate('+(-angulo)+'deg)';
+}
 
 function centralizarMapaRota(){
   if(mapaRotaMap && mapaRotaVanMarker){
@@ -1524,10 +1568,9 @@ function atualizarMapaRota(){
         mapaRotaMap.panTo([lat,lng],{animate:true,duration:0.8});
       }
     } else {
-      var iconeVan = L.icon({
-        iconUrl: VAN_ICON_IMG,
-        iconSize:[52,30], iconAnchor:[26,15],
-        className:'van-icon-shadow'
+      var iconeVan = L.divIcon({
+        html:'<img src="'+VAN_ICON_IMG+'" style="width:52px;height:30px;display:block;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))">',
+        className:'', iconSize:[52,30], iconAnchor:[26,15]
       });
       mapaRotaVanMarker = L.marker([lat,lng],{icon:iconeVan}).addTo(mapaRotaMap);
       mapaRotaMap.setView([lat,lng],15);
@@ -1539,12 +1582,15 @@ function atualizarMapaRota(){
 
   // Mapa só mostra as paradas quando tem viagem ativa. Sem viagem, fica vazio
   // (nenhum ponto de aluno/escola) até a próxima viagem ser iniciada.
-  if(!tripStarted || !rotaEmExecucao) return;
+  if(!tripStarted || !rotaEmExecucao){ aplicarRotacaoMapa(); return; }
 
   var rotaParaMostrar = rotaEmExecucao;
   var paradas=rotaParaMostrar.paradas||[];
   var bounds=[];
   var destacados=calcularDestacadosAtuais();
+  // Contra-rotação aplicada aos números das paradas, pra eles continuarem
+  // legíveis (não de cabeça pra baixo) enquanto o mapa gira seguindo a van.
+  var contraRot = mapaRotacaoAtiva ? headingAtual : 0;
   paradas.forEach(function(p,idx){
     var coord=coordenadaParada(p);
     if(!coord) return;
@@ -1570,7 +1616,7 @@ function atualizarMapaRota(){
     }
     var conteudoIcone = (ehAtual||!feito) ? (idx+1) : '✓';
     var icone=L.divIcon({
-      html:'<div style="background:'+cor+';color:#fff;border:2px solid #fff;border-radius:50%;width:'+(ehAtual?28:22)+'px;height:'+(ehAtual?28:22)+'px;display:flex;align-items:center;justify-content:center;font-size:'+(ehAtual?13:11)+'px;font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.4)">'+conteudoIcone+'</div>',
+      html:'<div style="background:'+cor+';color:#fff;border:2px solid #fff;border-radius:50%;width:'+(ehAtual?28:22)+'px;height:'+(ehAtual?28:22)+'px;display:flex;align-items:center;justify-content:center;font-size:'+(ehAtual?13:11)+'px;font-weight:800;box-shadow:0 1px 4px rgba(0,0,0,.4);transform:rotate('+contraRot+'deg)">'+conteudoIcone+'</div>',
       className:'', iconSize:[ehAtual?28:22,ehAtual?28:22], iconAnchor:[ehAtual?14:11,ehAtual?14:11]
     });
     var ponto=L.marker([coord.lat,coord.lng],{icon:icone}).bindTooltip(coord.nome,{permanent:false}).addTo(mapaRotaMap);
@@ -1580,6 +1626,7 @@ function atualizarMapaRota(){
   if(!lastGpsPosition && bounds.length){
     mapaRotaMap.fitBounds(bounds, {padding:[30,30]});
   }
+  aplicarRotacaoMapa();
 }
 
 var selectedAlunoId = null;
@@ -2135,7 +2182,7 @@ function clearTraffic(){
 }
 
 // INIT
-var APP_VERSION = 'rev6.6';
+var APP_VERSION = 'rev6.7';
 function initApp(){
   setText('app-version', APP_VERSION);
   loadConfig();
